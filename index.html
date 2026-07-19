@@ -130,15 +130,15 @@
   .cell-icon{ font-size:16px; }
   .token{
     position:absolute;
-    width:22%;
-    height:22%;
+    width:8%;
+    height:8%;
     border-radius:50%;
     box-shadow:0 2px 4px rgba(0,0,0,0.4);
     transition: left 0.4s ease, top 0.4s ease;
     display:flex;align-items:center;justify-content:center;
-    font-size:11px;
+    font-size:9px;
     z-index:5;
-    border:2px solid rgba(255,255,255,0.8);
+    border:2px solid rgba(255,255,255,0.85);
   }
   #token-player{ background:var(--forest-dark); }
   #token-bot{ background:var(--oxblood); }
@@ -194,6 +194,28 @@
     color:#4a4331;
     max-width:420px;
   }
+
+  #game-log{
+    width:100%;
+    max-width:420px;
+    max-height:130px;
+    overflow-y:auto;
+    background:rgba(0,0,0,0.04);
+    border-radius:10px;
+    padding:8px 10px;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:12px;
+    color:#5c5240;
+    text-align:left;
+  }
+  #game-log .log-line{
+    padding:3px 0;
+    border-bottom:1px solid rgba(0,0,0,0.06);
+  }
+  #game-log .log-line:last-child{ border-bottom:none; }
+  #game-log .log-line.player{ color:var(--forest-dark); font-weight:600; }
+  #game-log .log-line.bot{ color:var(--oxblood); }
+  #game-log .log-line.system{ color:#8a7f66; font-style:italic; }
 
   #legend{
     display:flex;
@@ -332,6 +354,7 @@
     <div class="turn-indicator" id="turn-indicator">Tu turno</div>
     <div id="dice">🎲</div>
     <div id="message">Elegí tu edad para empezar.</div>
+    <div id="game-log"></div>
     <div id="legend">
       <span><span class="legend-swatch" style="background:var(--gold-light)"></span>Oca &mdash; tirá de nuevo</span>
       <span><span class="legend-swatch" style="background:#B7C9C1"></span>Puente &mdash; saltás</span>
@@ -546,12 +569,26 @@
   const adOverlay = document.getElementById('ad-overlay');
   const adCountdownEl = document.getElementById('ad-countdown');
   const adCloseBtn = document.getElementById('ad-close');
+  const gameLogEl = document.getElementById('game-log');
+
+  function logEvent(text, cls){
+    const line = document.createElement('div');
+    line.className = 'log-line' + (cls ? ' ' + cls : '');
+    line.textContent = text;
+    gameLogEl.appendChild(line);
+    gameLogEl.scrollTop = gameLogEl.scrollHeight;
+  }
+
+  function setMessage(text, cls){
+    messageEl.textContent = text;
+    logEvent(text, cls);
+  }
 
   document.querySelectorAll('.age-options button').forEach(btn => {
     btn.addEventListener('click', () => {
       ageBracket = btn.getAttribute('data-bracket');
       ageOverlay.classList.add('hidden');
-      messageEl.textContent = 'Tocá el dado para tirar.';
+      setMessage('Tocá el dado para tirar.', 'system');
       render();
     });
   });
@@ -597,8 +634,8 @@
   }
 
   function render(){
-    placeToken(tokenPlayer, state.playerPos, 1.5, 6);
-    placeToken(tokenBot, state.botPos, 12, 6);
+    placeToken(tokenPlayer, state.playerPos, 1, 1);
+    placeToken(tokenBot, state.botPos, 4.3, 4.3);
     turnIndicator.textContent = state.finished ? 'Partida terminada' : (state.turn==='player' ? 'Tu turno' : 'Turno del rival');
     turnIndicator.classList.toggle('bot', state.turn==='bot' && !state.finished);
     diceEl.classList.toggle('disabled', state.turn!=='player' || state.finished || !ageBracket || turnLocked);
@@ -668,24 +705,26 @@
     const oldPos = state[posKey];
     const rawNewPos = Math.min(oldPos + diceValue, TOTAL_CELLS-1);
     const tokenEl = who==='player' ? tokenPlayer : tokenBot;
-    const offsetX = who==='player' ? 1.5 : 12;
+    const offsetX = who==='player' ? 1 : 4.3;
+    const offsetY = who==='player' ? 1 : 4.3;
 
-    walkToken(tokenEl, oldPos, rawNewPos, offsetX, 6, () => {
+    walkToken(tokenEl, oldPos, rawNewPos, offsetX, offsetY, () => {
       const result = applySpecial(rawNewPos, label);
       const esVos = who==='player';
       const verboSacar = esVos ? 'sacaste' : 'sacó';
       const verboAvanzar = esVos ? 'avanzás' : 'avanza';
       const baseMsg = `${label} ${verboSacar} ${diceValue} y ${verboAvanzar} a la casilla ${rawNewPos}.`;
+      const logCls = esVos ? 'player' : 'bot';
 
       if(result.trivia){
-        messageEl.textContent = baseMsg + ' 🎯 ¡Casilla de trivia!';
+        setMessage(baseMsg + ' 🎯 ¡Casilla de trivia!', logCls);
         handleTrivia(who, label, posKey, rawNewPos);
         return;
       }
 
       state[posKey] = result.pos;
       render();
-      messageEl.textContent = baseMsg + (result.msg ? ' ' + result.msg : '');
+      setMessage(baseMsg + (result.msg ? ' ' + result.msg : ''), logCls);
 
       if(result.win){
         state.finished = true;
@@ -714,7 +753,7 @@
 
     if(state.turn==='bot' && skipBot){
       skipBot = false;
-      messageEl.textContent += ' El rival pierde su turno por la cárcel.';
+      setMessage('El rival pierde su turno por la cárcel.', 'system');
       state.turn = 'player';
       turnLocked = false;
       render();
@@ -722,7 +761,7 @@
     }
     if(state.turn==='player' && skipPlayer){
       skipPlayer = false;
-      messageEl.textContent += ' Perdés tu turno por la cárcel.';
+      setMessage('Perdés tu turno por la cárcel.', 'system');
       state.turn = 'bot';
       render();
       setTimeout(botPlay, 700);
@@ -742,9 +781,10 @@
 
     if(who==='bot'){
       // el bot "responde" solo, con una probabilidad razonable de acierto
+      logEvent(`🎯 Trivia para el rival: "${question.q}"`, 'bot');
       setTimeout(() => {
         const correct = Math.random() < 0.55;
-        resolveTrivia(who, label, posKey, currentPos, correct);
+        resolveTrivia(who, label, posKey, currentPos, correct, question);
       }, 900);
       return;
     }
@@ -763,7 +803,7 @@
         }
         setTimeout(() => {
           triviaOverlay.classList.add('hidden');
-          resolveTrivia(who, label, posKey, currentPos, correct);
+          resolveTrivia(who, label, posKey, currentPos, correct, question);
         }, 900);
       });
       triviaOptionsEl.appendChild(btn);
@@ -771,14 +811,15 @@
     triviaOverlay.classList.remove('hidden');
   }
 
-  function resolveTrivia(who, label, posKey, currentPos, correct){
+  function resolveTrivia(who, label, posKey, currentPos, correct, question){
+    const logCls = who==='player' ? 'player' : 'bot';
     if(correct){
       playCorrect();
       const newPos = Math.min(currentPos + 2, TOTAL_CELLS-1);
       state[posKey] = newPos;
       render();
       const verbo = who==='player' ? 'avanzás' : 'avanza';
-      messageEl.textContent = `✅ ¡Correcto! ${label} ${verbo} 2 casillas extra.`;
+      setMessage(`✅ ¡Correcto! "${question.q}" → ${label} ${verbo} 2 casillas extra.`, logCls);
       if(newPos === TOTAL_CELLS-1){
         state.finished = true;
         playWin();
@@ -790,11 +831,11 @@
       playWrong();
       state[posKey] = currentPos;
       render();
-      messageEl.textContent = `❌ Respuesta incorrecta. Toca publicidad.`;
       if(who==='player'){
+        setMessage(`❌ Respuesta incorrecta. Toca publicidad.`, logCls);
         showAd(() => finishTurnFlow({pos:currentPos, extraTurn:false, skipNext:false}, who));
       } else {
-        // el rival no ve publicidad real; seguimos el flujo directo
+        setMessage(`❌ El rival falló: "${question.q}" → sigue en la casilla ${currentPos}.`, logCls);
         finishTurnFlow({pos:currentPos, extraTurn:false, skipNext:false}, who);
       }
     }
@@ -858,6 +899,7 @@
     totalTurns = 0;
     clearStormCell();
     diceEl.textContent = '🎲';
+    gameLogEl.innerHTML = '';
     messageEl.textContent = ageBracket ? 'Tocá el dado para tirar.' : 'Elegí tu edad para empezar.';
     render();
   }
