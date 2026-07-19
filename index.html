@@ -254,6 +254,7 @@
     padding:16px;
   }
   .overlay.hidden{ display:none; }
+  .hidden{ display:none !important; }
   .modal-card{
     background:var(--parchment);
     border-radius:14px;
@@ -397,6 +398,38 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="transition-overlay">
+  <div class="modal-card">
+    <h2 id="transition-title">🎉 ¡Etapa completada!</h2>
+
+    <div id="transition-phase1">
+      <div id="minigame-reflejos">
+        <p>Mini-juego de reflejos: tocá el botón apenas se ponga verde.</p>
+        <button id="reflex-btn" style="width:100%; padding:22px; border-radius:12px; border:none; background:#9AA1A8; color:#fff; font-family:-apple-system, system-ui, sans-serif; font-size:15px; font-weight:600; cursor:pointer;">Esperá...</button>
+        <p id="reflex-result" style="font-family:-apple-system, system-ui, sans-serif; font-size:13px; min-height:18px; margin-top:10px; color:#5c5240;"></p>
+      </div>
+      <div id="minigame-memoria" class="hidden">
+        <p>Mini-juego de memoria: mirá la secuencia y repetila tocando los mismos colores en orden.</p>
+        <div id="memory-tiles" style="display:flex; gap:8px; justify-content:center; margin:12px 0;"></div>
+        <p id="memory-result" style="font-family:-apple-system, system-ui, sans-serif; font-size:13px; min-height:18px; color:#5c5240;"></p>
+      </div>
+      <button id="skip-ad-btn" style="margin-top:12px; padding:8px 16px; border-radius:10px; border:1px solid rgba(0,0,0,0.15); background:#fff; color:#5c5240; font-family:-apple-system, system-ui, sans-serif; font-size:12.5px; cursor:pointer;">📺 Mirar un video y pasar directo</button>
+    </div>
+
+    <div id="transition-phase2" class="hidden">
+      <p>¡Girá la ruleta de premios!</p>
+      <div id="wheel-outer" style="position:relative; width:200px; height:200px; margin:6px auto 14px;">
+        <div id="wheel-pointer" style="position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:16px solid var(--forest-dark); z-index:2;"></div>
+        <div id="wheel-disc" style="width:100%; height:100%; border-radius:50%; border:4px solid var(--forest-dark); transition: transform 3.5s cubic-bezier(0.17,0.67,0.32,1.02);"></div>
+      </div>
+      <button id="spin-btn" style="padding:10px 22px; border-radius:10px; border:none; background:var(--forest-dark); color:var(--parchment); font-family:-apple-system, system-ui, sans-serif; font-size:14px; cursor:pointer;">Girar ruleta</button>
+      <p id="wheel-result" style="font-family:-apple-system, system-ui, sans-serif; font-size:14px; font-weight:600; min-height:20px; margin-top:10px; color:var(--forest-dark);"></p>
+    </div>
+
+    <button id="transition-continue" class="hidden" style="margin-top:14px; padding:10px 22px; border-radius:10px; border:none; background:var(--oxblood); color:#fff; font-family:-apple-system, system-ui, sans-serif; font-size:14px; cursor:pointer;">Jugar de nuevo</button>
+  </div>
+</div>
+
 <script>
 (function(){
   const TOTAL_CELLS = 30; // etapa 1: tablero corto para prototipo
@@ -420,6 +453,11 @@
       {q:'¿Cuántas patas tiene un perro?', options:['2','4','6','8'], correct:1},
       {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
       {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
+      {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
+      {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+      {q:'¿Qué comen los conejos?', options:['Carne','Zanahorias','Piedras','Plástico'], correct:1},
+      {q:'¿Cuántos dedos hay en una mano?', options:['4','5','6','10'], correct:1},
+      {q:'¿Qué animal es el "rey de la selva"?', options:['Elefante','León','Tigre','Oso'], correct:1},
     ],
     adolescentes: [
       {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
@@ -427,6 +465,11 @@
       {q:'¿Cuántos huesos tiene el cuerpo humano adulto?', options:['186','206','256','300'], correct:1},
       {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
       {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
+      {q:'¿En qué país se originaron los Juegos Olímpicos?', options:['Italia','Grecia','Egipto','Francia'], correct:1},
+      {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
+      {q:'¿Qué elemento químico tiene el símbolo "O"?', options:['Oro','Oxígeno','Osmio','Óxido'], correct:1},
+      {q:'¿Quién escribió "Don Quijote de la Mancha"?', options:['Cervantes','Lope de Vega','García Lorca','Borges'], correct:0},
+      {q:'¿Cuántos jugadores tiene un equipo de fútbol en cancha?', options:['9','10','11','12'], correct:2},
     ],
     adultos: [
       {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
@@ -434,6 +477,11 @@
       {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
       {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
       {q:'¿Cuántos continentes hay?', options:['5','6','7','8'], correct:2},
+      {q:'¿Cuál es la capital de Japón?', options:['Kioto','Osaka','Tokio','Nagoya'], correct:2},
+      {q:'¿Quién pintó "La noche estrellada"?', options:['Monet','Van Gogh','Renoir','Dalí'], correct:1},
+      {q:'¿Cuál es el metal líquido a temperatura ambiente?', options:['Plomo','Mercurio','Hierro','Aluminio'], correct:1},
+      {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
+      {q:'¿Cuántas cuerdas tiene una guitarra clásica?', options:['4','5','6','7'], correct:2},
     ],
     mayores: [
       {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
@@ -441,6 +489,11 @@
       {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
       {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
       {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+      {q:'¿Quién fue el primer hombre en pisar la Luna?', options:['Buzz Aldrin','Neil Armstrong','Yuri Gagarin','John Glenn'], correct:1},
+      {q:'¿En qué año se independizó Argentina?', options:['1810','1816','1820','1853'], correct:1},
+      {q:'¿Cuál es la capital de España?', options:['Barcelona','Madrid','Sevilla','Valencia'], correct:1},
+      {q:'¿Qué instrumento musical tiene teclas negras y blancas?', options:['Guitarra','Piano','Violín','Flauta'], correct:1},
+      {q:'¿Cuántos continentes hay en el planeta?', options:['5','6','7','8'], correct:2},
     ],
   };
 
@@ -449,23 +502,49 @@
       {q:'¿Cuántos lados tiene un hexágono?', options:['5','6','7','8'], correct:1},
       {q:'¿Cómo se llama el planeta rojo?', options:['Venus','Marte','Júpiter','Saturno'], correct:1},
       {q:'¿Cuántas patas tiene una araña?', options:['6','8','10','4'], correct:1},
+      {q:'¿Cómo se llama la estrella más cercana a la Tierra?', options:['Luna','Sol','Marte','Sirio'], correct:1},
+      {q:'¿Cuántos colores tiene el arcoíris?', options:['5','6','7','8'], correct:2},
     ],
     adolescentes: [
       {q:'¿Cuál es la capital de Canadá?', options:['Toronto','Ottawa','Vancouver','Montreal'], correct:1},
       {q:'¿Quién escribió "Romeo y Julieta"?', options:['Shakespeare','Cervantes','Dante','Molière'], correct:0},
       {q:'¿Cuál es el hueso más largo del cuerpo humano?', options:['Húmero','Fémur','Tibia','Radio'], correct:1},
+      {q:'¿En qué año comenzó la Primera Guerra Mundial?', options:['1910','1914','1918','1920'], correct:1},
+      {q:'¿Cuál es el idioma más hablado del mundo como lengua materna?', options:['Inglés','Español','Mandarín','Hindi'], correct:2},
     ],
     adultos: [
       {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
       {q:'¿Cuál es la velocidad aproximada de la luz?', options:['300.000 km/s','150.000 km/s','1.000.000 km/s','30.000 km/s'], correct:0},
       {q:'¿Quién formuló la teoría de la relatividad?', options:['Newton','Einstein','Bohr','Tesla'], correct:1},
+      {q:'¿Cuál es la capital de Kazajistán?', options:['Almatý','Astaná','Bishkek','Tashkent'], correct:1},
+      {q:'¿Quién compuso "La novena sinfonía"?', options:['Mozart','Bach','Beethoven','Chopin'], correct:2},
     ],
     mayores: [
       {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
       {q:'¿Quién pintó "Guernica"?', options:['Dalí','Picasso','Miró','Goya'], correct:1},
       {q:'¿Cuál era la capital del Imperio Romano de Oriente?', options:['Roma','Atenas','Constantinopla','Alejandría'], correct:2},
+      {q:'¿En qué año asumió la primera democracia post-dictadura en Argentina?', options:['1981','1983','1985','1989'], correct:1},
+      {q:'¿Quién escribió "El Quijote"?', options:['Lope de Vega','Cervantes','Calderón','Góngora'], correct:1},
     ],
   };
+
+  // --- Sistema de mazo sin repetición: baraja las preguntas y no repite hasta agotar el mazo ---
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+  const triviaQueues = {}; // "normal-adultos" | "dificil-adultos" -> array de índices restantes
+  function getNextQuestion(bank, queueKey){
+    if(!triviaQueues[queueKey] || triviaQueues[queueKey].length===0){
+      triviaQueues[queueKey] = shuffle(bank.map((_,i) => i));
+    }
+    const idx = triviaQueues[queueKey].pop();
+    return bank[idx];
+  }
 
   // --- Sonido simple con Web Audio API (sin archivos externos) ---
   let audioCtx = null;
@@ -593,6 +672,21 @@
   const adCountdownEl = document.getElementById('ad-countdown');
   const adCloseBtn = document.getElementById('ad-close');
   const gameLogEl = document.getElementById('game-log');
+  const transitionOverlay = document.getElementById('transition-overlay');
+  const transitionTitle = document.getElementById('transition-title');
+  const transitionPhase1 = document.getElementById('transition-phase1');
+  const transitionPhase2 = document.getElementById('transition-phase2');
+  const reflexBtn = document.getElementById('reflex-btn');
+  const reflexResultEl = document.getElementById('reflex-result');
+  const wheelDisc = document.getElementById('wheel-disc');
+  const spinBtn = document.getElementById('spin-btn');
+  const wheelResultEl = document.getElementById('wheel-result');
+  const transitionContinueBtn = document.getElementById('transition-continue');
+  const miniGameReflejosEl = document.getElementById('minigame-reflejos');
+  const miniGameMemoriaEl = document.getElementById('minigame-memoria');
+  const memoryTilesEl = document.getElementById('memory-tiles');
+  const memoryResultEl = document.getElementById('memory-result');
+  const skipAdBtn = document.getElementById('skip-ad-btn');
 
   function logEvent(text, cls){
     const line = document.createElement('div');
@@ -749,6 +843,7 @@
         turnLocked = false;
         playWin();
         render();
+        triggerStageEnd(who);
         return;
       }
       finishTurnFlow(result, who);
@@ -856,7 +951,8 @@
   function handleTrivia(who, label, posKey, currentPos, mode){
     const bankSet = mode==='calavera' ? triviaBankDificil : triviaBank;
     const bank = bankSet[ageBracket] || bankSet.adultos;
-    const question = bank[Math.floor(Math.random()*bank.length)];
+    const queueKey = (mode==='calavera' ? 'dificil-' : 'normal-') + (ageBracket || 'adultos');
+    const question = getNextQuestion(bank, queueKey);
 
     if(who==='bot'){
       // el bot "responde" solo, con una probabilidad razonable de acierto
@@ -907,6 +1003,7 @@
       state.finished = true;
       playWin();
       render();
+      triggerStageEnd(who);
       return;
     }
 
@@ -996,6 +1093,165 @@
 
   btnEtapa1.addEventListener('click', () => setStage(1));
   btnEtapa2.addEventListener('click', () => setStage(2));
+
+  // --- Transición entre etapas: mini-juego aleatorio + ruleta de premios ---
+
+  function triggerStageEnd(winner){
+    transitionTitle.textContent = winner==='player' ? '🎉 ¡Ganaste la etapa!' : '😕 Esta vez ganó el rival';
+    transitionPhase1.classList.remove('hidden');
+    transitionPhase2.classList.add('hidden');
+    transitionContinueBtn.classList.add('hidden');
+    setTimeout(() => {
+      transitionOverlay.classList.remove('hidden');
+      startRandomMiniGame();
+    }, 900);
+  }
+
+  function goToWheelPhase(){
+    transitionPhase1.classList.add('hidden');
+    transitionPhase2.classList.remove('hidden');
+    transitionContinueBtn.classList.add('hidden');
+    wheelResultEl.textContent = '';
+    spinBtn.disabled = false;
+    wheelDisc.style.transition = 'none';
+    wheelDisc.style.transform = 'rotate(0deg)';
+    void wheelDisc.offsetWidth; // forzar reflow para resetear sin animar
+    wheelDisc.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.32,1.02)';
+  }
+
+  skipAdBtn.addEventListener('click', () => {
+    showAd(() => goToWheelPhase());
+  });
+
+  function startRandomMiniGame(){
+    const pool = ['reflejos', 'memoria'];
+    const chosen = pool[Math.floor(Math.random()*pool.length)];
+    miniGameReflejosEl.classList.toggle('hidden', chosen!=='reflejos');
+    miniGameMemoriaEl.classList.toggle('hidden', chosen!=='memoria');
+    if(chosen==='reflejos') startReflexGame(); else startMemoryGame();
+  }
+
+  // Mini-juego 1: reflejos
+  function startReflexGame(){
+    reflexResultEl.textContent = '';
+    reflexBtn.textContent = 'Esperá...';
+    reflexBtn.style.background = '#9AA1A8';
+    reflexBtn.disabled = false;
+    let armed = false;
+    let readyTime = 0;
+    const delay = 1000 + Math.random()*1800;
+    const armTimer = setTimeout(() => {
+      armed = true;
+      reflexBtn.textContent = '¡YA! Tocá';
+      reflexBtn.style.background = '#5c9c5c';
+      readyTime = Date.now();
+    }, delay);
+    reflexBtn.onclick = () => {
+      reflexBtn.disabled = true;
+      if(armed){
+        const ms = Date.now() - readyTime;
+        reflexResultEl.textContent = `⚡ ¡${ms}ms! Buen reflejo.`;
+        playCorrect();
+      } else {
+        clearTimeout(armTimer);
+        reflexResultEl.textContent = '🙈 Tocaste antes de tiempo, pero seguís igual.';
+        playWrong();
+      }
+      setTimeout(goToWheelPhase, 1200);
+    };
+  }
+
+  // Mini-juego 2: memoria (secuencia de colores)
+  function startMemoryGame(){
+    memoryResultEl.textContent = 'Mirá la secuencia...';
+    const colors = ['#8FBF8F','#D98A8A','#7aa7d9','#e4c77a'];
+    const sequence = Array.from({length:3}, () => Math.floor(Math.random()*colors.length));
+    memoryTilesEl.innerHTML = '';
+    let showing = true;
+    let locked = false;
+    const playerInput = [];
+
+    const tileEls = colors.map((c, i) => {
+      const t = document.createElement('div');
+      t.style.cssText = `width:44px;height:44px;border-radius:8px;background:${c};cursor:pointer;opacity:0.5;transition:opacity 0.15s;`;
+      t.addEventListener('click', () => handleMemoryTap(i));
+      memoryTilesEl.appendChild(t);
+      return t;
+    });
+
+    function flash(i, cb){
+      tileEls[i].style.opacity = '1';
+      setTimeout(() => {
+        tileEls[i].style.opacity = '0.5';
+        setTimeout(cb, 200);
+      }, 400);
+    }
+    function showSequence(idx){
+      if(idx >= sequence.length){
+        showing = false;
+        memoryResultEl.textContent = 'Ahora repetí la secuencia.';
+        return;
+      }
+      flash(sequence[idx], () => showSequence(idx+1));
+    }
+    setTimeout(() => showSequence(0), 500);
+
+    function handleMemoryTap(i){
+      if(showing || locked) return;
+      playerInput.push(i);
+      const stepIdx = playerInput.length-1;
+      if(sequence[stepIdx] !== i){
+        locked = true;
+        memoryResultEl.textContent = '❌ Te equivocaste, pero seguís igual.';
+        playWrong();
+        setTimeout(goToWheelPhase, 1200);
+        return;
+      }
+      if(playerInput.length === sequence.length){
+        locked = true;
+        memoryResultEl.textContent = '✅ ¡Memoria perfecta!';
+        playCorrect();
+        setTimeout(goToWheelPhase, 1200);
+      }
+    }
+  }
+
+  // Ruleta de premios
+  const wheelPrizes = [
+    '+3 casillas de ventaja',
+    'Trivia gratis (sin publicidad si fallás)',
+    'Nada esta vez',
+    '+1 tirada extra al empezar',
+    'Inmunidad a una trampa',
+    'Nada esta vez'
+  ];
+  const wheelColors = ['#8FBF8F','#E4C77A','#B7C9C1','#7aa7d9','#D98A8A','#C9A24B'];
+
+  function buildWheelGradient(){
+    const seg = 360/wheelPrizes.length;
+    const stops = wheelColors.map((c,i) => `${c} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+    wheelDisc.style.background = `conic-gradient(${stops})`;
+  }
+  buildWheelGradient();
+
+  spinBtn.addEventListener('click', () => {
+    spinBtn.disabled = true;
+    const seg = 360/wheelPrizes.length;
+    const chosenIdx = Math.floor(Math.random()*wheelPrizes.length);
+    const center = chosenIdx*seg + seg/2;
+    const extraSpins = 4*360;
+    const rotation = extraSpins + (360 - center);
+    wheelDisc.style.transform = `rotate(${rotation}deg)`;
+    setTimeout(() => {
+      wheelResultEl.textContent = `🎁 ¡Premio: ${wheelPrizes[chosenIdx]}!`;
+      transitionContinueBtn.classList.remove('hidden');
+    }, 3600);
+  });
+
+  transitionContinueBtn.addEventListener('click', () => {
+    transitionOverlay.classList.add('hidden');
+    resetGame();
+  });
 
   render();
 })();
