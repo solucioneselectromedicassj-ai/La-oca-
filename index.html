@@ -1096,8 +1096,12 @@
 
   // --- Transición entre etapas: mini-juego aleatorio + ruleta de premios ---
 
+  let lastStageWinner = null;
+
   function triggerStageEnd(winner){
+    lastStageWinner = winner;
     transitionTitle.textContent = winner==='player' ? '🎉 ¡Ganaste la etapa!' : '😕 Esta vez ganó el rival';
+    transitionContinueBtn.textContent = winner==='player' ? 'Ir a la próxima etapa' : 'Reintentar esta etapa';
     transitionPhase1.classList.remove('hidden');
     transitionPhase2.classList.add('hidden');
     transitionContinueBtn.classList.add('hidden');
@@ -1250,7 +1254,12 @@
 
   transitionContinueBtn.addEventListener('click', () => {
     transitionOverlay.classList.add('hidden');
-    resetGame();
+    if(lastStageWinner === 'player'){
+      const nextStage = currentStage === 1 ? 2 : 1; // por ahora alterna entre las 2 etapas construidas
+      setStage(nextStage);
+    } else {
+      resetGame(); // perdiste: reintentás la misma etapa
+    }
   });
 
   render();
