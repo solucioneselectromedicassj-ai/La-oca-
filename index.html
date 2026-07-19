@@ -356,12 +356,12 @@
     <div id="message">Elegí tu edad para empezar.</div>
     <div id="game-log"></div>
     <div id="legend">
-      <span><span class="legend-swatch" style="background:var(--gold-light)"></span>Oca &mdash; tirá de nuevo</span>
-      <span><span class="legend-swatch" style="background:#B7C9C1"></span>Puente &mdash; saltás</span>
-      <span><span class="legend-swatch" style="background:#9AA1A8"></span>Cárcel &mdash; perdés turno</span>
-      <span><span class="legend-swatch" style="background:#C48A7A"></span>Calavera &mdash; volvés al inicio</span>
-      <span><span class="legend-swatch" style="background:#D9C77A"></span>Trivia &mdash; respondé y avanzás</span>
-      <span><span class="legend-swatch" style="background:var(--oxblood)"></span>Meta</span>
+      <span><span class="legend-swatch" style="background:var(--gold-light)"></span>Oca &mdash; trivia: acertá y tirás de nuevo</span>
+      <span><span class="legend-swatch" style="background:#B7C9C1"></span>Puente &mdash; salto garantizado</span>
+      <span><span class="legend-swatch" style="background:#9AA1A8"></span>Cárcel &mdash; trivia: acertá y te salvás</span>
+      <span><span class="legend-swatch" style="background:#C48A7A"></span>Calavera &mdash; trivia difícil o volvés al inicio</span>
+      <span><span class="legend-swatch" style="background:#D9C77A"></span>Trivia &mdash; acertá y avanzás 2</span>
+      <span><span class="legend-swatch" style="background:var(--oxblood)"></span>Meta &mdash; premio garantizado</span>
     </div>
     <button id="restart">Reiniciar partida</button>
   </div>
@@ -441,6 +441,29 @@
       {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
       {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
       {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+    ],
+  };
+
+  const triviaBankDificil = {
+    ninos: [
+      {q:'¿Cuántos lados tiene un hexágono?', options:['5','6','7','8'], correct:1},
+      {q:'¿Cómo se llama el planeta rojo?', options:['Venus','Marte','Júpiter','Saturno'], correct:1},
+      {q:'¿Cuántas patas tiene una araña?', options:['6','8','10','4'], correct:1},
+    ],
+    adolescentes: [
+      {q:'¿Cuál es la capital de Canadá?', options:['Toronto','Ottawa','Vancouver','Montreal'], correct:1},
+      {q:'¿Quién escribió "Romeo y Julieta"?', options:['Shakespeare','Cervantes','Dante','Molière'], correct:0},
+      {q:'¿Cuál es el hueso más largo del cuerpo humano?', options:['Húmero','Fémur','Tibia','Radio'], correct:1},
+    ],
+    adultos: [
+      {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
+      {q:'¿Cuál es la velocidad aproximada de la luz?', options:['300.000 km/s','150.000 km/s','1.000.000 km/s','30.000 km/s'], correct:0},
+      {q:'¿Quién formuló la teoría de la relatividad?', options:['Newton','Einstein','Bohr','Tesla'], correct:1},
+    ],
+    mayores: [
+      {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
+      {q:'¿Quién pintó "Guernica"?', options:['Dalí','Picasso','Miró','Goya'], correct:1},
+      {q:'¿Cuál era la capital del Imperio Romano de Oriente?', options:['Roma','Atenas','Constantinopla','Alejandría'], correct:2},
     ],
   };
 
@@ -648,31 +671,26 @@
   function applySpecial(pos, who){
     const esVos = who === 'Vos';
     if(activeEvent && activeEvent.cellIndex===pos){
-      const dest = Math.max(0, pos-3);
-      const verbo = esVos ? 'caés' : 'cae';
-      return {pos:dest, extraTurn:false, msg:`⛈️ ${who} ${verbo} en la tormenta y retrocede a la casilla ${dest}.`};
+      return {pos, trivia:true, mode:'tormenta'};
     }
     const type = special[pos];
     if(!type) return {pos, extraTurn:false, msg:null};
     if(type==='trivia'){
-      return {pos, extraTurn:false, msg:null, trivia:true};
+      return {pos, trivia:true, mode:'dedicada'};
     }
     if(type==='oca'){
-      const verbo = esVos ? 'tirás' : 'tira';
-      return {pos, extraTurn:true, msg:`¡Oca! ${who} ${verbo} de nuevo.`};
+      return {pos, trivia:true, mode:'oca'};
     }
     if(type==='puente'){
       const dest = puenteDestino[pos];
       const verbo = esVos ? 'saltás' : 'salta';
-      return {pos:dest, extraTurn:false, msg:`¡Puente! ${who} ${verbo} a la casilla ${dest}.`};
+      return {pos:dest, extraTurn:false, msg:`¡Puente! ${who} ${verbo} a la casilla ${dest}. (premio garantizado)`};
     }
     if(type==='carcel'){
-      const verbo = esVos ? 'caés' : 'cae';
-      return {pos, extraTurn:false, msg:`${who} ${verbo} en la cárcel y pierde el próximo turno.`, skipNext:true};
+      return {pos, trivia:true, mode:'carcel'};
     }
     if(type==='calavera'){
-      const verbo = esVos ? 'volvés' : 'vuelve';
-      return {pos:0, extraTurn:false, msg:`💀 ${who} ${verbo} a la salida.`};
+      return {pos, trivia:true, mode:'calavera'};
     }
     if(type==='meta'){
       const verbo = esVos ? 'llegaste' : 'llegó';
@@ -717,8 +735,8 @@
       const logCls = esVos ? 'player' : 'bot';
 
       if(result.trivia){
-        setMessage(baseMsg + ' 🎯 ¡Casilla de trivia!', logCls);
-        handleTrivia(who, label, posKey, rawNewPos);
+        setMessage(baseMsg + ' ' + triviaIntroMsg(result.mode), logCls);
+        handleTrivia(who, label, posKey, rawNewPos, result.mode);
         return;
       }
 
@@ -775,16 +793,77 @@
     render();
   }
 
-  function handleTrivia(who, label, posKey, currentPos){
-    const bank = triviaBank[ageBracket] || triviaBank.adultos;
+  const triviaOutcomeRules = {
+    dedicada: {
+      onSuccess: (pos) => ({ pos: Math.min(pos+2, TOTAL_CELLS-1) }),
+      onFail:    (pos) => ({ pos })
+    },
+    oca: {
+      onSuccess: (pos) => ({ pos, extraTurn:true }),
+      onFail:    (pos) => ({ pos })
+    },
+    carcel: {
+      onSuccess: (pos) => ({ pos }),
+      onFail:    (pos) => ({ pos, skipNext:true })
+    },
+    calavera: {
+      onSuccess: (pos) => ({ pos }),
+      onFail:    (pos) => ({ pos: 0 })
+    },
+    tormenta: {
+      onSuccess: (pos) => ({ pos }),
+      onFail:    (pos) => ({ pos: Math.max(0, pos-3) })
+    }
+  };
+
+  function triviaIntroMsg(mode){
+    if(mode==='oca') return '🪿 ¡Oca! Trivia para tirar de nuevo.';
+    if(mode==='carcel') return '⛓️ ¡Cárcel! Trivia para salvarte.';
+    if(mode==='calavera') return '💀 ¡Calavera! Trivia DIFÍCIL para salvarte.';
+    if(mode==='tormenta') return '⛈️ ¡Tormenta! Trivia para esquivarla.';
+    return '🎯 ¡Casilla de trivia!';
+  }
+
+  function triviaOutcomeMsg(mode, correct, label, isPlayer){
+    if(mode==='dedicada'){
+      return correct
+        ? `✅ ¡Correcto! ${label} ${isPlayer?'avanzás':'avanza'} 2 casillas extra.`
+        : `❌ Respuesta incorrecta. ${isPlayer ? 'Toca publicidad.' : `${label} se queda igual.`}`;
+    }
+    if(mode==='oca'){
+      return correct
+        ? `🪿 ¡Bien! ${label} ${isPlayer?'tirás':'tira'} de nuevo.`
+        : `🪿 ${label} ${isPlayer?'no acertaste y perdés':'no acertó y pierde'} el tiro extra.`;
+    }
+    if(mode==='carcel'){
+      return correct
+        ? `⛓️ ¡${label} ${isPlayer?'te salvás':'se salva'} de la cárcel!`
+        : `⛓️ ${label} ${isPlayer?'caés preso y perdés':'cae preso y pierde'} el próximo turno.`;
+    }
+    if(mode==='calavera'){
+      return correct
+        ? `💀 Trivia difícil superada: ${label} ${isPlayer?'te quedás':'se queda'} en esta casilla.`
+        : `💀 ${label} ${isPlayer?'no la supiste... volvés':'no la supo... vuelve'} a la salida.`;
+    }
+    if(mode==='tormenta'){
+      return correct
+        ? `⛈️ ¡${label} ${isPlayer?'esquivás':'esquiva'} la tormenta!`
+        : `⛈️ La tormenta ${isPlayer?'te alcanza y retrocedés':'lo alcanza y retrocede'} 3 casillas.`;
+    }
+    return '';
+  }
+
+  function handleTrivia(who, label, posKey, currentPos, mode){
+    const bankSet = mode==='calavera' ? triviaBankDificil : triviaBank;
+    const bank = bankSet[ageBracket] || bankSet.adultos;
     const question = bank[Math.floor(Math.random()*bank.length)];
 
     if(who==='bot'){
       // el bot "responde" solo, con una probabilidad razonable de acierto
       logEvent(`🎯 Trivia para el rival: "${question.q}"`, 'bot');
       setTimeout(() => {
-        const correct = Math.random() < 0.55;
-        resolveTrivia(who, label, posKey, currentPos, correct, question);
+        const correct = Math.random() < (mode==='calavera' ? 0.4 : 0.55);
+        resolveTrivia(who, label, posKey, currentPos, correct, question, mode);
       }, 900);
       return;
     }
@@ -803,7 +882,7 @@
         }
         setTimeout(() => {
           triviaOverlay.classList.add('hidden');
-          resolveTrivia(who, label, posKey, currentPos, correct, question);
+          resolveTrivia(who, label, posKey, currentPos, correct, question, mode);
         }, 900);
       });
       triviaOptionsEl.appendChild(btn);
@@ -811,33 +890,32 @@
     triviaOverlay.classList.remove('hidden');
   }
 
-  function resolveTrivia(who, label, posKey, currentPos, correct, question){
+  function resolveTrivia(who, label, posKey, currentPos, correct, question, mode){
     const logCls = who==='player' ? 'player' : 'bot';
-    if(correct){
-      playCorrect();
-      const newPos = Math.min(currentPos + 2, TOTAL_CELLS-1);
-      state[posKey] = newPos;
+    const isPlayer = who==='player';
+    const rule = triviaOutcomeRules[mode];
+    const outcome = correct ? rule.onSuccess(currentPos) : rule.onFail(currentPos);
+
+    if(correct) playCorrect(); else playWrong();
+    state[posKey] = outcome.pos;
+    render();
+
+    const msg = `"${question.q}" → ` + triviaOutcomeMsg(mode, correct, label, isPlayer);
+
+    if(outcome.pos === TOTAL_CELLS-1){
+      setMessage(msg, logCls);
+      state.finished = true;
+      playWin();
       render();
-      const verbo = who==='player' ? 'avanzás' : 'avanza';
-      setMessage(`✅ ¡Correcto! "${question.q}" → ${label} ${verbo} 2 casillas extra.`, logCls);
-      if(newPos === TOTAL_CELLS-1){
-        state.finished = true;
-        playWin();
-        render();
-        return;
-      }
-      finishTurnFlow({pos:newPos, extraTurn:false, skipNext:false}, who);
+      return;
+    }
+
+    if(isPlayer && !correct){
+      setMessage(msg, logCls);
+      showAd(() => finishTurnFlow({pos:outcome.pos, extraTurn:!!outcome.extraTurn, skipNext:!!outcome.skipNext}, who));
     } else {
-      playWrong();
-      state[posKey] = currentPos;
-      render();
-      if(who==='player'){
-        setMessage(`❌ Respuesta incorrecta. Toca publicidad.`, logCls);
-        showAd(() => finishTurnFlow({pos:currentPos, extraTurn:false, skipNext:false}, who));
-      } else {
-        setMessage(`❌ El rival falló: "${question.q}" → sigue en la casilla ${currentPos}.`, logCls);
-        finishTurnFlow({pos:currentPos, extraTurn:false, skipNext:false}, who);
-      }
+      setMessage(msg, logCls);
+      finishTurnFlow({pos:outcome.pos, extraTurn:!!outcome.extraTurn, skipNext:!!outcome.skipNext}, who);
     }
   }
 
