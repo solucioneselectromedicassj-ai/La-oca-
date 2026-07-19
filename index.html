@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Vuelta - Etapa 1</title>
+<style>
+  :root{
+    --parchment:#EFE3C8;
+    --parchment-dark:#E2D3AC;
+    --ink:#1C1A17;
+    --forest:#2F4A3C;
+    --forest-dark:#22362B;
+    --oxblood:#8B3A3A;
+    --gold:#C9A24B;
+    --gold-light:#E4C77A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--parchment);
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(0,0,0,0.03) 0, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(0,0,0,0.03) 0, transparent 40%);
+    font-family: Georgia, 'Times New Roman', serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px 12px 60px;
+  }
+  h1{
+    font-family:'Palatino Linotype', Palatino, Georgia, serif;
+    font-weight:700;
+    letter-spacing:2px;
+    font-size:clamp(22px,5vw,34px);
+    margin:6px 0 2px;
+    text-align:center;
+    color:var(--forest-dark);
+  }
+  .subtitle{
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size:13px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:#7a6f56;
+    margin-bottom:10px;
+  }
+  #stage-toggle{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  #stage-toggle button{
+    font-size:12.5px;
+    padding:6px 14px;
+    border-radius:16px;
+    border:1px solid rgba(0,0,0,0.15);
+    background:var(--parchment-dark);
+    color:#5c5240;
+    cursor:pointer;
+  }
+  #stage-toggle button.active{
+    background:var(--forest-dark);
+    color:var(--parchment);
+    border-color:var(--forest-dark);
+  }
+  #event-banner{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:12.5px;
+    background:#5C7A99;
+    color:#fff;
+    padding:5px 14px;
+    border-radius:14px;
+    display:none;
+    text-align:center;
+  }
+  #event-banner.show{ display:block; }
+  .layout{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+    width:100%;
+    max-width:640px;
+  }
+  #board-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    max-width:600px;
+    background:var(--forest);
+    border-radius:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25), inset 0 0 0 6px var(--forest-dark);
+    padding:14px;
+  }
+  #board{
+    position:relative;
+    width:100%;
+    height:100%;
+  }
+  .cell{
+    position:absolute;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--parchment);
+    border-radius:6px;
+    box-shadow:0 2px 3px rgba(0,0,0,0.3);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size:10px;
+    font-weight:600;
+    color:#5c5240;
+    overflow:visible;
+  }
+  .cell.oca{ background:var(--gold-light); }
+  .cell.puente{ background:#B7C9C1; }
+  .cell.carcel{ background:#9AA1A8; }
+  .cell.calavera{ background:#C48A7A; }
+  .cell.meta{ background:var(--oxblood); color:var(--parchment); }
+  .cell.tormenta{ background:#5C7A99; animation: pulse-storm 1s ease-in-out infinite; }
+  @keyframes pulse-storm{
+    0%,100%{ box-shadow:0 2px 3px rgba(0,0,0,0.3); }
+    50%{ box-shadow:0 0 0 4px rgba(92,122,153,0.5); }
+  }
+  .cell-num{ position:absolute; top:2px; left:3px; opacity:0.55; font-size:9px; }
+  .cell-icon{ font-size:16px; }
+  .token{
+    position:absolute;
+    width:22%;
+    height:22%;
+    border-radius:50%;
+    box-shadow:0 2px 4px rgba(0,0,0,0.4);
+    transition: left 0.4s ease, top 0.4s ease;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;
+    z-index:5;
+    border:2px solid rgba(255,255,255,0.8);
+  }
+  #token-player{ background:var(--forest-dark); }
+  #token-bot{ background:var(--oxblood); }
+
+  .panel{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  .turn-indicator{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.5px;
+    padding:6px 16px;
+    border-radius:20px;
+    background:var(--parchment-dark);
+    border:1px solid rgba(0,0,0,0.08);
+  }
+  .turn-indicator.bot{ background:#EFD8D0; }
+
+  #dice{
+    width:64px;
+    height:64px;
+    background:#fff;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.25);
+    cursor:pointer;
+    user-select:none;
+    border:2px solid var(--forest-dark);
+    transition:transform 0.15s;
+  }
+  #dice:active{ transform:scale(0.94); }
+  #dice.disabled{ opacity:0.4; cursor:default; pointer-events:none; }
+  #dice.rolling{ animation: shake 0.5s ease; }
+  @keyframes shake{
+    0%,100%{ transform:rotate(0deg); }
+    25%{ transform:rotate(-12deg) scale(1.05); }
+    75%{ transform:rotate(12deg) scale(1.05); }
+  }
+
+  #message{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:13.5px;
+    min-height:20px;
+    text-align:center;
+    color:#4a4331;
+    max-width:420px;
+  }
+
+  #legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 16px;
+    justify-content:center;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:11.5px;
+    color:#5c5240;
+    margin-top:4px;
+  }
+  #legend span{ display:flex; align-items:center; gap:5px; }
+  .legend-swatch{ width:12px;height:12px;border-radius:3px;display:inline-block; }
+
+  #restart{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:13px;
+    padding:8px 18px;
+    background:var(--forest-dark);
+    color:var(--parchment);
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    letter-spacing:0.5px;
+  }
+  #restart:hover{ background:var(--forest); }
+</style>
+</head>
+<body>
+
+<h1>La Vuelta</h1>
+<div class="subtitle" id="subtitle">Etapa 1 de 10 &middot; prototipo</div>
+<div id="stage-toggle">
+  <button id="btn-etapa1" class="active">Etapa 1 &mdash; clásica</button>
+  <button id="btn-etapa2">Etapa 2 &mdash; con clima</button>
+</div>
+
+<div class="layout">
+  <div id="event-banner"></div>
+  <div id="board-wrap">
+    <div id="board"></div>
+  </div>
+
+  <div class="panel">
+    <div class="turn-indicator" id="turn-indicator">Tu turno</div>
+    <div id="dice">🎲</div>
+    <div id="message">Tocá el dado para tirar.</div>
+    <div id="legend">
+      <span><span class="legend-swatch" style="background:var(--gold-light)"></span>Oca &mdash; tirá de nuevo</span>
+      <span><span class="legend-swatch" style="background:#B7C9C1"></span>Puente &mdash; saltás</span>
+      <span><span class="legend-swatch" style="background:#9AA1A8"></span>Cárcel &mdash; perdés turno</span>
+      <span><span class="legend-swatch" style="background:#C48A7A"></span>Calavera &mdash; volvés al inicio</span>
+      <span><span class="legend-swatch" style="background:var(--oxblood)"></span>Meta</span>
+    </div>
+    <button id="restart">Reiniciar partida</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const TOTAL_CELLS = 30; // etapa 1: tablero corto para prototipo
+
+  // Definición de casillas especiales (índice 0-based; casilla 0 = salida, TOTAL_CELLS-1 = meta)
+  const special = {};
+  [3,8,14,19,25].forEach(i => special[i] = 'oca');
+  [6,17]        .forEach(i => special[i] = 'puente'); // puente 6->12, 17->23
+  const puenteDestino = {6:12, 17:23};
+  [10,21].forEach(i => special[i] = 'carcel');
+  [15].forEach(i => special[i] = 'calavera');
+  special[TOTAL_CELLS-1] = 'meta';
+
+  const icons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆', tormenta:'⛈️' };
+
+  // Generar posiciones en espiral simple (cuadrado que se enrosca hacia el centro)
+  function generateSpiralPositions(n){
+    const positions = [];
+    const gridSize = 7; // pasos de la espiral
+    const visualGrid = gridSize + 1; // la espiral ocupa gridSize+1 columnas/filas (0..gridSize)
+    const cellPct = 100/visualGrid;
+    let x=0, y=0, dx=1, dy=0;
+    const visited = new Set();
+    const cells=[];
+    let steps = gridSize*gridSize;
+    let segLen=gridSize, segPassed=0, turns=0;
+    for(let i=0;i<steps;i++){
+      cells.push([x,y]);
+      x+=dx; y+=dy; segPassed++;
+      if(segPassed===segLen){
+        segPassed=0;
+        [dx,dy]=[-dy,dx];
+        turns++;
+        if(turns%2===0) segLen--;
+      }
+    }
+    // tomamos las primeras n celdas del camino en espiral (desde afuera hacia adentro)
+    for(let i=0;i<n;i++){
+      const [cx,cy] = cells[i];
+      positions.push({
+        left: (cx*cellPct) + '%',
+        top: (cy*cellPct) + '%',
+        w: cellPct+'%',
+        h: cellPct+'%'
+      });
+    }
+    return positions;
+  }
+
+  const positions = generateSpiralPositions(TOTAL_CELLS);
+  const boardEl = document.getElementById('board');
+
+  const cellEls = [];
+  positions.forEach((pos, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if(special[i]) cell.classList.add(special[i]);
+    cell.style.left = pos.left;
+    cell.style.top = pos.top;
+    cell.style.width = pos.w;
+    cell.style.height = pos.h;
+    cell.innerHTML = `<span class="cell-num">${i}</span>` + (special[i] ? `<span class="cell-icon">${icons[special[i]]}</span>` : '');
+    boardEl.appendChild(cell);
+    cellEls.push(cell);
+  });
+
+  const tokenPlayer = document.createElement('div');
+  tokenPlayer.id = 'token-player';
+  tokenPlayer.className = 'token';
+  tokenPlayer.textContent = '🙂';
+  boardEl.appendChild(tokenPlayer);
+
+  const tokenBot = document.createElement('div');
+  tokenBot.id = 'token-bot';
+  tokenBot.className = 'token';
+  tokenBot.textContent = '🤖';
+  boardEl.appendChild(tokenBot);
+
+  function placeToken(el, cellIndex, offsetX, offsetY){
+    const pos = positions[Math.min(cellIndex, positions.length-1)];
+    const leftNum = parseFloat(pos.left);
+    const topNum = parseFloat(pos.top);
+    el.style.left = (leftNum + offsetX) + '%';
+    el.style.top = (topNum + offsetY) + '%';
+  }
+
+  let state = {
+    playerPos: 0,
+    botPos: 0,
+    turn: 'player', // 'player' | 'bot'
+    finished: false
+  };
+
+  let currentStage = 1; // 1 = clásica, 2 = con eventos de clima
+  let totalTurns = 0;
+  let activeEvent = null; // {cellIndex, turnsLeft}
+  const EVENT_EVERY = 3;   // cada cuántos turnos totales se dispara un evento
+  const EVENT_DURATION = 4; // cuántos turnos dura la tormenta activa
+
+  const diceEl = document.getElementById('dice');
+  const messageEl = document.getElementById('message');
+  const turnIndicator = document.getElementById('turn-indicator');
+  const restartBtn = document.getElementById('restart');
+  const eventBanner = document.getElementById('event-banner');
+  const subtitleEl = document.getElementById('subtitle');
+  const btnEtapa1 = document.getElementById('btn-etapa1');
+  const btnEtapa2 = document.getElementById('btn-etapa2');
+
+  function clearStormCell(){
+    if(activeEvent){
+      cellEls[activeEvent.cellIndex].classList.remove('tormenta');
+      const iconSpan = cellEls[activeEvent.cellIndex].querySelector('.cell-icon');
+      if(iconSpan) iconSpan.remove();
+    }
+    activeEvent = null;
+    eventBanner.classList.remove('show');
+  }
+
+  function triggerStorm(){
+    // elegimos una celda normal (sin casilla especial, no ocupada por meta/salida) al azar
+    const candidates = [];
+    for(let i=1;i<TOTAL_CELLS-1;i++){
+      if(!special[i]) candidates.push(i);
+    }
+    if(candidates.length===0) return;
+    const cellIndex = candidates[Math.floor(Math.random()*candidates.length)];
+    activeEvent = { cellIndex, turnsLeft: EVENT_DURATION };
+    const cellEl = cellEls[cellIndex];
+    cellEl.classList.add('tormenta');
+    cellEl.insertAdjacentHTML('beforeend', `<span class="cell-icon">${icons.tormenta}</span>`);
+    eventBanner.textContent = `⛈️ Tormenta en la casilla ${cellIndex}: quien caiga ahí retrocede 3.`;
+    eventBanner.classList.add('show');
+  }
+
+  function maybeTriggerEvent(){
+    if(currentStage!==2) return;
+    totalTurns++;
+    if(activeEvent){
+      activeEvent.turnsLeft--;
+      if(activeEvent.turnsLeft<=0){
+        clearStormCell();
+      }
+    }
+    if(!activeEvent && totalTurns % EVENT_EVERY === 0){
+      triggerStorm();
+    }
+  }
+
+  function render(){
+    placeToken(tokenPlayer, state.playerPos, 1.5, 6);
+    placeToken(tokenBot, state.botPos, 12, 6);
+    turnIndicator.textContent = state.finished ? 'Partida terminada' : (state.turn==='player' ? 'Tu turno' : 'Turno del rival');
+    turnIndicator.classList.toggle('bot', state.turn==='bot' && !state.finished);
+    diceEl.classList.toggle('disabled', state.turn!=='player' || state.finished);
+  }
+
+  function rollDice(){
+    return 1 + Math.floor(Math.random()*6);
+  }
+
+  function applySpecial(pos, who){
+    const esVos = who === 'Vos';
+    if(activeEvent && activeEvent.cellIndex===pos){
+      const dest = Math.max(0, pos-3);
+      const verbo = esVos ? 'caés' : 'cae';
+      return {pos:dest, extraTurn:false, msg:`⛈️ ${who} ${verbo} en la tormenta y retrocede a la casilla ${dest}.`};
+    }
+    const type = special[pos];
+    if(!type) return {pos, extraTurn:false, msg:null};
+    if(type==='oca'){
+      const verbo = esVos ? 'tirás' : 'tira';
+      return {pos, extraTurn:true, msg:`¡Oca! ${who} ${verbo} de nuevo.`};
+    }
+    if(type==='puente'){
+      const dest = puenteDestino[pos];
+      const verbo = esVos ? 'saltás' : 'salta';
+      return {pos:dest, extraTurn:false, msg:`¡Puente! ${who} ${verbo} a la casilla ${dest}.`};
+    }
+    if(type==='carcel'){
+      const verbo = esVos ? 'caés' : 'cae';
+      return {pos, extraTurn:false, msg:`${who} ${verbo} en la cárcel y pierde el próximo turno.`, skipNext:true};
+    }
+    if(type==='calavera'){
+      const verbo = esVos ? 'volvés' : 'vuelve';
+      return {pos:0, extraTurn:false, msg:`💀 ${who} ${verbo} a la salida.`};
+    }
+    if(type==='meta'){
+      const verbo = esVos ? 'llegaste' : 'llegó';
+      return {pos, extraTurn:false, msg:`🏆 ¡${who} ${verbo} a la meta y gana la etapa!`, win:true};
+    }
+    return {pos, extraTurn:false, msg:null};
+  }
+
+  let skipPlayer = false, skipBot = false;
+
+  function doTurn(diceValue, who){
+    let posKey = who==='player' ? 'playerPos' : 'botPos';
+    let newPos = Math.min(state[posKey] + diceValue, TOTAL_CELLS-1);
+    let label = who==='player' ? 'Vos' : 'El rival';
+    const result = applySpecial(newPos, label);
+    state[posKey] = result.pos;
+    render();
+    const esVos = who==='player';
+    const verboSacar = esVos ? 'sacaste' : 'sacó';
+    const verboAvanzar = esVos ? 'avanzás' : 'avanza';
+    messageEl.textContent = `${label} ${verboSacar} ${diceValue} y ${verboAvanzar} a la casilla ${newPos}.` + (result.msg ? ' ' + result.msg : '');
+
+    if(result.win){
+      state.finished = true;
+      render();
+      return;
+    }
+    maybeTriggerEvent();
+    if(result.skipNext){
+      if(who==='player') skipPlayer = true; else skipBot = true;
+    }
+    if(result.extraTurn){
+      state.turn = who;
+    } else {
+      state.turn = who==='player' ? 'bot' : 'player';
+    }
+    render();
+
+    if(state.finished) return;
+
+    if(state.turn==='bot' && skipBot){
+      skipBot = false;
+      messageEl.textContent += ' El rival pierde su turno por la cárcel.';
+      state.turn = 'player';
+      render();
+      return;
+    }
+    if(state.turn==='player' && skipPlayer){
+      skipPlayer = false;
+      messageEl.textContent += ' Perdés tu turno por la cárcel.';
+      state.turn = 'bot';
+      render();
+      state.turn==='bot' && setTimeout(botPlay, 900);
+      return;
+    }
+    if(state.turn==='bot'){
+      setTimeout(botPlay, 900);
+    }
+  }
+
+  function botPlay(){
+    if(state.finished) return;
+    diceEl.classList.add('rolling');
+    setTimeout(()=>{
+      diceEl.classList.remove('rolling');
+      const val = rollDice();
+      diceEl.textContent = ['','⚀','⚁','⚂','⚃','⚄','⚅'][val];
+      doTurn(val, 'bot');
+    }, 450);
+  }
+
+  diceEl.addEventListener('click', () => {
+    if(state.turn!=='player' || state.finished) return;
+    diceEl.classList.add('rolling');
+    setTimeout(()=>{
+      diceEl.classList.remove('rolling');
+      const val = rollDice();
+      diceEl.textContent = ['','⚀','⚁','⚂','⚃','⚄','⚅'][val];
+      doTurn(val, 'player');
+    }, 450);
+  });
+
+  function resetGame(){
+    state = { playerPos:0, botPos:0, turn:'player', finished:false };
+    skipPlayer=false; skipBot=false;
+    totalTurns = 0;
+    clearStormCell();
+    diceEl.textContent = '🎲';
+    messageEl.textContent = 'Tocá el dado para tirar.';
+    render();
+  }
+
+  restartBtn.addEventListener('click', resetGame);
+
+  function setStage(n){
+    currentStage = n;
+    btnEtapa1.classList.toggle('active', n===1);
+    btnEtapa2.classList.toggle('active', n===2);
+    subtitleEl.textContent = n===1
+      ? 'Etapa 1 de 10 · prototipo'
+      : 'Etapa 2 de 10 · con eventos de clima';
+    resetGame();
+  }
+
+  btnEtapa1.addEventListener('click', () => setStage(1));
+  btnEtapa2.addEventListener('click', () => setStage(2));
+
+  render();
+})();
+</script>
+
+</body>
+</html>
