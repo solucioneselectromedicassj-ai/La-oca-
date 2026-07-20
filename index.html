@@ -110,12 +110,14 @@
   <div class="card">
     <p style="margin:0 0 4px; text-align:center; font-size:12px; color:#7a6f56;">CÓDIGO DE SALA</p>
     <div id="room-code-display">----</div>
+    <button id="btn-copy-code" class="secondary" style="margin-top:10px;">📋 Copiar código</button>
   </div>
   <div class="card">
     <p style="margin-top:0; font-size:13px;">Jugadores en la sala (<span id="players-count">0</span>/6):</p>
     <ul id="players-list"></ul>
     <button id="btn-start-game" class="hidden">Iniciar partida</button>
     <p id="status-msg"></p>
+    <button id="btn-leave-room" class="secondary" style="margin-top:6px;">Salir de la sala</button>
   </div>
 </div>
 
@@ -140,9 +142,31 @@
   let myPlayerId = null;
   let myPartidaId = null;
   let myOrdenTurno = null;
-  let isHost = false;
   let jugadoresCache = [];
   let partidaCache = null;
+
+  // ---------- Sesión persistente (para no perder identidad si se recarga la página) ----------
+  function guardarSesion(){
+    try {
+      localStorage.setItem('la_vuelta_sesion', JSON.stringify({ partidaId: myPartidaId, playerId: myPlayerId, nombre: myNombre }));
+    } catch(e){ /* localStorage no disponible, seguimos sin persistencia */ }
+  }
+  function borrarSesion(){
+    try { localStorage.removeItem('la_vuelta_sesion'); } catch(e){}
+  }
+  function leerSesion(){
+    try {
+      const raw = localStorage.getItem('la_vuelta_sesion');
+      return raw ? JSON.parse(raw) : null;
+    } catch(e){ return null; }
+  }
+
+  function soyHost(){
+    if(!jugadoresCache.length) return false;
+    const ordenMinimo = Math.min(...jugadoresCache.map(j => j.orden_turno));
+    const host = jugadoresCache.find(j => j.orden_turno === ordenMinimo);
+    return !!host && host.id === myPlayerId;
+  }
 
   // ---------- Helpers de pantalla ----------
   function showScreen(id){
@@ -185,9 +209,10 @@
       return;
     }
 
-    isHost = true;
     myPartidaId = partida.id;
+    partidaCache = partida;
     await joinAsPlayer(partida.id, 0);
+    guardarSesion();
     enterWaitingRoom(partida.codigo);
   });
 
@@ -202,9 +227,10 @@
     const { data: existentes } = await client.from('jugadores_partida').select('id').eq('partida_id', partida.id);
     if(existentes.length >= partida.max_jugadores){ alert('La sala está llena.'); return; }
 
-    isHost = false;
     myPartidaId = partida.id;
+    partidaCache = partida;
     await joinAsPlayer(partida.id, existentes.length);
+    guardarSesion();
     enterWaitingRoom(partida.codigo);
   });
 
@@ -223,10 +249,27 @@
   async function enterWaitingRoom(code){
     document.getElementById('room-code-display').textContent = code;
     showScreen('screen-waiting');
-    document.getElementById('btn-start-game').classList.toggle('hidden', !isHost);
     await refreshPlayersList();
     subscribeRealtime();
   }
+
+  document.getElementById('btn-copy-code').addEventListener('click', async () => {
+    const code = document.getElementById('room-code-display').textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      const btn = document.getElementById('btn-copy-code');
+      const original = btn.textContent;
+      btn.textContent = '✅ ¡Copiado!';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch(e) {
+      alert('No se pudo copiar automáticamente. El código es: ' + code);
+    }
+  });
+
+  // Forzar mayúsculas automáticamente mientras se escribe el código, para evitar errores de transcripción
+  document.getElementById('join-code-input').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
 
   async function refreshPlayersList(){
     const { data: jugadores } = await client
@@ -249,7 +292,9 @@
     });
     document.getElementById('players-count').textContent = jugadoresCache.length;
     const startBtn = document.getElementById('btn-start-game');
-    if(isHost){
+    const amHost = soyHost();
+    startBtn.classList.toggle('hidden', !amHost);
+    if(amHost){
       startBtn.disabled = jugadoresCache.length < 2;
       document.getElementById('status-msg').textContent = jugadoresCache.length < 2
         ? 'Necesitás al menos 2 jugadores para empezar.'
@@ -392,6 +437,48 @@
     origEnterGameScreen();
     refreshPartidaCache();
   };
+
+  document.getElementById('btn-leave-room').addEventListener('click', () => {
+    if(!confirm('¿Salir de la sala? Vas a perder tu lugar en esta partida.')) return;
+    borrarSesion();
+    location.reload();
+  });
+
+  // ---------- Restaurar sesión al cargar la página (si venías de una sala) ----------
+  async function intentarRestaurarSesion(){
+    const sesion = leerSesion();
+    if(!sesion || !sesion.playerId || !sesion.partidaId){
+      showScreen('screen-nickname');
+      return;
+    }
+
+    const { data: jugador, error: errJugador } = await client
+      .from('jugadores_partida').select('*').eq('id', sesion.playerId).single();
+    if(errJugador || !jugador){ borrarSesion(); showScreen('screen-nickname'); return; }
+
+    const { data: partida, error: errPartida } = await client
+      .from('partidas').select('*').eq('id', sesion.partidaId).single();
+    if(errPartida || !partida){ borrarSesion(); showScreen('screen-nickname'); return; }
+
+    myNombre = sesion.nombre;
+    myPlayerId = sesion.playerId;
+    myPartidaId = sesion.partidaId;
+    myOrdenTurno = jugador.orden_turno;
+    partidaCache = partida;
+
+    await refreshPlayersList();
+    subscribeRealtime();
+
+    if(partida.estado === 'esperando'){
+      document.getElementById('room-code-display').textContent = partida.codigo;
+      showScreen('screen-waiting');
+      renderPlayersList();
+    } else {
+      enterGameScreen();
+    }
+  }
+
+  intentarRestaurarSesion();
 
 })();
 </script>
