@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>La Vuelta - Prueba Multijugador</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F4A3C">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="La Vuelta">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -246,11 +253,35 @@
   }
 
   // ---------- Pantalla 3: sala de espera ----------
+  let pollingWaiting = null;
+
   async function enterWaitingRoom(code){
     document.getElementById('room-code-display').textContent = code;
     showScreen('screen-waiting');
     await refreshPlayersList();
     subscribeRealtime();
+    iniciarPollingWaiting();
+  }
+
+  function iniciarPollingWaiting(){
+    if(pollingWaiting) clearInterval(pollingWaiting);
+    pollingWaiting = setInterval(async () => {
+      if(document.getElementById('screen-waiting').classList.contains('hidden')){
+        clearInterval(pollingWaiting);
+        pollingWaiting = null;
+        return;
+      }
+      await refreshPlayersList();
+      const { data: partida } = await client.from('partidas').select('*').eq('id', myPartidaId).single();
+      if(partida){
+        partidaCache = partida;
+        if(partida.estado === 'en_curso'){
+          clearInterval(pollingWaiting);
+          pollingWaiting = null;
+          enterGameScreen();
+        }
+      }
+    }, 3000);
   }
 
   document.getElementById('btn-copy-code').addEventListener('click', async () => {
@@ -306,7 +337,10 @@
 
   document.getElementById('btn-start-game').addEventListener('click', async () => {
     const { error } = await client.from('partidas').update({ estado: 'en_curso' }).eq('id', myPartidaId);
-    if(error) alert('Error al iniciar: ' + error.message);
+    if(error){ alert('Error al iniciar: ' + error.message); return; }
+    // No esperamos el eco de Realtime: pasamos de pantalla ya mismo (más robusto ante fallos de red)
+    partidaCache = { ...partidaCache, estado: 'en_curso' };
+    enterGameScreen();
   });
 
   // ---------- Realtime: escuchar cambios en jugadores y en la partida ----------
@@ -432,10 +466,37 @@
     updateTurnUI();
   }
 
+  let pollingGame = null;
+  function iniciarPollingGame(){
+    if(pollingGame) clearInterval(pollingGame);
+    pollingGame = setInterval(async () => {
+      if(document.getElementById('screen-game').classList.contains('hidden')){
+        clearInterval(pollingGame);
+        pollingGame = null;
+        return;
+      }
+      await refreshPlayersList();
+      renderBoard();
+      const { data: partida } = await client.from('partidas').select('*').eq('id', myPartidaId).single();
+      if(partida){
+        partidaCache = partida;
+        updateTurnUI();
+        if(partida.estado === 'finalizada'){
+          clearInterval(pollingGame);
+          pollingGame = null;
+          const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
+          document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
+          document.getElementById('dice').classList.add('disabled');
+        }
+      }
+    }, 3000);
+  }
+
   const origEnterGameScreen = enterGameScreen;
   enterGameScreen = function(){
     origEnterGameScreen();
     refreshPartidaCache();
+    iniciarPollingGame();
   };
 
   document.getElementById('btn-leave-room').addEventListener('click', () => {
@@ -473,6 +534,7 @@
       document.getElementById('room-code-display').textContent = partida.codigo;
       showScreen('screen-waiting');
       renderPlayersList();
+      iniciarPollingWaiting();
     } else {
       enterGameScreen();
     }
