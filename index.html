@@ -169,6 +169,7 @@
   // ---------- Pantalla 2: crear / unirse ----------
   document.getElementById('btn-create-room').addEventListener('click', async () => {
     let partida = null;
+    let lastError = null;
     for(let attempt=0; attempt<5 && !partida; attempt++){
       const code = genCode();
       const { data, error } = await client
@@ -177,8 +178,12 @@
         .select()
         .single();
       if(!error) partida = data;
+      else lastError = error;
     }
-    if(!partida){ alert('No se pudo crear la sala. Probá de nuevo.'); return; }
+    if(!partida){
+      alert('No se pudo crear la sala.\n\nDetalle: ' + (lastError ? (lastError.message + (lastError.code ? ' (código: '+lastError.code+')' : '') + (lastError.details ? '\n' + lastError.details : '') + (lastError.hint ? '\nSugerencia: ' + lastError.hint : '')) : 'sin detalle'));
+      return;
+    }
 
     isHost = true;
     myPartidaId = partida.id;
@@ -191,7 +196,7 @@
     if(code.length !== 4){ alert('El código tiene 4 caracteres.'); return; }
 
     const { data: partida, error } = await client.from('partidas').select('*').eq('codigo', code).single();
-    if(error || !partida){ alert('No se encontró esa sala.'); return; }
+    if(error || !partida){ alert('No se encontró esa sala.\n\nDetalle: ' + (error ? error.message : 'sin datos')); return; }
     if(partida.estado !== 'esperando'){ alert('Esa partida ya empezó o terminó.'); return; }
 
     const { data: existentes } = await client.from('jugadores_partida').select('id').eq('partida_id', partida.id);
