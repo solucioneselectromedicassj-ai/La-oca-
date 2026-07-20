@@ -168,6 +168,8 @@
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
   <p id="game-msg"></p>
+  <button id="btn-play-again" class="hidden">🔄 Jugar otra partida</button>
+  <button id="btn-leave-game" class="secondary">Salir del juego</button>
   <div id="legend">
     <span><span class="legend-dot" style="background:#D9C77A"></span>Oca: trivia, acertá y tirás de nuevo</span>
     <span><span class="legend-dot" style="background:#B7C9C1"></span>Puente: salto directo</span>
@@ -532,13 +534,29 @@
             updateTurnUI();
           }
           if(partidaCache.estado === 'finalizada'){
-            const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
-            document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
-            document.getElementById('dice').classList.add('disabled');
+            mostrarFinDePartida();
           }
         })
       .subscribe();
   }
+
+  function mostrarFinDePartida(){
+    const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
+    document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
+    document.getElementById('dice').classList.add('disabled');
+    document.getElementById('btn-play-again').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-play-again').addEventListener('click', () => {
+    borrarSesion();
+    location.reload();
+  });
+
+  document.getElementById('btn-leave-game').addEventListener('click', () => {
+    if(!confirm('¿Salir del juego? Si la partida sigue en curso, vas a perder tu lugar.')) return;
+    borrarSesion();
+    location.reload();
+  });
 
   // ---------- Pantalla 4: juego ----------
   let cellPositions = [];
@@ -775,9 +793,7 @@
         if(partida.estado === 'finalizada'){
           clearInterval(pollingGame);
           pollingGame = null;
-          const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
-          document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
-          document.getElementById('dice').classList.add('disabled');
+          mostrarFinDePartida();
         }
       }
     }, 3000);
@@ -829,6 +845,7 @@
       iniciarPollingWaiting();
     } else {
       enterGameScreen();
+      if(partida.estado === 'finalizada') mostrarFinDePartida();
     }
   }
 
