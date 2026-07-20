@@ -71,6 +71,24 @@
     display:flex; align-items:flex-start; justify-content:flex-start; padding:2px;
   }
   .cell.meta{ background:var(--oxblood); }
+  .cell.oca{ background:#D9C77A; }
+  .cell.puente{ background:#B7C9C1; }
+  .cell.carcel{ background:#9AA1A8; }
+  .cell.calavera{ background:#C48A7A; }
+  .cell-icon{ position:absolute; bottom:1px; right:2px; font-size:9px; }
+  #legend{ display:flex; flex-wrap:wrap; gap:6px 10px; justify-content:center; font-size:10.5px; color:#5c5240; margin-top:6px; }
+  #legend span{ display:flex; align-items:center; gap:3px; }
+  .legend-dot{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(20,18,14,0.72); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+  .overlay.hidden{ display:none; }
+  .modal-card{ background:var(--parchment); border-radius:14px; padding:22px 18px; max-width:380px; width:100%; text-align:center; box-shadow:0 12px 30px rgba(0,0,0,0.4); }
+  .modal-card h2{ font-family:'Palatino Linotype', Palatino, Georgia, serif; margin:0 0 6px; font-size:19px; color:var(--forest-dark); }
+  #trivia-question{ font-size:14.5px; font-weight:600; margin:10px 0 14px; line-height:1.4; }
+  .trivia-options{ display:flex; flex-direction:column; gap:8px; }
+  .trivia-options button{ font-size:13.5px; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#fff; color:var(--ink); }
+  .edad-options{ display:flex; flex-direction:column; gap:8px; }
+  .edad-options button{ text-align:left; }
   .token{
     position:absolute; width:7%; height:7%; border-radius:50%;
     box-shadow:0 2px 4px rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.85);
@@ -100,8 +118,24 @@
   </div>
 </div>
 
-<!-- Pantalla 2: crear o unirse -->
+<!-- Pantalla 1.5: edad (para calibrar la trivia) -->
+<div class="screen hidden" id="screen-edad">
+  <div class="card">
+    <p style="margin-top:0;">¿Qué edad tenés? Así ajustamos las preguntas de trivia.</p>
+    <div class="edad-options">
+      <button data-bracket="ninos" class="edad-btn secondary">7 a 12 años</button>
+      <button data-bracket="adolescentes" class="edad-btn secondary">13 a 17 años</button>
+      <button data-bracket="adultos" class="edad-btn secondary">18 a 59 años</button>
+      <button data-bracket="mayores" class="edad-btn secondary">60 años o más</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pantalla 2: crear, unirse o solo -->
 <div class="screen hidden" id="screen-lobby-choice">
+  <div class="card">
+    <button id="btn-solo" class="secondary">🤖 Jugar solo (contra la bot)</button>
+  </div>
   <div class="card">
     <button id="btn-create-room">Crear sala nueva</button>
   </div>
@@ -134,6 +168,20 @@
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
   <p id="game-msg"></p>
+  <div id="legend">
+    <span><span class="legend-dot" style="background:#D9C77A"></span>Oca: trivia, acertá y tirás de nuevo</span>
+    <span><span class="legend-dot" style="background:#B7C9C1"></span>Puente: salto directo</span>
+    <span><span class="legend-dot" style="background:#9AA1A8"></span>Cárcel: trivia o perdés turno</span>
+    <span><span class="legend-dot" style="background:#C48A7A"></span>Calavera: trivia difícil o volvés al inicio</span>
+  </div>
+</div>
+
+<div class="overlay hidden" id="trivia-overlay">
+  <div class="modal-card">
+    <h2 id="trivia-titulo">🎯 Trivia</h2>
+    <div id="trivia-question"></div>
+    <div class="trivia-options" id="trivia-options"></div>
+  </div>
 </div>
 
 <script>
@@ -149,13 +197,94 @@
   let myPlayerId = null;
   let myPartidaId = null;
   let myOrdenTurno = null;
+  let myEdadBracket = null;
   let jugadoresCache = [];
   let partidaCache = null;
+
+  function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  // ---------- Casillas especiales (mismo diseño que el prototipo de 1 jugador) ----------
+  const special = {};
+  [3,8,14,19,25].forEach(i => special[i] = 'oca');
+  [6,17].forEach(i => special[i] = 'puente');
+  const puenteDestino = { 6:12, 17:23 };
+  [10,21].forEach(i => special[i] = 'carcel');
+  [15].forEach(i => special[i] = 'calavera');
+  special[TOTAL_CELLS-1] = 'meta';
+  const cellIcons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆' };
+
+  const triviaBank = {
+    ninos: [
+      {q:'¿Cuántos días tiene una semana?', options:['5','6','7','8'], correct:2},
+      {q:'¿De qué color es el cielo en un día despejado?', options:['Verde','Azul','Rojo','Negro'], correct:1},
+      {q:'¿Cuántas patas tiene un perro?', options:['2','4','6','8'], correct:1},
+      {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
+      {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
+      {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
+      {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+    ],
+    adolescentes: [
+      {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
+      {q:'¿En qué continente está Egipto?', options:['Asia','África','Europa','Oceanía'], correct:1},
+      {q:'¿Cuántos huesos tiene el cuerpo humano adulto?', options:['186','206','256','300'], correct:1},
+      {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
+      {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
+      {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
+    ],
+    adultos: [
+      {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
+      {q:'¿Cuál es la capital de Australia?', options:['Sídney','Melbourne','Canberra','Perth'], correct:2},
+      {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
+      {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
+      {q:'¿Cuántos continentes hay?', options:['5','6','7','8'], correct:2},
+      {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
+    ],
+    mayores: [
+      {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
+      {q:'¿Quién fue el primer presidente constitucional argentino?', options:['San Martín','Rivadavia','Belgrano','Sarmiento'], correct:1},
+      {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
+      {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
+      {q:'¿En qué año se independizó Argentina?', options:['1810','1816','1820','1853'], correct:1},
+    ],
+  };
+  const triviaBankDificil = {
+    ninos: [
+      {q:'¿Cuántos lados tiene un hexágono?', options:['5','6','7','8'], correct:1},
+      {q:'¿Cómo se llama el planeta rojo?', options:['Venus','Marte','Júpiter','Saturno'], correct:1},
+      {q:'¿Cuántas patas tiene una araña?', options:['6','8','10','4'], correct:1},
+    ],
+    adolescentes: [
+      {q:'¿Cuál es la capital de Canadá?', options:['Toronto','Ottawa','Vancouver','Montreal'], correct:1},
+      {q:'¿Quién escribió "Romeo y Julieta"?', options:['Shakespeare','Cervantes','Dante','Molière'], correct:0},
+      {q:'¿Cuál es el hueso más largo del cuerpo humano?', options:['Húmero','Fémur','Tibia','Radio'], correct:1},
+    ],
+    adultos: [
+      {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
+      {q:'¿Cuál es la velocidad aproximada de la luz?', options:['300.000 km/s','150.000 km/s','1.000.000 km/s','30.000 km/s'], correct:0},
+      {q:'¿Quién formuló la teoría de la relatividad?', options:['Newton','Einstein','Bohr','Tesla'], correct:1},
+    ],
+    mayores: [
+      {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
+      {q:'¿Quién pintó "Guernica"?', options:['Dalí','Picasso','Miró','Goya'], correct:1},
+      {q:'¿Cuál era la capital del Imperio Romano de Oriente?', options:['Roma','Atenas','Constantinopla','Alejandría'], correct:2},
+    ],
+  };
+  const triviaOutcomeRules = {
+    oca:      { onSuccess: pos => ({ pos, extraTurn:true }),  onFail: pos => ({ pos }) },
+    carcel:   { onSuccess: pos => ({ pos }),                  onFail: pos => ({ pos, skipNext:true }) },
+    calavera: { onSuccess: pos => ({ pos }),                  onFail: pos => ({ pos: 0 }) },
+  };
+  function mensajeTrivia(tipo, acierto, quien){
+    if(tipo==='oca') return acierto ? `🪿 ¡Bien! ${quien} tira de nuevo.` : `🪿 ${quien} no acertó, sigue en la misma casilla.`;
+    if(tipo==='carcel') return acierto ? `⛓️ ¡${quien} se salvó de la cárcel!` : `⛓️ ${quien} cayó preso y pierde el próximo turno.`;
+    if(tipo==='calavera') return acierto ? `💀 Trivia difícil superada, ${quien} se queda en esta casilla.` : `💀 ${quien} no la supo y vuelve a la salida.`;
+    return '';
+  }
 
   // ---------- Sesión persistente (para no perder identidad si se recarga la página) ----------
   function guardarSesion(){
     try {
-      localStorage.setItem('la_vuelta_sesion', JSON.stringify({ partidaId: myPartidaId, playerId: myPlayerId, nombre: myNombre }));
+      localStorage.setItem('la_vuelta_sesion', JSON.stringify({ partidaId: myPartidaId, playerId: myPlayerId, nombre: myNombre, edadBracket: myEdadBracket }));
     } catch(e){ /* localStorage no disponible, seguimos sin persistencia */ }
   }
   function borrarSesion(){
@@ -177,7 +306,7 @@
 
   // ---------- Helpers de pantalla ----------
   function showScreen(id){
-    ['screen-nickname','screen-lobby-choice','screen-waiting','screen-game'].forEach(s => {
+    ['screen-nickname','screen-edad','screen-lobby-choice','screen-waiting','screen-game'].forEach(s => {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
   }
@@ -194,7 +323,15 @@
     const val = document.getElementById('nickname-input').value.trim();
     if(!val){ alert('Escribí un nombre.'); return; }
     myNombre = val;
-    showScreen('screen-lobby-choice');
+    showScreen('screen-edad');
+  });
+
+  // ---------- Pantalla 1.5: edad ----------
+  document.querySelectorAll('.edad-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      myEdadBracket = btn.getAttribute('data-bracket');
+      showScreen('screen-lobby-choice');
+    });
   });
 
   // ---------- Pantalla 2: crear / unirse ----------
@@ -244,13 +381,45 @@
   async function joinAsPlayer(partidaId, ordenTurno){
     const { data, error } = await client
       .from('jugadores_partida')
-      .insert({ partida_id: partidaId, nombre: myNombre, orden_turno: ordenTurno, posicion: 0 })
+      .insert({ partida_id: partidaId, nombre: myNombre, orden_turno: ordenTurno, posicion: 0, edad_bracket: myEdadBracket })
       .select()
       .single();
     if(error){ alert('Error al unirse: ' + error.message); return; }
     myPlayerId = data.id;
     myOrdenTurno = ordenTurno;
   }
+
+  // ---------- Modo solo (contra la bot) ----------
+  document.getElementById('btn-solo').addEventListener('click', async () => {
+    let partida = null;
+    let lastError = null;
+    for(let attempt=0; attempt<5 && !partida; attempt++){
+      const code = genCode();
+      const { data, error } = await client
+        .from('partidas')
+        .insert({ codigo: code, estado: 'esperando', max_jugadores: 2 })
+        .select()
+        .single();
+      if(!error) partida = data;
+      else lastError = error;
+    }
+    if(!partida){ alert('No se pudo crear la partida.\n\nDetalle: ' + (lastError ? lastError.message : '')); return; }
+
+    myPartidaId = partida.id;
+    partidaCache = partida;
+    await joinAsPlayer(partida.id, 0);
+    guardarSesion();
+
+    await client.from('jugadores_partida').insert({
+      partida_id: partida.id, nombre: 'Bot', orden_turno: 1, posicion: 0, es_bot: true, edad_bracket: myEdadBracket
+    });
+    await client.from('partidas').update({ estado: 'en_curso' }).eq('id', partida.id);
+    partidaCache = { ...partidaCache, estado: 'en_curso' };
+
+    await refreshPlayersList();
+    subscribeRealtime();
+    enterGameScreen();
+  });
 
   // ---------- Pantalla 3: sala de espera ----------
   let pollingWaiting = null;
@@ -397,10 +566,11 @@
       const pos = { left:(cx*cellPct)+'%', top:(cy*cellPct)+'%', w:cellPct+'%', h:cellPct+'%' };
       cellPositions.push(pos);
       const cell = document.createElement('div');
-      cell.className = 'cell' + (i===TOTAL_CELLS-1 ? ' meta' : '');
+      const tipo = special[i];
+      cell.className = 'cell' + (tipo ? ' '+tipo : '');
       cell.style.left = pos.left; cell.style.top = pos.top;
       cell.style.width = pos.w; cell.style.height = pos.h;
-      cell.textContent = i;
+      cell.innerHTML = i + (tipo ? `<span class="cell-icon">${cellIcons[tipo]}</span>` : '');
       boardEl.appendChild(cell);
     }
   }
@@ -429,34 +599,155 @@
     updateTurnUI();
   }
 
+  let botJugando = false;
+  let saltandoTurno = false;
+
   function updateTurnUI(){
     if(!jugadoresCache.length || !partidaCache) return;
     const jugadorEnTurno = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length];
-    const esMiTurno = jugadorEnTurno && jugadorEnTurno.id === myPlayerId;
-    document.getElementById('turn-indicator').textContent = esMiTurno
-      ? '¡Tu turno!'
-      : `Turno de ${jugadorEnTurno ? jugadorEnTurno.nombre : '...'}`;
-    document.getElementById('dice').classList.toggle('disabled', !esMiTurno || partidaCache.estado !== 'en_curso');
+    if(!jugadorEnTurno) return;
+    const dice = document.getElementById('dice');
+
+    if(jugadorEnTurno.salta_turno){
+      document.getElementById('turn-indicator').textContent = `${jugadorEnTurno.id===myPlayerId ? 'Perdés' : jugadorEnTurno.nombre+' pierde'} este turno (cárcel)...`;
+      dice.classList.add('disabled');
+      if(jugadorEnTurno.id === myPlayerId || jugadorEnTurno.es_bot){
+        saltarTurnoAutomatico(jugadorEnTurno);
+      }
+      return;
+    }
+
+    if(jugadorEnTurno.es_bot){
+      document.getElementById('turn-indicator').textContent = '🤖 Turno del bot...';
+      dice.classList.add('disabled');
+      if(!botJugando) jugarTurnoBot(jugadorEnTurno);
+      return;
+    }
+
+    const esMiTurno = jugadorEnTurno.id === myPlayerId;
+    if(partidaCache.estado_turno === 'resolviendo_trivia'){
+      document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (resolviendo trivia)' : `${jugadorEnTurno.nombre} está resolviendo una trivia...`;
+      dice.classList.add('disabled');
+      return;
+    }
+
+    document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno!' : `Turno de ${jugadorEnTurno.nombre}`;
+    dice.classList.toggle('disabled', !esMiTurno || partidaCache.estado !== 'en_curso');
   }
 
+  async function saltarTurnoAutomatico(jugador){
+    if(saltandoTurno) return;
+    saltandoTurno = true;
+    await client.from('jugadores_partida').update({ salta_turno:false }).eq('id', jugador.id);
+    document.getElementById('game-msg').textContent = `⛓️ ${jugador.id===myPlayerId ? 'Perdiste' : jugador.nombre+' perdió'} este turno por la cárcel.`;
+    await terminarTurno(false);
+    saltandoTurno = false;
+  }
+
+  async function terminarTurno(extraTurn){
+    const siguienteIndice = extraTurn ? partidaCache.turno_actual : (partidaCache.turno_actual + 1) % jugadoresCache.length;
+    await client.from('partidas').update({ turno_actual: siguienteIndice, estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: siguienteIndice, estado_turno: null };
+    await refreshPlayersList();
+    updateTurnUI();
+  }
+
+  async function resolverMovimiento(jugadorId, posActual, valorDado, edadBracket, esBot){
+    const rawNewPos = Math.min(posActual + valorDado, TOTAL_CELLS-1);
+    const tipo = special[rawNewPos];
+
+    if(tipo === 'puente'){
+      const destino = puenteDestino[rawNewPos];
+      await client.from('jugadores_partida').update({ posicion: destino }).eq('id', jugadorId);
+      document.getElementById('game-msg').textContent = `🌉 ¡Puente! ${esBot ? 'El bot salta' : 'Saltás'} a la casilla ${destino}.`;
+      await terminarTurno(false);
+      return;
+    }
+
+    if(tipo === 'oca' || tipo === 'carcel' || tipo === 'calavera'){
+      await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
+      await refreshPlayersList();
+      if(esBot){
+        const acierto = Math.random() < (tipo==='calavera' ? 0.4 : 0.55);
+        await aplicarResultadoTrivia(jugadorId, tipo, rawNewPos, acierto, true);
+      } else {
+        await client.from('partidas').update({ estado_turno: 'resolviendo_trivia' }).eq('id', myPartidaId);
+        partidaCache = { ...partidaCache, estado_turno: 'resolviendo_trivia' };
+        mostrarTriviaLocal(tipo, rawNewPos, jugadorId, edadBracket);
+      }
+      return;
+    }
+
+    await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
+    if(rawNewPos >= TOTAL_CELLS-1){
+      await client.from('partidas').update({ estado: 'finalizada' }).eq('id', myPartidaId);
+      return;
+    }
+    await terminarTurno(false);
+  }
+
+  async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot){
+    const rule = triviaOutcomeRules[tipo];
+    const outcome = acierto ? rule.onSuccess(posActual) : rule.onFail(posActual);
+    await client.from('jugadores_partida').update({ posicion: outcome.pos }).eq('id', jugadorId);
+    const quien = esBot ? 'El bot' : 'Vos';
+    document.getElementById('game-msg').textContent = mensajeTrivia(tipo, acierto, quien);
+
+    if(outcome.pos >= TOTAL_CELLS-1){
+      await client.from('partidas').update({ estado: 'finalizada', estado_turno: null }).eq('id', myPartidaId);
+      return;
+    }
+    if(tipo === 'carcel' && !acierto){
+      await client.from('jugadores_partida').update({ salta_turno: true }).eq('id', jugadorId);
+    }
+    await terminarTurno(tipo === 'oca' && acierto);
+  }
+
+  function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket){
+    const bankSet = tipo === 'calavera' ? triviaBankDificil : triviaBank;
+    const bank = bankSet[edadBracket] || bankSet.adultos;
+    const pregunta = bank[Math.floor(Math.random()*bank.length)];
+    const titulos = { oca:'🪿 Oca — trivia', carcel:'⛓️ Cárcel — trivia', calavera:'💀 Calavera — trivia DIFÍCIL' };
+    document.getElementById('trivia-titulo').textContent = titulos[tipo] || '🎯 Trivia';
+    document.getElementById('trivia-question').textContent = pregunta.q;
+    const opts = document.getElementById('trivia-options');
+    opts.innerHTML = '';
+    pregunta.options.forEach((op, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = op;
+      btn.addEventListener('click', async () => {
+        Array.from(opts.children).forEach(b => b.disabled = true);
+        const acierto = idx === pregunta.correct;
+        btn.style.background = acierto ? '#8FBF8F' : '#D98A8A';
+        if(!acierto) opts.children[pregunta.correct].style.background = '#8FBF8F';
+        await wait(900);
+        document.getElementById('trivia-overlay').classList.add('hidden');
+        await aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, false);
+      });
+      opts.appendChild(btn);
+    });
+    document.getElementById('trivia-overlay').classList.remove('hidden');
+  }
+
+  async function jugarTurnoBot(bot){
+    botJugando = true;
+    document.getElementById('game-msg').textContent = '🤖 El bot está pensando...';
+    await wait(1100);
+    const valor = 1 + Math.floor(Math.random()*6);
+    await resolverMovimiento(bot.id, bot.posicion, valor, bot.edad_bracket, true);
+    botJugando = false;
+  }
+
+  const diceFaces = ['','⚀','⚁','⚂','⚃','⚄','⚅'];
   document.getElementById('dice').addEventListener('click', async () => {
-    if(document.getElementById('dice').classList.contains('disabled')) return;
     const dice = document.getElementById('dice');
+    if(dice.classList.contains('disabled')) return;
     dice.classList.add('disabled');
     const valor = 1 + Math.floor(Math.random()*6);
-    dice.textContent = ['','⚀','⚁','⚂','⚃','⚄','⚅'][valor];
-
+    dice.textContent = diceFaces[valor];
     const yo = jugadoresCache.find(j => j.id === myPlayerId);
-    const nuevaPos = Math.min(yo.posicion + valor, TOTAL_CELLS-1);
-
-    await client.from('jugadores_partida').update({ posicion: nuevaPos }).eq('id', myPlayerId);
-
-    const siguienteTurno = (partidaCache.turno_actual + 1) % jugadoresCache.length;
-    const updates = { turno_actual: siguienteTurno };
-    if(nuevaPos >= TOTAL_CELLS-1) updates.estado = 'finalizada';
-    await client.from('partidas').update(updates).eq('id', myPartidaId);
-
-    setTimeout(() => { dice.textContent = '🎲'; }, 1500);
+    await resolverMovimiento(myPlayerId, yo.posicion, valor, myEdadBracket, false);
+    setTimeout(() => { dice.textContent = '🎲'; }, 1200);
   });
 
   // Inicializar partidaCache cuando entra en juego (por si el evento UPDATE no trajo estado inicial)
@@ -525,6 +816,7 @@
     myPlayerId = sesion.playerId;
     myPartidaId = sesion.partidaId;
     myOrdenTurno = jugador.orden_turno;
+    myEdadBracket = jugador.edad_bracket || (sesion.edadBracket || 'adultos');
     partidaCache = partida;
 
     await refreshPlayersList();
