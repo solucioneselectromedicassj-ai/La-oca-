@@ -168,7 +168,8 @@
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
   <p id="game-msg"></p>
-  <button id="btn-play-again" class="hidden">🔄 Jugar otra partida</button>
+  <button id="btn-play-again" class="hidden">🔄 Jugar otra partida (sala nueva)</button>
+  <button id="btn-revancha" class="hidden">🔁 Revancha (misma sala)</button>
   <button id="btn-leave-game" class="secondary">Salir del juego</button>
   <div id="legend">
     <span><span class="legend-dot" style="background:#D9C77A"></span>Oca: trivia, acertá y tirás de nuevo</span>
@@ -181,6 +182,7 @@
 <div class="overlay hidden" id="trivia-overlay">
   <div class="modal-card">
     <h2 id="trivia-titulo">🎯 Trivia</h2>
+    <div id="trivia-timer" style="font-size:13px; font-weight:700; color:var(--oxblood); margin-bottom:4px;"></div>
     <div id="trivia-question"></div>
     <div class="trivia-options" id="trivia-options"></div>
   </div>
@@ -209,7 +211,7 @@
   const special = {};
   [3,8,14,19,25].forEach(i => special[i] = 'oca');
   [6,17].forEach(i => special[i] = 'puente');
-  const puenteDestino = { 6:12, 17:23 };
+  const puenteDestino = { 6:9, 17:20 };
   [10,21].forEach(i => special[i] = 'carcel');
   [15].forEach(i => special[i] = 'calavera');
   special[TOTAL_CELLS-1] = 'meta';
@@ -527,10 +529,15 @@
       .on('postgres_changes', { event: 'UPDATE', schema: 'la_vuelta', table: 'partidas', filter: `id=eq.${myPartidaId}` },
         async (payload) => {
           partidaCache = payload.new;
+          const enPantallaJuego = document.getElementById('screen-game').classList.contains('hidden') === false;
           if(partidaCache.estado === 'en_curso' && document.getElementById('screen-game').classList.contains('hidden')){
             enterGameScreen();
           }
-          if(document.getElementById('screen-game').classList.contains('hidden') === false){
+          if(partidaCache.estado === 'esperando' && enPantallaJuego){
+            volverASalaDeEspera();
+            return;
+          }
+          if(enPantallaJuego){
             updateTurnUI();
           }
           if(partidaCache.estado === 'finalizada'){
@@ -540,16 +547,41 @@
       .subscribe();
   }
 
+  async function volverASalaDeEspera(){
+    document.getElementById('btn-play-again').classList.add('hidden');
+    document.getElementById('btn-revancha').classList.add('hidden');
+    document.getElementById('game-msg').textContent = '';
+    await refreshPlayersList();
+    document.getElementById('room-code-display').textContent = partidaCache.codigo;
+    showScreen('screen-waiting');
+    renderPlayersList();
+    iniciarPollingWaiting();
+  }
+
   function mostrarFinDePartida(){
     const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
     document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
     document.getElementById('dice').classList.add('disabled');
     document.getElementById('btn-play-again').classList.remove('hidden');
+    document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
   }
 
   document.getElementById('btn-play-again').addEventListener('click', () => {
     borrarSesion();
     location.reload();
+  });
+
+  document.getElementById('btn-revancha').addEventListener('click', async () => {
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
+    await client.from('partidas').update({ estado: 'esperando', turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado: 'esperando', turno_actual: 0, estado_turno: null };
+    document.getElementById('btn-play-again').classList.add('hidden');
+    document.getElementById('btn-revancha').classList.add('hidden');
+    await refreshPlayersList();
+    document.getElementById('room-code-display').textContent = partidaCache.codigo;
+    showScreen('screen-waiting');
+    renderPlayersList();
+    iniciarPollingWaiting();
   });
 
   document.getElementById('btn-leave-game').addEventListener('click', () => {
@@ -671,8 +703,18 @@
   }
 
   async function resolverMovimiento(jugadorId, posActual, valorDado, edadBracket, esBot){
-    const rawNewPos = Math.min(posActual + valorDado, TOTAL_CELLS-1);
+    const META = TOTAL_CELLS - 1;
+    let rawNewPos = posActual + valorDado;
+    let rebotó = false;
+    if(rawNewPos > META){
+      rawNewPos = Math.max(0, (2*META) - posActual - valorDado); // regla real de la oca: rebota si te pasás
+      rebotó = true;
+    }
     const tipo = special[rawNewPos];
+
+    if(rebotó){
+      document.getElementById('game-msg').textContent = `↩️ ${esBot?'El bot se pasó':'Te pasaste'} de la meta y rebota a la casilla ${rawNewPos}.`;
+    }
 
     if(tipo === 'puente'){
       const destino = puenteDestino[rawNewPos];
@@ -687,7 +729,7 @@
       await refreshPlayersList();
       if(esBot){
         const acierto = Math.random() < (tipo==='calavera' ? 0.4 : 0.55);
-        await aplicarResultadoTrivia(jugadorId, tipo, rawNewPos, acierto, true);
+        await aplicarResultadoTrivia(jugadorId, tipo, rawNewPos, acierto, true, false);
       } else {
         await client.from('partidas').update({ estado_turno: 'resolviendo_trivia' }).eq('id', myPartidaId);
         partidaCache = { ...partidaCache, estado_turno: 'resolviendo_trivia' };
@@ -697,29 +739,33 @@
     }
 
     await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
-    if(rawNewPos >= TOTAL_CELLS-1){
+    if(rawNewPos >= META){
       await client.from('partidas').update({ estado: 'finalizada' }).eq('id', myPartidaId);
       return;
     }
     await terminarTurno(false);
   }
 
-  async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot){
+  async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot, forzarSkip){
     const rule = triviaOutcomeRules[tipo];
     const outcome = acierto ? rule.onSuccess(posActual) : rule.onFail(posActual);
     await client.from('jugadores_partida').update({ posicion: outcome.pos }).eq('id', jugadorId);
     const quien = esBot ? 'El bot' : 'Vos';
-    document.getElementById('game-msg').textContent = mensajeTrivia(tipo, acierto, quien);
+    document.getElementById('game-msg').textContent = forzarSkip
+      ? `⏱️ ${quien==='Vos'?'Se te acabó':'Se le acabó'} el tiempo. ${mensajeTrivia(tipo, false, quien)}`
+      : mensajeTrivia(tipo, acierto, quien);
 
     if(outcome.pos >= TOTAL_CELLS-1){
       await client.from('partidas').update({ estado: 'finalizada', estado_turno: null }).eq('id', myPartidaId);
       return;
     }
-    if(tipo === 'carcel' && !acierto){
+    if((tipo === 'carcel' && !acierto) || forzarSkip){
       await client.from('jugadores_partida').update({ salta_turno: true }).eq('id', jugadorId);
     }
-    await terminarTurno(tipo === 'oca' && acierto);
+    await terminarTurno(tipo === 'oca' && acierto && !forzarSkip);
   }
+
+  const TIEMPO_LIMITE_TRIVIA = 15; // segundos
 
   function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket){
     const bankSet = tipo === 'calavera' ? triviaBankDificil : triviaBank;
@@ -730,17 +776,43 @@
     document.getElementById('trivia-question').textContent = pregunta.q;
     const opts = document.getElementById('trivia-options');
     opts.innerHTML = '';
+    let resuelto = false;
+    let segundosRestantes = TIEMPO_LIMITE_TRIVIA;
+    const timerEl = document.getElementById('trivia-timer');
+    timerEl.textContent = `⏱️ ${segundosRestantes}s`;
+    const intervalId = setInterval(() => {
+      segundosRestantes--;
+      timerEl.textContent = `⏱️ ${segundosRestantes}s`;
+      if(segundosRestantes <= 0){
+        clearInterval(intervalId);
+        if(!resuelto){
+          resuelto = true;
+          Array.from(opts.children).forEach(b => b.disabled = true);
+          opts.children[pregunta.correct].style.background = '#8FBF8F';
+          finalizarTrivia(false, true);
+        }
+      }
+    }, 1000);
+
+    async function finalizarTrivia(acierto, porTimeout){
+      await wait(porTimeout ? 900 : 0);
+      document.getElementById('trivia-overlay').classList.add('hidden');
+      await aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, false, porTimeout);
+    }
+
     pregunta.options.forEach((op, idx) => {
       const btn = document.createElement('button');
       btn.textContent = op;
       btn.addEventListener('click', async () => {
+        if(resuelto) return;
+        resuelto = true;
+        clearInterval(intervalId);
         Array.from(opts.children).forEach(b => b.disabled = true);
         const acierto = idx === pregunta.correct;
         btn.style.background = acierto ? '#8FBF8F' : '#D98A8A';
         if(!acierto) opts.children[pregunta.correct].style.background = '#8FBF8F';
         await wait(900);
-        document.getElementById('trivia-overlay').classList.add('hidden');
-        await aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, false);
+        await finalizarTrivia(acierto, false);
       });
       opts.appendChild(btn);
     });
@@ -789,6 +861,12 @@
       const { data: partida } = await client.from('partidas').select('*').eq('id', myPartidaId).single();
       if(partida){
         partidaCache = partida;
+        if(partida.estado === 'esperando'){
+          clearInterval(pollingGame);
+          pollingGame = null;
+          volverASalaDeEspera();
+          return;
+        }
         updateTurnUI();
         if(partida.estado === 'finalizada'){
           clearInterval(pollingGame);
