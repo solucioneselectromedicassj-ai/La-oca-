@@ -165,11 +165,14 @@
 <!-- Pantalla 4: juego -->
 <div class="screen hidden" id="screen-game">
   <div id="turn-indicator">Cargando...</div>
+  <div id="marcador-tanda" style="font-size:11.5px; color:#7a6f56; margin:2px 0 8px;"></div>
+  <div id="desempate-panel" class="hidden" style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; text-align:center;"></div>
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
   <p id="game-msg"></p>
   <button id="btn-play-again" class="hidden">🔄 Jugar otra partida (sala nueva)</button>
   <button id="btn-revancha" class="hidden">🔁 Revancha (misma sala)</button>
+  <button id="btn-nueva-tanda" class="hidden">🏁 Nueva tanda (0-0)</button>
   <button id="btn-leave-game" class="secondary">Salir del juego</button>
   <div id="legend">
     <span><span class="legend-dot" style="background:#D9C77A"></span>Oca: trivia, acertá y tirás de nuevo</span>
@@ -541,7 +544,7 @@
             updateTurnUI();
           }
           if(partidaCache.estado === 'finalizada'){
-            mostrarFinDePartida();
+            await mostrarFinDePartida();
           }
         })
       .subscribe();
@@ -558,12 +561,185 @@
     iniciarPollingWaiting();
   }
 
-  function mostrarFinDePartida(){
-    const ganador = jugadoresCache.find(j => j.posicion >= TOTAL_CELLS-1);
-    document.getElementById('game-msg').textContent = ganador ? `🏆 ¡Ganó ${ganador.nombre}!` : '🏆 Partida terminada.';
+  async function registrarVictoriaYFinalizar(jugadorGanadorId){
+    const ganador = jugadoresCache.find(j => j.id === jugadorGanadorId);
+    const rachaPrevia = partidaCache.racha_ganador || 0;
+    const nuevaRacha = (partidaCache.ultimo_ganador_id === jugadorGanadorId) ? rachaPrevia + 1 : 1;
+    const nuevasVictorias = (ganador?.victorias || 0) + 1;
+
+    await client.from('jugadores_partida').update({ victorias: nuevasVictorias }).eq('id', jugadorGanadorId);
+    await client.from('partidas').update({
+      estado: 'finalizada',
+      estado_turno: null,
+      ultimo_ganador_id: jugadorGanadorId,
+      racha_ganador: nuevaRacha,
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado:'finalizada', ultimo_ganador_id: jugadorGanadorId, racha_ganador: nuevaRacha };
+  }
+
+  function marcadorTexto(){
+    return jugadoresCache.map(j => `${j.nombre}: ${j.victorias||0}`).join('  ·  ');
+  }
+
+  async function mostrarFinDePartida(){
+    await refreshPlayersList();
+    const ganadorRonda = jugadoresCache.find(j => j.id === partidaCache.ultimo_ganador_id);
+    const ronda = partidaCache.ronda_actual || 1;
+    const rachaTermina = (partidaCache.racha_ganador || 0) >= 2;
+
     document.getElementById('dice').classList.add('disabled');
     document.getElementById('btn-play-again').classList.remove('hidden');
-    document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
+    document.getElementById('marcador-tanda').textContent = `Tanda (partida ${ronda}): ${marcadorTexto()}`;
+
+    if(rachaTermina){
+      await finalizarTanda(ganadorRonda.id);
+      return;
+    }
+
+    if(ronda < 3){
+      document.getElementById('game-msg').textContent = `🏆 ¡Ganó ${ganadorRonda?.nombre} la partida ${ronda}! (${marcadorTexto()})`;
+      document.getElementById('btn-revancha').textContent = '▶️ Siguiente partida de la tanda';
+      document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
+      document.getElementById('btn-nueva-tanda').classList.add('hidden');
+      return;
+    }
+
+    const maxVictorias = Math.max(...jugadoresCache.map(j => j.victorias||0));
+    const empatados = jugadoresCache.filter(j => (j.victorias||0) === maxVictorias);
+
+    if(empatados.length === 1){
+      await finalizarTanda(empatados[0].id);
+      return;
+    }
+
+    if(ronda === 3){
+      document.getElementById('game-msg').textContent = `🤝 Empate entre ${empatados.map(j=>j.nombre).join(', ')} tras 3 partidas. Se juega una más para definir.`;
+      document.getElementById('btn-revancha').textContent = '▶️ Partida extra de desempate';
+      document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
+      document.getElementById('btn-nueva-tanda').classList.add('hidden');
+      return;
+    }
+
+    // ronda >= 4 y sigue empatado -> desempate directo por trivia, eliminando de a uno
+    document.getElementById('game-msg').textContent = `🎯 Sigue el empate entre ${empatados.map(j=>j.nombre).join(', ')}. ¡Desempate por trivia!`;
+    document.getElementById('btn-revancha').classList.add('hidden');
+    document.getElementById('btn-play-again').classList.add('hidden');
+    if(soyHost()){
+      await iniciarDesempatePorTrivia(empatados.map(j => j.id));
+    }
+  }
+
+  async function finalizarTanda(jugadorGanadorId){
+    await client.from('partidas').update({ ganador_tanda_id: jugadorGanadorId, estado: 'finalizada' }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, ganador_tanda_id: jugadorGanadorId, estado: 'finalizada' };
+    const ganador = jugadoresCache.find(j => j.id === jugadorGanadorId);
+    document.getElementById('game-msg').textContent = `🏆🏆 ¡${ganador?.nombre} gana la TANDA! (${marcadorTexto()})`;
+    document.getElementById('desempate-panel').classList.add('hidden');
+    document.getElementById('btn-revancha').classList.add('hidden');
+    document.getElementById('btn-play-again').classList.remove('hidden');
+    document.getElementById('btn-nueva-tanda').classList.remove('hidden');
+    document.getElementById('btn-nueva-tanda').classList.toggle('hidden', !soyHost());
+  }
+
+  // ---------- Desempate por trivia (cuando hay empate tras 4 partidas) ----------
+  let desempateTriviaMostrada = false;
+
+  async function iniciarDesempatePorTrivia(idsEmpatados){
+    await client.from('partidas').update({
+      estado: 'desempate', desempate_pendientes: idsEmpatados, desempate_turno_idx: 0
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado: 'desempate', desempate_pendientes: idsEmpatados, desempate_turno_idx: 0 };
+    actualizarPanelDesempate();
+  }
+
+  function actualizarPanelDesempate(){
+    const pendientes = partidaCache.desempate_pendientes || [];
+    if(pendientes.length === 0) return;
+    const idx = (partidaCache.desempate_turno_idx || 0) % pendientes.length;
+    const jugadorTurno = jugadoresCache.find(j => j.id === pendientes[idx]);
+    const nombresPendientes = pendientes.map(id => jugadoresCache.find(j=>j.id===id)?.nombre || '?').join(', ');
+
+    document.getElementById('desempate-panel').classList.remove('hidden');
+    document.getElementById('dice').classList.add('disabled');
+    document.getElementById('desempate-panel').textContent = `🎯 Desempate entre: ${nombresPendientes}`;
+
+    if(!jugadorTurno) return;
+    document.getElementById('turn-indicator').textContent = jugadorTurno.id===myPlayerId ? '¡Tu trivia de desempate!' : `Turno de desempate: ${jugadorTurno.nombre}`;
+
+    if(jugadorTurno.id === myPlayerId && !desempateTriviaMostrada){
+      desempateTriviaMostrada = true;
+      mostrarTriviaDesempate(jugadorTurno.id, pendientes);
+    }
+  }
+
+  function mostrarTriviaDesempate(jugadorId, pendientesActuales){
+    const bank = triviaBankDificil[myEdadBracket] || triviaBankDificil.adultos;
+    const pregunta = bank[Math.floor(Math.random()*bank.length)];
+    document.getElementById('trivia-titulo').textContent = '🎯 Desempate — trivia decisiva';
+    document.getElementById('trivia-question').textContent = pregunta.q;
+    const opts = document.getElementById('trivia-options');
+    opts.innerHTML = '';
+    const timerEl = document.getElementById('trivia-timer');
+    let resuelto = false;
+    let segundos = TIEMPO_LIMITE_TRIVIA;
+    timerEl.textContent = `⏱️ ${segundos}s`;
+    const intervalId = setInterval(() => {
+      segundos--;
+      timerEl.textContent = `⏱️ ${segundos}s`;
+      if(segundos <= 0){
+        clearInterval(intervalId);
+        if(!resuelto){
+          resuelto = true;
+          Array.from(opts.children).forEach(b => b.disabled = true);
+          opts.children[pregunta.correct].style.background = '#8FBF8F';
+          resolverDesempate(jugadorId, false, pendientesActuales);
+        }
+      }
+    }, 1000);
+
+    pregunta.options.forEach((op, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = op;
+      btn.addEventListener('click', async () => {
+        if(resuelto) return;
+        resuelto = true;
+        clearInterval(intervalId);
+        Array.from(opts.children).forEach(b => b.disabled = true);
+        const acierto = idx === pregunta.correct;
+        btn.style.background = acierto ? '#8FBF8F' : '#D98A8A';
+        if(!acierto) opts.children[pregunta.correct].style.background = '#8FBF8F';
+        await wait(900);
+        document.getElementById('trivia-overlay').classList.add('hidden');
+        await resolverDesempate(jugadorId, acierto, pendientesActuales);
+      });
+      opts.appendChild(btn);
+    });
+    document.getElementById('trivia-overlay').classList.remove('hidden');
+  }
+
+  async function resolverDesempate(jugadorId, acierto, pendientesActuales){
+    desempateTriviaMostrada = false;
+    const nuevosPendientes = pendientesActuales.slice();
+    const idxJugador = nuevosPendientes.indexOf(jugadorId);
+
+    if(!acierto){
+      nuevosPendientes.splice(idxJugador, 1);
+      document.getElementById('game-msg').textContent = `❌ ${jugadorId===myPlayerId?'Perdiste':'Perdió'} el desempate y queda eliminado.`;
+    } else {
+      document.getElementById('game-msg').textContent = `✅ ${jugadorId===myPlayerId?'Acertaste':'Acertó'} y sigue en el desempate.`;
+    }
+
+    if(nuevosPendientes.length === 1){
+      await finalizarTanda(nuevosPendientes[0]);
+      return;
+    }
+
+    const siguienteIdx = acierto ? (idxJugador+1) % nuevosPendientes.length : idxJugador % nuevosPendientes.length;
+    await client.from('partidas').update({
+      desempate_pendientes: nuevosPendientes, desempate_turno_idx: siguienteIdx
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, desempate_pendientes: nuevosPendientes, desempate_turno_idx: siguienteIdx };
+    actualizarPanelDesempate();
   }
 
   document.getElementById('btn-play-again').addEventListener('click', () => {
@@ -573,10 +749,33 @@
 
   document.getElementById('btn-revancha').addEventListener('click', async () => {
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({ estado: 'esperando', turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, estado: 'esperando', turno_actual: 0, estado_turno: null };
+    await client.from('partidas').update({
+      estado: 'esperando', turno_actual: 0, estado_turno: null,
+      ronda_actual: (partidaCache.ronda_actual || 1) + 1,
+      desempate_pendientes: null, desempate_turno_idx: 0
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado:'esperando', ronda_actual: (partidaCache.ronda_actual||1)+1 };
     document.getElementById('btn-play-again').classList.add('hidden');
     document.getElementById('btn-revancha').classList.add('hidden');
+    document.getElementById('desempate-panel').classList.add('hidden');
+    await refreshPlayersList();
+    document.getElementById('room-code-display').textContent = partidaCache.codigo;
+    showScreen('screen-waiting');
+    renderPlayersList();
+    iniciarPollingWaiting();
+  });
+
+  document.getElementById('btn-nueva-tanda').addEventListener('click', async () => {
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, victorias: 0 }).eq('partida_id', myPartidaId);
+    await client.from('partidas').update({
+      estado: 'esperando', turno_actual: 0, estado_turno: null,
+      ronda_actual: 1, ultimo_ganador_id: null, racha_ganador: 0,
+      ganador_tanda_id: null, desempate_pendientes: null, desempate_turno_idx: 0
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado:'esperando', ronda_actual:1, ultimo_ganador_id:null, racha_ganador:0, ganador_tanda_id:null };
+    document.getElementById('btn-play-again').classList.add('hidden');
+    document.getElementById('btn-nueva-tanda').classList.add('hidden');
+    document.getElementById('desempate-panel').classList.add('hidden');
     await refreshPlayersList();
     document.getElementById('room-code-display').textContent = partidaCache.codigo;
     showScreen('screen-waiting');
@@ -654,6 +853,13 @@
 
   function updateTurnUI(){
     if(!jugadoresCache.length || !partidaCache) return;
+
+    if(partidaCache.estado === 'desempate'){
+      actualizarPanelDesempate();
+      return;
+    }
+    document.getElementById('desempate-panel').classList.add('hidden');
+
     const jugadorEnTurno = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length];
     if(!jugadorEnTurno) return;
     const dice = document.getElementById('dice');
@@ -740,7 +946,7 @@
 
     await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
     if(rawNewPos >= META){
-      await client.from('partidas').update({ estado: 'finalizada' }).eq('id', myPartidaId);
+      await registrarVictoriaYFinalizar(jugadorId);
       return;
     }
     await terminarTurno(false);
@@ -756,7 +962,7 @@
       : mensajeTrivia(tipo, acierto, quien);
 
     if(outcome.pos >= TOTAL_CELLS-1){
-      await client.from('partidas').update({ estado: 'finalizada', estado_turno: null }).eq('id', myPartidaId);
+      await registrarVictoriaYFinalizar(jugadorId);
       return;
     }
     if((tipo === 'carcel' && !acierto) || forzarSkip){
@@ -871,7 +1077,7 @@
         if(partida.estado === 'finalizada'){
           clearInterval(pollingGame);
           pollingGame = null;
-          mostrarFinDePartida();
+          await mostrarFinDePartida();
         }
       }
     }, 3000);
@@ -923,7 +1129,7 @@
       iniciarPollingWaiting();
     } else {
       enterGameScreen();
-      if(partida.estado === 'finalizada') mostrarFinDePartida();
+      if(partida.estado === 'finalizada') await mostrarFinDePartida();
     }
   }
 
