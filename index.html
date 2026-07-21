@@ -182,6 +182,14 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="reconectar-overlay">
+  <div class="modal-card">
+    <h2>🔌 Reconectar</h2>
+    <p>Esta partida ya está en curso. ¿Cuál de estos jugadores sos vos?</p>
+    <div id="reconectar-lista" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="trivia-overlay">
   <div class="modal-card">
     <h2 id="trivia-titulo">🎯 Trivia</h2>
@@ -373,7 +381,13 @@
 
     const { data: partida, error } = await client.from('partidas').select('*').eq('codigo', code).single();
     if(error || !partida){ alert('No se encontró esa sala.\n\nDetalle: ' + (error ? error.message : 'sin datos')); return; }
-    if(partida.estado !== 'esperando'){ alert('Esa partida ya empezó o terminó.'); return; }
+
+    if(partida.estado !== 'esperando'){
+      const { data: jugadoresExistentes } = await client.from('jugadores_partida').select('*').eq('partida_id', partida.id);
+      const humanos = (jugadoresExistentes || []).filter(j => !j.es_bot);
+      mostrarSelectorReconexion(partida, humanos);
+      return;
+    }
 
     const { data: existentes } = await client.from('jugadores_partida').select('id').eq('partida_id', partida.id);
     if(existentes.length >= partida.max_jugadores){ alert('La sala está llena.'); return; }
@@ -384,6 +398,35 @@
     guardarSesion();
     enterWaitingRoom(partida.codigo);
   });
+
+  function mostrarSelectorReconexion(partida, humanos){
+    const lista = document.getElementById('reconectar-lista');
+    lista.innerHTML = '';
+    if(humanos.length === 0){
+      lista.innerHTML = '<p>No hay jugadores para reconectar en esta sala.</p>';
+    }
+    humanos.forEach(j => {
+      const btn = document.createElement('button');
+      btn.className = 'secondary';
+      btn.textContent = j.nombre;
+      btn.addEventListener('click', async () => {
+        myPartidaId = partida.id;
+        myPlayerId = j.id;
+        myOrdenTurno = j.orden_turno;
+        myEdadBracket = j.edad_bracket || 'adultos';
+        myNombre = j.nombre;
+        partidaCache = partida;
+        guardarSesion();
+        document.getElementById('reconectar-overlay').classList.add('hidden');
+        await refreshPlayersList();
+        subscribeRealtime();
+        enterGameScreen();
+        if(partida.estado === 'finalizada') await mostrarFinDePartida();
+      });
+      lista.appendChild(btn);
+    });
+    document.getElementById('reconectar-overlay').classList.remove('hidden');
+  }
 
   async function joinAsPlayer(partidaId, ordenTurno){
     const { data, error } = await client
