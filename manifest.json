@@ -1,6 +1,6 @@
 {
-  "name": "La Vuelta",
-  "short_name": "La Vuelta",
+  "name": "Ocaland",
+  "short_name": "Ocaland",
   "description": "Juego de mesa multijugador tipo oca",
   "start_url": "./index.html",
   "display": "standalone",

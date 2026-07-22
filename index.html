@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>La Vuelta - Prueba Multijugador</title>
+<title>Ocaland - Prueba Multijugador</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2F4A3C">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="La Vuelta">
+<meta name="apple-mobile-web-app-title" content="Ocaland">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -106,7 +106,7 @@
 </head>
 <body>
 
-<h1>La Vuelta</h1>
+<h1>Ocaland</h1>
 <div class="subtitle">Prueba de sincronización multijugador</div>
 
 <!-- Pantalla 1: nombre -->
@@ -209,6 +209,29 @@
   const TOKEN_COLORS = ['#2F4A3C','#8B3A3A','#4B6FA8','#B5862B','#6B4E8E','#3F8F6B'];
 
   let myNombre = '';
+
+  // ---------- Campaña de 10 etapas (solo modo solo vs bot) ----------
+  let esModoSolo = false;
+  let campanaInicioTs = null;
+  let etapaInicioTs = null;
+  let historialEtapas = [];
+  let etapaConfig = null;
+
+  function generarConfigEtapa(etapa){
+    const d = (etapa - 1) / 9; // 0 (etapa1) a 1 (etapa10)
+    return {
+      botAciertoOca:      0.45 + d*0.35,   // 0.45 -> 0.80
+      botAciertoCarcel:   0.45 + d*0.35,
+      botAciertoCalavera: 0.30 + d*0.35,   // 0.30 -> 0.65
+      ocaCarcelUsanBancoDificil: etapa >= 7,   // desde etapa 7, hasta oca/carcel son trivia dificil
+      tiempoLimiteTrivia: Math.max(8, 15 - Math.floor(d*7)), // 15s -> 8s
+    };
+  }
+
+  function aplicarConfigEtapa(etapa){
+    etapaConfig = generarConfigEtapa(etapa);
+  }
+
   let myPlayerId = null;
   let myPartidaId = null;
   let myOrdenTurno = null;
@@ -421,7 +444,7 @@
         await refreshPlayersList();
         subscribeRealtime();
         enterGameScreen();
-        if(partida.estado === 'finalizada') await mostrarFinDePartida();
+        if(partida.estado === 'finalizada' && !esModoSolo) await mostrarFinDePartida();
       });
       lista.appendChild(btn);
     });
@@ -447,13 +470,19 @@
       const code = genCode();
       const { data, error } = await client
         .from('partidas')
-        .insert({ codigo: code, estado: 'esperando', max_jugadores: 2 })
+        .insert({ codigo: code, estado: 'esperando', max_jugadores: 2, etapa_actual: 1 })
         .select()
         .single();
       if(!error) partida = data;
       else lastError = error;
     }
     if(!partida){ alert('No se pudo crear la partida.\n\nDetalle: ' + (lastError ? lastError.message : '')); return; }
+
+    esModoSolo = true;
+    campanaInicioTs = Date.now();
+    etapaInicioTs = campanaInicioTs;
+    historialEtapas = [];
+    aplicarConfigEtapa(1);
 
     myPartidaId = partida.id;
     partidaCache = partida;
@@ -469,6 +498,7 @@
     await refreshPlayersList();
     subscribeRealtime();
     enterGameScreen();
+    document.getElementById('marcador-tanda').textContent = 'Campaña: etapa 1 de 10';
   });
 
   // ---------- Pantalla 3: sala de espera ----------
@@ -586,7 +616,7 @@
           if(enPantallaJuego){
             updateTurnUI();
           }
-          if(partidaCache.estado === 'finalizada'){
+          if(partidaCache.estado === 'finalizada' && !esModoSolo){
             await mostrarFinDePartida();
           }
         })
@@ -602,6 +632,91 @@
     showScreen('screen-waiting');
     renderPlayersList();
     iniciarPollingWaiting();
+  }
+
+  async function manejarVictoria(jugadorGanadorId){
+    if(esModoSolo){
+      if(jugadorGanadorId === myPlayerId){
+        await avanzarEtapaCampana();
+      } else {
+        await reintentarEtapaCampana();
+      }
+      return;
+    }
+    await registrarVictoriaYFinalizar(jugadorGanadorId);
+  }
+
+  function formatearMs(ms){
+    const totalSeg = Math.round(ms/1000);
+    const min = Math.floor(totalSeg/60);
+    const seg = totalSeg % 60;
+    return min > 0 ? `${min}m ${seg}s` : `${seg}s`;
+  }
+
+  function guardarHistorialCampana(msTotal){
+    try {
+      const historial = JSON.parse(localStorage.getItem('ocaland_historial_campanas') || '[]');
+      historial.unshift({ fecha: new Date().toISOString(), msTotal, nombre: myNombre });
+      localStorage.setItem('ocaland_historial_campanas', JSON.stringify(historial.slice(0, 20)));
+    } catch(e){ /* localStorage no disponible */ }
+  }
+
+  function leerHistorialCampanas(){
+    try { return JSON.parse(localStorage.getItem('ocaland_historial_campanas') || '[]'); }
+    catch(e){ return []; }
+  }
+
+  async function avanzarEtapaCampana(){
+    const ahora = Date.now();
+    const msEtapa = ahora - (etapaInicioTs || ahora);
+    const etapaActual = partidaCache.etapa_actual || 1;
+    historialEtapas.push({ etapa: etapaActual, ms: msEtapa });
+    document.getElementById('dice').classList.add('disabled');
+
+    if(etapaActual >= 10){
+      const msTotal = ahora - (campanaInicioTs || ahora);
+      await client.from('partidas').update({ estado: 'finalizada' }).eq('id', myPartidaId);
+      partidaCache = { ...partidaCache, estado: 'finalizada' };
+      guardarHistorialCampana(msTotal);
+      if(pollingGame){ clearInterval(pollingGame); pollingGame = null; }
+      mostrarFinCampana(msTotal);
+      return;
+    }
+
+    const nuevaEtapa = etapaActual + 1;
+    etapaInicioTs = Date.now();
+    aplicarConfigEtapa(nuevaEtapa);
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
+    await client.from('partidas').update({ etapa_actual: nuevaEtapa, turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, turno_actual: 0, estado_turno: null };
+    await refreshPlayersList();
+    document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
+    document.getElementById('marcador-tanda').textContent = `Campaña: etapa ${nuevaEtapa} de 10`;
+    renderBoard();
+    updateTurnUI();
+  }
+
+  async function reintentarEtapaCampana(){
+    const etapaActual = partidaCache.etapa_actual || 1;
+    etapaInicioTs = Date.now();
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
+    await client.from('partidas').update({ turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: 0, estado_turno: null };
+    await refreshPlayersList();
+    document.getElementById('game-msg').textContent = `😕 Te ganó el bot en la etapa ${etapaActual}. ¡Reintentá!`;
+    renderBoard();
+    updateTurnUI();
+  }
+
+  function mostrarFinCampana(msTotal){
+    const historial = leerHistorialCampanas();
+    const listaHtml = historial.slice(0,5).map((h,i) =>
+      `${i+1}. ${h.nombre} — ${formatearMs(h.msTotal)} (${new Date(h.fecha).toLocaleDateString()})`
+    ).join('<br>');
+    document.getElementById('game-msg').innerHTML = `🏆🎉 ¡COMPLETASTE LAS 10 ETAPAS! Tiempo total: ${formatearMs(msTotal)}<br><br><b>Historial de campañas:</b><br>${listaHtml}`;
+    document.getElementById('btn-play-again').classList.remove('hidden');
+    document.getElementById('btn-nueva-tanda').classList.add('hidden');
+    document.getElementById('btn-revancha').classList.add('hidden');
   }
 
   async function registrarVictoriaYFinalizar(jugadorGanadorId){
@@ -977,7 +1092,10 @@
       await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
       await refreshPlayersList();
       if(esBot){
-        const acierto = Math.random() < (tipo==='calavera' ? 0.4 : 0.55);
+        const probAcierto = (esModoSolo && etapaConfig)
+          ? (tipo==='calavera' ? etapaConfig.botAciertoCalavera : tipo==='carcel' ? etapaConfig.botAciertoCarcel : etapaConfig.botAciertoOca)
+          : (tipo==='calavera' ? 0.4 : 0.55);
+        const acierto = Math.random() < probAcierto;
         await aplicarResultadoTrivia(jugadorId, tipo, rawNewPos, acierto, true, false);
       } else {
         await client.from('partidas').update({ estado_turno: 'resolviendo_trivia' }).eq('id', myPartidaId);
@@ -989,7 +1107,7 @@
 
     await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
     if(rawNewPos >= META){
-      await registrarVictoriaYFinalizar(jugadorId);
+      await manejarVictoria(jugadorId);
       return;
     }
     await terminarTurno(false);
@@ -1005,7 +1123,7 @@
       : mensajeTrivia(tipo, acierto, quien);
 
     if(outcome.pos >= TOTAL_CELLS-1){
-      await registrarVictoriaYFinalizar(jugadorId);
+      await manejarVictoria(jugadorId);
       return;
     }
     if((tipo === 'carcel' && !acierto) || forzarSkip){
@@ -1017,7 +1135,8 @@
   const TIEMPO_LIMITE_TRIVIA = 15; // segundos
 
   function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket){
-    const bankSet = tipo === 'calavera' ? triviaBankDificil : triviaBank;
+    const usaDificil = tipo === 'calavera' || (esModoSolo && etapaConfig && etapaConfig.ocaCarcelUsanBancoDificil);
+    const bankSet = usaDificil ? triviaBankDificil : triviaBank;
     const bank = bankSet[edadBracket] || bankSet.adultos;
     const pregunta = bank[Math.floor(Math.random()*bank.length)];
     const titulos = { oca:'🪿 Oca — trivia', carcel:'⛓️ Cárcel — trivia', calavera:'💀 Calavera — trivia DIFÍCIL' };
@@ -1026,7 +1145,7 @@
     const opts = document.getElementById('trivia-options');
     opts.innerHTML = '';
     let resuelto = false;
-    let segundosRestantes = TIEMPO_LIMITE_TRIVIA;
+    let segundosRestantes = (esModoSolo && etapaConfig) ? etapaConfig.tiempoLimiteTrivia : TIEMPO_LIMITE_TRIVIA;
     const timerEl = document.getElementById('trivia-timer');
     timerEl.textContent = `⏱️ ${segundosRestantes}s`;
     const intervalId = setInterval(() => {
@@ -1117,7 +1236,7 @@
           return;
         }
         updateTurnUI();
-        if(partida.estado === 'finalizada'){
+        if(partida.estado === 'finalizada' && !esModoSolo){
           clearInterval(pollingGame);
           pollingGame = null;
           await mostrarFinDePartida();
@@ -1172,7 +1291,7 @@
       iniciarPollingWaiting();
     } else {
       enterGameScreen();
-      if(partida.estado === 'finalizada') await mostrarFinDePartida();
+      if(partida.estado === 'finalizada' && !esModoSolo) await mostrarFinDePartida();
     }
   }
 
