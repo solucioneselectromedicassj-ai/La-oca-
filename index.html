@@ -230,6 +230,16 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="perdida-etapa-overlay">
+  <div class="modal-card">
+    <h2>😕 Te ganó el bot</h2>
+    <p id="perdida-etapa-msg">Elegí cómo seguir:</p>
+    <button id="btn-elegir-reintentar" style="margin-bottom:10px;">🔁 Reintentar la etapa</button>
+    <button id="btn-elegir-3cuestionados" class="secondary">🎯 Responder 3 Cuestionados para pasar</button>
+    <p style="font-size:11.5px; color:var(--forest-dark); margin-top:8px;">Si fallás alguna, pasás a reintentar la etapa igual.</p>
+  </div>
+</div>
+
 <div class="overlay hidden" id="reconectar-overlay">
   <div class="modal-card">
     <h2>🔌 Reconectar</h2>
@@ -263,6 +273,7 @@
   let campanaInicioTs = null;
   let etapaInicioTs = null;
   let historialEtapas = [];
+  let reintentosEtapaActual = 0;
   let etapaConfig = null;
 
   function generarConfigEtapa(etapa){
@@ -818,11 +829,78 @@
       if(jugadorGanadorId === myPlayerId){
         await avanzarEtapaCampana();
       } else {
-        await reintentarEtapaCampana();
+        mostrarEleccionPerdiste();
       }
       return;
     }
     await registrarVictoriaYFinalizar(jugadorGanadorId);
+  }
+
+  function mostrarEleccionPerdiste(){
+    const etapaActual = partidaCache.etapa_actual || 1;
+    document.getElementById('perdida-etapa-msg').textContent = `Te ganó el bot en la etapa ${etapaActual} (van ${reintentosEtapaActual} reintentos). Elegí cómo seguir:`;
+    document.getElementById('perdida-etapa-overlay').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-elegir-reintentar').addEventListener('click', async () => {
+    document.getElementById('perdida-etapa-overlay').classList.add('hidden');
+    reintentosEtapaActual++;
+    await reintentarEtapaCampana();
+  });
+
+  document.getElementById('btn-elegir-3cuestionados').addEventListener('click', () => {
+    document.getElementById('perdida-etapa-overlay').classList.add('hidden');
+    iniciarDesafioTresCuestionados();
+  });
+
+  function iniciarDesafioTresCuestionados(){
+    let respondidas = 0;
+    let correctas = 0;
+    const bank = triviaBank[myEdadBracket] || triviaBank.adultos;
+    const usadas = new Set();
+
+    function siguientePregunta(){
+      let pregunta;
+      let intentos = 0;
+      do { pregunta = bank[Math.floor(Math.random()*bank.length)]; intentos++; }
+      while(usadas.has(pregunta.q) && intentos < 20);
+      usadas.add(pregunta.q);
+
+      document.getElementById('trivia-titulo').textContent = `🎯 Desafío (${respondidas+1} de 3)`;
+      document.getElementById('trivia-question').textContent = pregunta.q;
+      document.getElementById('trivia-timer').textContent = '';
+      const opts = document.getElementById('trivia-options');
+      opts.innerHTML = '';
+      pregunta.options.forEach((op, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = op;
+        btn.addEventListener('click', async () => {
+          Array.from(opts.children).forEach(b => b.disabled = true);
+          const acierto = idx === pregunta.correct;
+          btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
+          if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
+          if(acierto) correctas++;
+          respondidas++;
+          await wait(900);
+          if(respondidas >= 3){
+            document.getElementById('trivia-overlay').classList.add('hidden');
+            if(correctas === 3){
+              document.getElementById('game-msg').textContent = `🎉 ¡Respondiste las 3 Cuestionados! Pasás a la siguiente etapa igual.`;
+              await avanzarEtapaCampana();
+            } else {
+              document.getElementById('game-msg').textContent = `😕 Fallaste alguna (${correctas}/3). Toca reintentar la etapa.`;
+              reintentosEtapaActual++;
+              await reintentarEtapaCampana();
+            }
+          } else {
+            siguientePregunta();
+          }
+        });
+        opts.appendChild(btn);
+      });
+      document.getElementById('trivia-overlay').classList.remove('hidden');
+    }
+    siguientePregunta();
   }
 
   function formatearMs(ms){
@@ -870,6 +948,7 @@
 
   async function continuarSiguienteEtapaCampana(etapaActual, nuevaEtapa, msEtapa){
     etapaInicioTs = Date.now();
+    reintentosEtapaActual = 0;
     aplicarConfigEtapa(nuevaEtapa);
     const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
@@ -879,13 +958,19 @@
     }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
-    document.getElementById('marcador-tanda').textContent = `Campaña: etapa ${nuevaEtapa} de 10`;
+    actualizarMarcadorCampana();
     buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: turnoInicial };
     document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
     renderBoard();
+  }
+
+  function actualizarMarcadorCampana(){
+    const etapa = partidaCache.etapa_actual || 1;
+    const sufijoReintentos = reintentosEtapaActual > 0 ? ` · ${reintentosEtapaActual} reintento${reintentosEtapaActual>1?'s':''}` : '';
+    document.getElementById('marcador-tanda').textContent = `Campaña: etapa ${etapa} de 10${sufijoReintentos}`;
   }
 
   // ---------- Transición de premio: mini-juego aleatorio + ruleta (campaña solo Y salas multijugador) ----------
@@ -1096,6 +1181,7 @@
     }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
+    actualizarMarcadorCampana();
     buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
@@ -1383,7 +1469,16 @@
     renderBoard();
   }
 
+  let caminataEnCurso = 0;
+
   function renderBoard(){
+    if(caminataEnCurso > 0){
+      // hay una animación de caminata en curso: no reconstruimos los tokens para no interrumpirla,
+      // pero sí refrescamos el resto de la UI (badges, turno)
+      renderJugadoresStatus();
+      updateTurnUI();
+      return;
+    }
     const boardEl = document.getElementById('board');
     // limpiar tokens previos
     boardEl.querySelectorAll('.token').forEach(t => t.remove());
@@ -1419,12 +1514,14 @@
       const boardEl = document.getElementById('board');
       const token = boardEl.querySelector(`.token[data-jugador-id="${jugadorId}"]`);
       if(!token || hasta === desde){ resolve(); return; }
+      caminataEnCurso++;
       const idx = jugadoresCache.findIndex(j => j.id === jugadorId);
       const offX = 1 + (Math.max(idx,0)%3)*3, offY = 1 + Math.floor(Math.max(idx,0)/3)*3;
       const paso_ = hasta > desde ? 1 : -1;
       let actual = desde;
+      const terminar = () => { caminataEnCurso = Math.max(0, caminataEnCurso-1); resolve(); };
       const paso = () => {
-        if(actual === hasta){ resolve(); return; }
+        if(actual === hasta){ terminar(); return; }
         actual += paso_;
         const pos = cellPositions[Math.max(0, Math.min(actual, TOTAL_CELLS-1))];
         token.style.left = (parseFloat(pos.left)+offX) + '%';
