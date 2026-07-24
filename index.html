@@ -75,6 +75,7 @@
   .cell.puente{ background:#B7C9C1; }
   .cell.carcel{ background:#9AA1A8; }
   .cell.calavera{ background:#C48A7A; }
+  .cell.minijuego{ background:#7aa7d9; }
   .cell-icon{ position:absolute; bottom:1px; right:2px; font-size:9px; }
   #legend{ display:flex; flex-wrap:wrap; gap:6px 10px; justify-content:center; font-size:10.5px; color:#5c5240; margin-top:6px; }
   #legend span{ display:flex; align-items:center; gap:3px; }
@@ -179,6 +180,48 @@
     <span><span class="legend-dot" style="background:#B7C9C1"></span>Puente: salto directo</span>
     <span><span class="legend-dot" style="background:#9AA1A8"></span>Cárcel: trivia o perdés turno</span>
     <span><span class="legend-dot" style="background:#C48A7A"></span>Calavera: trivia difícil o volvés al inicio</span>
+    <span><span class="legend-dot" style="background:#7aa7d9"></span>Minijuego: reflejos o memoria</span>
+  </div>
+</div>
+
+<div class="overlay hidden" id="transition-overlay">
+  <div class="modal-card">
+    <h2 id="transition-title">🎉 ¡Etapa superada!</h2>
+
+    <div id="transition-phase1">
+      <div id="minigame-reflejos">
+        <p>Mini-juego de reflejos: tocá el botón apenas se ponga verde.</p>
+        <button id="reflex-btn" style="width:100%; padding:20px; border-radius:12px; border:none; background:#9AA1A8; color:#fff; font-size:15px; font-weight:600;">Esperá...</button>
+        <p id="reflex-result" style="font-size:13px; min-height:18px; margin-top:8px; color:#5c5240;"></p>
+      </div>
+      <div id="minigame-memoria" class="hidden">
+        <p>Mini-juego de memoria: repetí la secuencia de colores en el mismo orden.</p>
+        <div id="memory-tiles" style="display:flex; gap:8px; justify-content:center; margin:10px 0;"></div>
+        <p id="memory-result" style="font-size:13px; min-height:18px; color:#5c5240;"></p>
+      </div>
+      <button id="skip-ad-btn" class="secondary" style="margin-top:10px; font-size:12.5px;">📺 Mirar un video y pasar directo</button>
+    </div>
+
+    <div id="transition-phase2" class="hidden">
+      <p>¡Girá la ruleta de premios!</p>
+      <div id="wheel-outer" style="position:relative; width:180px; height:180px; margin:6px auto 14px;">
+        <div id="wheel-pointer" style="position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:16px solid var(--forest-dark); z-index:2;"></div>
+        <div id="wheel-disc" style="width:100%; height:100%; border-radius:50%; border:4px solid var(--forest-dark); transition: transform 3.5s cubic-bezier(0.17,0.67,0.32,1.02);"></div>
+      </div>
+      <button id="spin-btn">Girar ruleta</button>
+      <p id="wheel-result" style="font-size:14px; font-weight:600; min-height:20px; margin-top:8px; color:var(--forest-dark);"></p>
+    </div>
+
+    <button id="transition-continue" class="hidden" style="margin-top:12px;">Continuar a la siguiente etapa</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="ad-overlay">
+  <div class="modal-card">
+    <h2>📺 Publicidad</h2>
+    <p>Acá va un anuncio (simulado). En la app real sería un video de AdMob.</p>
+    <div id="ad-countdown" style="font-size:22px; font-weight:700; color:var(--forest-dark); margin-bottom:12px;">3</div>
+    <button id="ad-close" disabled style="opacity:0.5;">Continuar</button>
   </div>
 </div>
 
@@ -223,6 +266,7 @@
       botAciertoOca:      0.45 + d*0.35,   // 0.45 -> 0.80
       botAciertoCarcel:   0.45 + d*0.35,
       botAciertoCalavera: 0.30 + d*0.35,   // 0.30 -> 0.65
+      botAciertoMinijuego: 0.35 + d*0.35,  // 0.35 -> 0.70
       ocaCarcelUsanBancoDificil: etapa >= 7,   // desde etapa 7, hasta oca/carcel son trivia dificil
       tiempoLimiteTrivia: Math.max(8, 15 - Math.floor(d*7)), // 15s -> 8s
     };
@@ -248,8 +292,9 @@
   const puenteDestino = { 6:9, 17:20 };
   [10,21].forEach(i => special[i] = 'carcel');
   [15].forEach(i => special[i] = 'calavera');
+  [4,12,22].forEach(i => special[i] = 'minijuego');
   special[TOTAL_CELLS-1] = 'meta';
-  const cellIcons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆' };
+  const cellIcons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆', minijuego:'🎮' };
 
   const triviaBank = {
     ninos: [
@@ -587,9 +632,12 @@
   document.getElementById('btn-start-game').addEventListener('click', async () => {
     const { error } = await client.from('partidas').update({ estado: 'en_curso' }).eq('id', myPartidaId);
     if(error){ alert('Error al iniciar: ' + error.message); return; }
-    // No esperamos el eco de Realtime: pasamos de pantalla ya mismo (más robusto ante fallos de red)
     partidaCache = { ...partidaCache, estado: 'en_curso' };
     enterGameScreen();
+    const turnoInicial = await sortearTurnoInicial();
+    await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: turnoInicial };
+    updateTurnUI();
   });
 
   // ---------- Realtime: escuchar cambios en jugadores y en la partida ----------
@@ -684,25 +732,222 @@
     }
 
     const nuevaEtapa = etapaActual + 1;
+    mostrarTransicionPremio('campana', async () => {
+      await continuarSiguienteEtapaCampana(etapaActual, nuevaEtapa, msEtapa);
+    });
+  }
+
+  async function continuarSiguienteEtapaCampana(etapaActual, nuevaEtapa, msEtapa){
     etapaInicioTs = Date.now();
     aplicarConfigEtapa(nuevaEtapa);
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({ etapa_actual: nuevaEtapa, turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, turno_actual: 0, estado_turno: null };
+    await client.from('partidas').update({ etapa_actual: nuevaEtapa, estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, estado_turno: null };
     await refreshPlayersList();
-    document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
     document.getElementById('marcador-tanda').textContent = `Campaña: etapa ${nuevaEtapa} de 10`;
+    const turnoInicial = await sortearTurnoInicial();
+    await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: turnoInicial };
+    document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
     renderBoard();
     updateTurnUI();
   }
+
+  // ---------- Transición de premio: mini-juego aleatorio + ruleta (campaña solo Y salas multijugador) ----------
+  let transitionOnContinuar = null;
+
+  function mostrarTransicionPremio(modo, onContinuar){
+    document.getElementById('transition-title').textContent = modo === 'campana' ? '🎉 ¡Etapa superada!' : '🎉 ¡Ganaste la partida!';
+    document.getElementById('transition-phase1').classList.remove('hidden');
+    document.getElementById('transition-phase2').classList.add('hidden');
+    document.getElementById('transition-continue').classList.add('hidden');
+    transitionOnContinuar = onContinuar;
+    setTimeout(() => {
+      document.getElementById('transition-overlay').classList.remove('hidden');
+      startRandomMiniGame(() => goToWheelPhase());
+    }, 500);
+  }
+
+  function goToWheelPhase(){
+    document.getElementById('transition-phase1').classList.add('hidden');
+    document.getElementById('transition-phase2').classList.remove('hidden');
+    document.getElementById('transition-continue').classList.add('hidden');
+    document.getElementById('wheel-result').textContent = '';
+    document.getElementById('spin-btn').disabled = false;
+    const wheelDisc = document.getElementById('wheel-disc');
+    wheelDisc.style.transition = 'none';
+    wheelDisc.style.transform = 'rotate(0deg)';
+    void wheelDisc.offsetWidth;
+    wheelDisc.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.32,1.02)';
+  }
+
+  document.getElementById('skip-ad-btn').addEventListener('click', () => {
+    showAdSimulada(() => goToWheelPhase());
+  });
+
+  function showAdSimulada(onDone){
+    const overlay = document.getElementById('ad-overlay');
+    const closeBtn = document.getElementById('ad-close');
+    const countdownEl = document.getElementById('ad-countdown');
+    overlay.classList.remove('hidden');
+    closeBtn.disabled = true;
+    closeBtn.style.opacity = '0.5';
+    let seg = 3;
+    countdownEl.textContent = seg;
+    const intervalId = setInterval(() => {
+      seg--;
+      if(seg <= 0){
+        clearInterval(intervalId);
+        countdownEl.textContent = '✓';
+        closeBtn.disabled = false;
+        closeBtn.style.opacity = '1';
+      } else {
+        countdownEl.textContent = seg;
+      }
+    }, 1000);
+    closeBtn.onclick = () => {
+      if(closeBtn.disabled) return;
+      overlay.classList.add('hidden');
+      onDone();
+    };
+  }
+
+  function startRandomMiniGame(onDone){
+    const pool = ['reflejos', 'memoria'];
+    const chosen = pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('minigame-reflejos').classList.toggle('hidden', chosen!=='reflejos');
+    document.getElementById('minigame-memoria').classList.toggle('hidden', chosen!=='memoria');
+    if(chosen==='reflejos') startReflexGame(onDone); else startMemoryGame(onDone);
+  }
+
+  function startReflexGame(onDone){
+    const reflexBtn = document.getElementById('reflex-btn');
+    const reflexResultEl = document.getElementById('reflex-result');
+    reflexResultEl.textContent = '';
+    reflexBtn.textContent = 'Esperá...';
+    reflexBtn.style.background = '#9AA1A8';
+    reflexBtn.disabled = false;
+    let armado = false;
+    let listoTs = 0;
+    const delay = 1000 + Math.random()*1800;
+    const armTimer = setTimeout(() => {
+      armado = true;
+      reflexBtn.textContent = '¡YA! Tocá';
+      reflexBtn.style.background = '#5c9c5c';
+      listoTs = Date.now();
+    }, delay);
+    reflexBtn.onclick = () => {
+      reflexBtn.disabled = true;
+      let exito;
+      if(armado){
+        const ms = Date.now() - listoTs;
+        reflexResultEl.textContent = `⚡ ¡${ms}ms! Buen reflejo.`;
+        exito = true;
+      } else {
+        clearTimeout(armTimer);
+        reflexResultEl.textContent = '🙈 Tocaste antes de tiempo.';
+        exito = false;
+      }
+      setTimeout(() => onDone(exito), 1100);
+    };
+  }
+
+  function startMemoryGame(onDone){
+    const memoryResultEl = document.getElementById('memory-result');
+    const memoryTilesEl = document.getElementById('memory-tiles');
+    memoryResultEl.textContent = 'Mirá la secuencia...';
+    const colors = ['#8FBF8F','#D98A8A','#7aa7d9','#e4c77a'];
+    const sequence = Array.from({length:3}, () => Math.floor(Math.random()*colors.length));
+    memoryTilesEl.innerHTML = '';
+    let showing = true;
+    let locked = false;
+    const playerInput = [];
+
+    const tileEls = colors.map((c, i) => {
+      const t = document.createElement('div');
+      t.style.cssText = `width:44px;height:44px;border-radius:8px;background:${c};cursor:pointer;opacity:0.5;transition:opacity 0.15s;`;
+      t.addEventListener('click', () => handleTap(i));
+      memoryTilesEl.appendChild(t);
+      return t;
+    });
+
+    function flash(i, cb){
+      tileEls[i].style.opacity = '1';
+      setTimeout(() => { tileEls[i].style.opacity = '0.5'; setTimeout(cb, 200); }, 400);
+    }
+    function showSequence(idx){
+      if(idx >= sequence.length){ showing = false; memoryResultEl.textContent = 'Ahora repetí la secuencia.'; return; }
+      flash(sequence[idx], () => showSequence(idx+1));
+    }
+    setTimeout(() => showSequence(0), 500);
+
+    function handleTap(i){
+      if(showing || locked) return;
+      playerInput.push(i);
+      const stepIdx = playerInput.length-1;
+      if(sequence[stepIdx] !== i){
+        locked = true;
+        memoryResultEl.textContent = '❌ Te equivocaste.';
+        setTimeout(() => onDone(false), 1100);
+        return;
+      }
+      if(playerInput.length === sequence.length){
+        locked = true;
+        memoryResultEl.textContent = '✅ ¡Memoria perfecta!';
+        setTimeout(() => onDone(true), 1100);
+      }
+    }
+  }
+
+  const wheelPrizes = [
+    '+3 casillas de ventaja',
+    'Trivia gratis (sin publicidad si fallás)',
+    'Nada esta vez',
+    '+1 tirada extra al empezar',
+    'Inmunidad a una trampa',
+    'Nada esta vez'
+  ];
+  const wheelColors = ['#8FBF8F','#E4C77A','#B7C9C1','#7aa7d9','#D98A8A','#C9A24B'];
+
+  function buildWheelGradient(){
+    const seg = 360/wheelPrizes.length;
+    const stops = wheelColors.map((c,i) => `${c} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+    document.getElementById('wheel-disc').style.background = `conic-gradient(${stops})`;
+  }
+  buildWheelGradient();
+
+  document.getElementById('spin-btn').addEventListener('click', () => {
+    const spinBtn = document.getElementById('spin-btn');
+    spinBtn.disabled = true;
+    const seg = 360/wheelPrizes.length;
+    const chosenIdx = Math.floor(Math.random()*wheelPrizes.length);
+    const center = chosenIdx*seg + seg/2;
+    const rotation = 4*360 + (360 - center);
+    document.getElementById('wheel-disc').style.transform = `rotate(${rotation}deg)`;
+    setTimeout(() => {
+      document.getElementById('wheel-result').textContent = `🎁 ¡Premio: ${wheelPrizes[chosenIdx]}!`;
+      document.getElementById('transition-continue').classList.remove('hidden');
+    }, 3600);
+  });
+
+  document.getElementById('transition-continue').addEventListener('click', async () => {
+    document.getElementById('transition-overlay').classList.add('hidden');
+    const cb = transitionOnContinuar;
+    transitionOnContinuar = null;
+    if(cb) await cb();
+  });
+
 
   async function reintentarEtapaCampana(){
     const etapaActual = partidaCache.etapa_actual || 1;
     etapaInicioTs = Date.now();
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({ turno_actual: 0, estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, turno_actual: 0, estado_turno: null };
+    await client.from('partidas').update({ estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado_turno: null };
     await refreshPlayersList();
+    const turnoInicial = await sortearTurnoInicial();
+    await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: turnoInicial };
     document.getElementById('game-msg').textContent = `😕 Te ganó el bot en la etapa ${etapaActual}. ¡Reintentá!`;
     renderBoard();
     updateTurnUI();
@@ -1007,6 +1252,29 @@
   }
 
   let botJugando = false;
+
+  // ---------- Sorteo de quién empieza (animación propia, distinta al dado) ----------
+  function sortearTurnoInicial(){
+    return new Promise(resolve => {
+      const cantidad = jugadoresCache.length || 2;
+      const elegido = Math.floor(Math.random() * cantidad);
+      const nombres = jugadoresCache.map(j => j.nombre);
+      document.getElementById('dice').classList.add('disabled');
+      let i = 0;
+      const intervalId = setInterval(() => {
+        const nombre = nombres[i % nombres.length] || '...';
+        document.getElementById('turn-indicator').textContent = `🎯 Sorteando... ${nombre}`;
+        i++;
+      }, 140);
+      setTimeout(() => {
+        clearInterval(intervalId);
+        const nombreElegido = nombres[elegido] || '...';
+        document.getElementById('turn-indicator').textContent = `🎯 ¡Empieza ${nombreElegido}!`;
+        resolve(elegido);
+      }, 1600);
+    });
+  }
+
   let saltandoTurno = false;
 
   function updateTurnUI(){
@@ -1041,6 +1309,11 @@
     const esMiTurno = jugadorEnTurno.id === myPlayerId;
     if(partidaCache.estado_turno === 'resolviendo_trivia'){
       document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (resolviendo trivia)' : `${jugadorEnTurno.nombre} está resolviendo una trivia...`;
+      dice.classList.add('disabled');
+      return;
+    }
+    if(partidaCache.estado_turno === 'jugando_minijuego'){
+      document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (jugando minijuego)' : `${jugadorEnTurno.nombre} está jugando un minijuego...`;
       dice.classList.add('disabled');
       return;
     }
@@ -1105,12 +1378,60 @@
       return;
     }
 
+    if(tipo === 'minijuego'){
+      await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
+      await refreshPlayersList();
+      if(esBot){
+        const probExito = (esModoSolo && etapaConfig) ? etapaConfig.botAciertoMinijuego : 0.5;
+        const exito = Math.random() < probExito;
+        await aplicarResultadoMinijuego(jugadorId, rawNewPos, exito, true);
+      } else {
+        await client.from('partidas').update({ estado_turno: 'jugando_minijuego' }).eq('id', myPartidaId);
+        partidaCache = { ...partidaCache, estado_turno: 'jugando_minijuego' };
+        mostrarMinijuegoLocal(rawNewPos, jugadorId);
+      }
+      return;
+    }
+
     await client.from('jugadores_partida').update({ posicion: rawNewPos }).eq('id', jugadorId);
     if(rawNewPos >= META){
       await manejarVictoria(jugadorId);
       return;
     }
     await terminarTurno(false);
+  }
+
+  function mostrarMinijuegoLocal(posActual, jugadorId){
+    document.getElementById('transition-title').textContent = '🎮 ¡Casilla de minijuego!';
+    document.getElementById('transition-phase1').classList.remove('hidden');
+    document.getElementById('transition-phase2').classList.add('hidden');
+    document.getElementById('transition-continue').classList.add('hidden');
+    document.getElementById('skip-ad-btn').classList.add('hidden');
+    document.getElementById('transition-overlay').classList.remove('hidden');
+    startRandomMiniGame(async (exito) => {
+      document.getElementById('transition-overlay').classList.add('hidden');
+      document.getElementById('skip-ad-btn').classList.remove('hidden');
+      await aplicarResultadoMinijuego(jugadorId, posActual, exito, false);
+    });
+  }
+
+  async function aplicarResultadoMinijuego(jugadorId, posActual, exito, esBot){
+    const nuevaPos = exito ? Math.min(posActual + 2, TOTAL_CELLS-1) : posActual;
+    await client.from('jugadores_partida').update({ posicion: nuevaPos }).eq('id', jugadorId);
+    const quien = esBot ? 'El bot' : 'Vos';
+    document.getElementById('game-msg').textContent = exito
+      ? `🎮 ¡${quien} superó el minijuego! Avanza 2 casillas extra.`
+      : `🎮 ${quien==='Vos' ? 'No superaste' : 'No superó'} el minijuego esta vez.`;
+
+    if(nuevaPos >= TOTAL_CELLS-1){
+      await manejarVictoria(jugadorId);
+      return;
+    }
+    if(!esBot && !exito){
+      showAdSimulada(() => terminarTurno(false));
+    } else {
+      await terminarTurno(false);
+    }
   }
 
   async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot, forzarSkip){
