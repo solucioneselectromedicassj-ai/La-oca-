@@ -149,6 +149,13 @@
     <button id="btn-join-room" class="secondary" style="margin-top:10px;">Unirme</button>
   </div>
   <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
+  <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
+</div>
+
+<!-- Pantalla de ranking -->
+<div class="screen hidden" id="screen-ranking">
+  <div class="card" id="ranking-contenido"></div>
+  <button id="btn-volver-lobby-ranking" class="secondary">← Volver</button>
 </div>
 
 <!-- Pantalla de perfil -->
@@ -535,7 +542,7 @@
 
   // ---------- Helpers de pantalla ----------
   function showScreen(id){
-    ['screen-nickname','screen-edad','screen-lobby-choice','screen-perfil','screen-waiting','screen-game'].forEach(s => {
+    ['screen-nickname','screen-edad','screen-lobby-choice','screen-perfil','screen-ranking','screen-waiting','screen-game'].forEach(s => {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
   }
@@ -673,6 +680,43 @@
   document.getElementById('btn-volver-lobby').addEventListener('click', () => {
     showScreen('screen-lobby-choice');
   });
+
+  document.getElementById('btn-ver-ranking').addEventListener('click', async () => {
+    await renderRanking();
+    showScreen('screen-ranking');
+  });
+
+  document.getElementById('btn-volver-lobby-ranking').addEventListener('click', () => {
+    showScreen('screen-lobby-choice');
+  });
+
+  async function renderRanking(){
+    const cont = document.getElementById('ranking-contenido');
+    cont.innerHTML = '<h2 style="margin-top:0;">🏆 Ranking</h2><p>Cargando...</p>';
+    const { data: top, error } = await client
+      .from('usuarios')
+      .select('*')
+      .order('partidas_ganadas', { ascending: false })
+      .limit(20);
+    if(error || !top){
+      cont.innerHTML = '<h2 style="margin-top:0;">🏆 Ranking</h2><p>No se pudo cargar el ranking.</p>';
+      return;
+    }
+    const medallas = ['🥇','🥈','🥉'];
+    const filas = top.map((u, idx) => {
+      const soyYo = u.id === myUsuarioId;
+      const medalla = medallas[idx] || `${idx+1}.`;
+      return `<div style="display:flex; justify-content:space-between; padding:5px 0; ${soyYo ? 'font-weight:700; color:var(--forest-dark);' : ''}">
+        <span>${medalla} ${u.nombre}${soyYo ? ' (vos)' : ''}</span>
+        <span>${u.partidas_ganadas} 🏆</span>
+      </div>`;
+    }).join('');
+    const estoyEnElTop = top.some(u => u.id === myUsuarioId);
+    const fueraDelTop = (!estoyEnElTop && myUsuarioStats)
+      ? `<p style="margin-top:10px; padding-top:8px; border-top:1px dashed #ccc; font-size:12.5px;">Tu posición: fuera del Top 20 — tenés ${myUsuarioStats.partidas_ganadas||0} 🏆</p>`
+      : '';
+    cont.innerHTML = `<h2 style="margin-top:0;">🏆 Ranking (por partidas ganadas)</h2>${filas || '<p>Todavía no hay nadie en el ranking.</p>'}${fueraDelTop}`;
+  }
 
   function renderPerfil(){
     const s = myUsuarioStats || {};
