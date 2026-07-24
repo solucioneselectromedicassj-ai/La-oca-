@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ocaland - Prueba Multijugador</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2F4A3C">
+<meta name="theme-color" content="#7C4DFF">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,13 +14,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
-    --parchment:#EFE3C8;
-    --parchment-dark:#E2D3AC;
-    --ink:#1C1A17;
-    --forest:#2F4A3C;
-    --forest-dark:#22362B;
-    --oxblood:#8B3A3A;
-    --gold:#C9A24B;
+    --parchment:#FFF3FA;
+    --parchment-dark:#FFE1F0;
+    --ink:#3A2E4D;
+    --forest:#7C4DFF;
+    --forest-dark:#5E35B1;
+    --oxblood:#FF4D8D;
+    --gold:#FFC93C;
   }
   *{box-sizing:border-box;}
   body{
@@ -34,7 +34,7 @@
     font-family:'Palatino Linotype', Palatino, Georgia, serif;
     font-size:26px; color:var(--forest-dark); margin:6px 0 2px; text-align:center;
   }
-  .subtitle{ font-size:12.5px; letter-spacing:1px; text-transform:uppercase; color:#7a6f56; margin-bottom:20px; }
+  .subtitle{ font-size:12.5px; letter-spacing:1px; text-transform:uppercase; color:#9B8AB5; margin-bottom:20px; }
   .screen{ width:100%; max-width:420px; display:flex; flex-direction:column; align-items:center; gap:14px; }
   .hidden{ display:none !important; }
   input[type=text]{
@@ -57,7 +57,7 @@
   }
   #players-list li.me{ background:var(--gold); font-weight:600; }
   #players-list li .tag{ font-size:11px; opacity:0.7; }
-  #status-msg{ font-size:13px; color:#5c5240; text-align:center; min-height:18px; }
+  #status-msg{ font-size:13px; color:#7A6A99; text-align:center; min-height:18px; }
 
   #board-wrap{
     position:relative; width:100%; aspect-ratio:1/1; max-width:380px;
@@ -67,17 +67,17 @@
   #board{ position:relative; width:100%; height:100%; }
   .cell{
     position:absolute; background:var(--parchment); border-radius:5px;
-    box-shadow:0 2px 3px rgba(0,0,0,0.3); font-size:8px; color:#5c5240;
+    box-shadow:0 2px 3px rgba(0,0,0,0.3); font-size:8px; color:#7A6A99;
     display:flex; align-items:flex-start; justify-content:flex-start; padding:2px;
   }
   .cell.meta{ background:var(--oxblood); }
-  .cell.oca{ background:#D9C77A; }
-  .cell.puente{ background:#B7C9C1; }
-  .cell.carcel{ background:#9AA1A8; }
-  .cell.calavera{ background:#C48A7A; }
-  .cell.minijuego{ background:#7aa7d9; }
+  .cell.oca{ background:#FFD93D; }
+  .cell.puente{ background:#4FD8E0; }
+  .cell.carcel{ background:#5C7CFA; }
+  .cell.calavera{ background:#FF7043; }
+  .cell.minijuego{ background:#29B6F6; }
   .cell-icon{ position:absolute; bottom:1px; right:2px; font-size:9px; }
-  #legend{ display:flex; flex-wrap:wrap; gap:6px 10px; justify-content:center; font-size:10.5px; color:#5c5240; margin-top:6px; }
+  #legend{ display:flex; flex-wrap:wrap; gap:6px 10px; justify-content:center; font-size:10.5px; color:#7A6A99; margin-top:6px; }
   #legend span{ display:flex; align-items:center; gap:3px; }
   .legend-dot{ width:9px; height:9px; border-radius:2px; display:inline-block; }
 
@@ -126,7 +126,9 @@
     <div class="edad-options">
       <button data-bracket="ninos" class="edad-btn secondary">7 a 12 años</button>
       <button data-bracket="adolescentes" class="edad-btn secondary">13 a 17 años</button>
-      <button data-bracket="adultos" class="edad-btn secondary">18 a 59 años</button>
+      <button data-bracket="jovenes" class="edad-btn secondary">18 a 25 años</button>
+      <button data-bracket="adultos" class="edad-btn secondary">26 a 45 años</button>
+      <button data-bracket="adultos_plus" class="edad-btn secondary">46 a 59 años</button>
       <button data-bracket="mayores" class="edad-btn secondary">60 años o más</button>
     </div>
   </div>
@@ -150,7 +152,7 @@
 <!-- Pantalla 3: sala de espera -->
 <div class="screen hidden" id="screen-waiting">
   <div class="card">
-    <p style="margin:0 0 4px; text-align:center; font-size:12px; color:#7a6f56;">CÓDIGO DE SALA</p>
+    <p style="margin:0 0 4px; text-align:center; font-size:12px; color:#9B8AB5;">CÓDIGO DE SALA</p>
     <div id="room-code-display">----</div>
     <button id="btn-copy-code" class="secondary" style="margin-top:10px;">📋 Copiar código</button>
   </div>
@@ -166,8 +168,11 @@
 <!-- Pantalla 4: juego -->
 <div class="screen hidden" id="screen-game">
   <div id="turn-indicator">Cargando...</div>
-  <div id="marcador-tanda" style="font-size:11.5px; color:#7a6f56; margin:2px 0 8px;"></div>
+  <div id="marcador-tanda" style="font-size:11.5px; color:#9B8AB5; margin:2px 0 8px;"></div>
   <div id="desempate-panel" class="hidden" style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; text-align:center;"></div>
+  <div id="sorteo-panel" class="hidden" style="background:#fff; border-radius:10px; padding:14px; margin-bottom:10px; font-size:13.5px; text-align:center; line-height:1.7;"></div>
+  <div id="jugadores-status" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:8px; font-size:11.5px;"></div>
+  <div id="espectador-trivia" class="hidden" style="background:#fff; border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:12.5px; text-align:center; color:var(--ink); border:2px dashed var(--gold);"></div>
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
   <p id="game-msg"></p>
@@ -176,11 +181,11 @@
   <button id="btn-nueva-tanda" class="hidden">🏁 Nueva tanda (0-0)</button>
   <button id="btn-leave-game" class="secondary">Salir del juego</button>
   <div id="legend">
-    <span><span class="legend-dot" style="background:#D9C77A"></span>Oca: trivia, acertá y tirás de nuevo</span>
-    <span><span class="legend-dot" style="background:#B7C9C1"></span>Puente: salto directo</span>
-    <span><span class="legend-dot" style="background:#9AA1A8"></span>Cárcel: trivia o perdés turno</span>
-    <span><span class="legend-dot" style="background:#C48A7A"></span>Calavera: trivia difícil o volvés al inicio</span>
-    <span><span class="legend-dot" style="background:#7aa7d9"></span>Minijuego: reflejos o memoria</span>
+    <span><span class="legend-dot" style="background:#FFD93D"></span>Oca: Cuestionados, acertá y tirás de nuevo</span>
+    <span><span class="legend-dot" style="background:#4FD8E0"></span>Puente: salto directo</span>
+    <span><span class="legend-dot" style="background:#5C7CFA"></span>Cárcel: Cuestionados o perdés turno</span>
+    <span><span class="legend-dot" style="background:#FF7043"></span>Calavera: Cuestionados difícil o volvés al inicio</span>
+    <span><span class="legend-dot" style="background:#29B6F6"></span>Minijuego: reflejos o memoria</span>
   </div>
 </div>
 
@@ -191,13 +196,13 @@
     <div id="transition-phase1">
       <div id="minigame-reflejos">
         <p>Mini-juego de reflejos: tocá el botón apenas se ponga verde.</p>
-        <button id="reflex-btn" style="width:100%; padding:20px; border-radius:12px; border:none; background:#9AA1A8; color:#fff; font-size:15px; font-weight:600;">Esperá...</button>
-        <p id="reflex-result" style="font-size:13px; min-height:18px; margin-top:8px; color:#5c5240;"></p>
+        <button id="reflex-btn" style="width:100%; padding:20px; border-radius:12px; border:none; background:#5C7CFA; color:#fff; font-size:15px; font-weight:600;">Esperá...</button>
+        <p id="reflex-result" style="font-size:13px; min-height:18px; margin-top:8px; color:#7A6A99;"></p>
       </div>
       <div id="minigame-memoria" class="hidden">
-        <p>Mini-juego de memoria: repetí la secuencia de colores en el mismo orden.</p>
+        <p>Mini-juego de memoria: van a brillar 3 fichas de colores, una por una. Cuando terminen, tocalas en el mismo orden en que brillaron.</p>
         <div id="memory-tiles" style="display:flex; gap:8px; justify-content:center; margin:10px 0;"></div>
-        <p id="memory-result" style="font-size:13px; min-height:18px; color:#5c5240;"></p>
+        <p id="memory-result" style="font-size:13px; min-height:18px; color:#7A6A99;"></p>
       </div>
       <button id="skip-ad-btn" class="secondary" style="margin-top:10px; font-size:12.5px;">📺 Mirar un video y pasar directo</button>
     </div>
@@ -235,7 +240,7 @@
 
 <div class="overlay hidden" id="trivia-overlay">
   <div class="modal-card">
-    <h2 id="trivia-titulo">🎯 Trivia</h2>
+    <h2 id="trivia-titulo">🎯 Cuestionados</h2>
     <div id="trivia-timer" style="font-size:13px; font-weight:700; color:var(--oxblood); margin-bottom:4px;"></div>
     <div id="trivia-question"></div>
     <div class="trivia-options" id="trivia-options"></div>
@@ -249,7 +254,7 @@
   const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'la_vuelta' } });
 
   const TOTAL_CELLS = 30;
-  const TOKEN_COLORS = ['#2F4A3C','#8B3A3A','#4B6FA8','#B5862B','#6B4E8E','#3F8F6B'];
+  const TOKEN_COLORS = ['#7C4DFF','#FF4D8D','#3D8BFD','#FFB020','#B24DFF','#22C58B'];
 
   let myNombre = '';
 
@@ -286,14 +291,48 @@
   function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
   // ---------- Casillas especiales (mismo diseño que el prototipo de 1 jugador) ----------
-  const special = {};
-  [3,8,14,19,25].forEach(i => special[i] = 'oca');
-  [6,17].forEach(i => special[i] = 'puente');
-  const puenteDestino = { 6:9, 17:20 };
-  [10,21].forEach(i => special[i] = 'carcel');
-  [15].forEach(i => special[i] = 'calavera');
-  [4,12,22].forEach(i => special[i] = 'minijuego');
-  special[TOTAL_CELLS-1] = 'meta';
+  const CANTIDAD_TRAMPAS = 20; // de 30 casillas (antes eran 13-16, ahora más denso)
+
+  function generarLayoutAleatorio(){
+    const disponibles = [];
+    for(let i=1;i<TOTAL_CELLS-1;i++) disponibles.push(i); // nunca la salida (0) ni la meta
+    for(let i=disponibles.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [disponibles[i],disponibles[j]] = [disponibles[j],disponibles[i]];
+    }
+    const elegidas = disponibles.slice(0, CANTIDAD_TRAMPAS);
+
+    const reparto = { oca:6, puente:3, carcel:3, calavera:2, minijuego:6 };
+    const tipos = [];
+    Object.entries(reparto).forEach(([tipo,cant]) => { for(let k=0;k<cant;k++) tipos.push(tipo); });
+    for(let i=tipos.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [tipos[i],tipos[j]] = [tipos[j],tipos[i]];
+    }
+
+    const layoutCasillas = {};
+    const layoutPuentes = {};
+    elegidas.forEach((idx, k) => {
+      const tipo = tipos[k];
+      layoutCasillas[idx] = tipo;
+      if(tipo === 'puente'){
+        const salto = 2 + Math.floor(Math.random()*3); // avanza entre 2 y 4 casillas
+        layoutPuentes[idx] = Math.min(idx + salto, TOTAL_CELLS - 2);
+      }
+    });
+    return { layoutCasillas, layoutPuentes };
+  }
+
+  function tipoCasilla(idx){
+    if(idx >= TOTAL_CELLS-1) return 'meta';
+    const layout = (partidaCache && partidaCache.layout_casillas) || {};
+    return layout[idx];
+  }
+  function destinoPuente(idx){
+    const layout = (partidaCache && partidaCache.layout_puentes) || {};
+    return layout[idx];
+  }
+
   const cellIcons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆', minijuego:'🎮' };
 
   const triviaBank = {
@@ -305,6 +344,16 @@
       {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
       {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
       {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+      {q:'¿Cuánto es 5 + 3?', options:['7','8','9','10'], correct:1},
+      {q:'¿Cuánto es 10 menos 4?', options:['5','6','7','8'], correct:1},
+      {q:'¿Cuál es el planeta donde vivimos?', options:['Marte','Venus','Tierra','Júpiter'], correct:2},
+      {q:'¿Qué astro nos da luz de día?', options:['La Luna','El Sol','Una estrella lejana','Un cometa'], correct:1},
+      {q:'¿Cuál es el continente donde está Argentina?', options:['África','América','Asia','Europa'], correct:1},
+      {q:'¿Cuál es la capital de Argentina?', options:['Córdoba','Rosario','Buenos Aires','Mendoza'], correct:2},
+      {q:'¿Cuántos lados tiene un triángulo?', options:['2','3','4','5'], correct:1},
+      {q:'¿Qué animal es el más grande del mundo?', options:['Elefante','Ballena azul','Jirafa','Tiburón'], correct:1},
+      {q:'¿De qué están hechas las nubes?', options:['Algodón','Humo','Agua','Arena'], correct:2},
+      {q:'¿Cuántas estaciones del año hay?', options:['2','3','4','5'], correct:2},
     ],
     adolescentes: [
       {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
@@ -313,6 +362,14 @@
       {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
       {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
       {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
+      {q:'¿Cuánto es 12 x 8?', options:['86','96','106','108'], correct:1},
+      {q:'¿Cuál es la raíz cuadrada de 144?', options:['11','12','13','14'], correct:1},
+      {q:'¿En qué año comenzó la Revolución de Mayo en Argentina?', options:['1806','1810','1816','1820'], correct:1},
+      {q:'¿Cuál es el país más grande del mundo por superficie?', options:['China','Canadá','Rusia','Brasil'], correct:2},
+      {q:'¿Qué gas necesitan las plantas para hacer fotosíntesis?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:1},
+      {q:'¿Cuál es el hueso más pequeño del cuerpo humano?', options:['Estribo (oído)','Falange','Rótula','Clavícula'], correct:0},
+      {q:'¿Cuál es la cordillera más larga del mundo?', options:['Himalaya','Andes','Alpes','Rocosas'], correct:1},
+      {q:'¿Quién escribió "Romeo y Julieta"?', options:['Cervantes','Shakespeare','Molière','Dante'], correct:1},
     ],
     adultos: [
       {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
@@ -321,6 +378,14 @@
       {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
       {q:'¿Cuántos continentes hay?', options:['5','6','7','8'], correct:2},
       {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
+      {q:'¿Cuánto es el 20% de 150?', options:['20','25','30','35'], correct:2},
+      {q:'¿Cuál es el resultado de 7²?', options:['14','35','49','56'], correct:2},
+      {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
+      {q:'¿Quién pintó "Las Meninas"?', options:['Velázquez','Goya','El Greco','Dalí'], correct:0},
+      {q:'¿Cuál es el metal más abundante en la corteza terrestre?', options:['Hierro','Aluminio','Cobre','Oro'], correct:1},
+      {q:'¿Cuál es el país más poblado del mundo?', options:['China','India','Estados Unidos','Indonesia'], correct:1},
+      {q:'¿Qué órgano bombea la sangre en el cuerpo humano?', options:['Pulmón','Hígado','Corazón','Riñón'], correct:2},
+      {q:'¿En qué año se fundó la ONU?', options:['1919','1945','1950','1960'], correct:1},
     ],
     mayores: [
       {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
@@ -328,6 +393,13 @@
       {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
       {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
       {q:'¿En qué año se independizó Argentina?', options:['1810','1816','1820','1853'], correct:1},
+      {q:'¿Cuánto es la mitad de 88?', options:['44','40','48','42'], correct:0},
+      {q:'¿Quién fue el general que cruzó los Andes?', options:['Belgrano','San Martín','Güemes','Alvear'], correct:1},
+      {q:'¿Cuál es la capital de Perú?', options:['Bogotá','Quito','Lima','La Paz'], correct:2},
+      {q:'¿Qué científico formuló la ley de la gravedad?', options:['Einstein','Galileo','Newton','Darwin'], correct:2},
+      {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
+      {q:'¿Cuál es el país vecino más grande de Argentina?', options:['Chile','Brasil','Bolivia','Uruguay'], correct:1},
+      {q:'¿Cuántos días tiene un año bisiesto?', options:['364','365','366','367'], correct:2},
     ],
   };
   const triviaBankDificil = {
@@ -335,21 +407,33 @@
       {q:'¿Cuántos lados tiene un hexágono?', options:['5','6','7','8'], correct:1},
       {q:'¿Cómo se llama el planeta rojo?', options:['Venus','Marte','Júpiter','Saturno'], correct:1},
       {q:'¿Cuántas patas tiene una araña?', options:['6','8','10','4'], correct:1},
+      {q:'¿Cuánto es 9 + 6?', options:['13','14','15','16'], correct:2},
+      {q:'¿Qué río es el más largo de Argentina?', options:['Paraná','Uruguay','Colorado','Negro'], correct:0},
+      {q:'¿Cuántos continentes hay en el mundo?', options:['5','6','7','8'], correct:2},
     ],
     adolescentes: [
       {q:'¿Cuál es la capital de Canadá?', options:['Toronto','Ottawa','Vancouver','Montreal'], correct:1},
       {q:'¿Quién escribió "Romeo y Julieta"?', options:['Shakespeare','Cervantes','Dante','Molière'], correct:0},
       {q:'¿Cuál es el hueso más largo del cuerpo humano?', options:['Húmero','Fémur','Tibia','Radio'], correct:1},
+      {q:'¿Cuánto es 15% de 200?', options:['20','25','30','35'], correct:2},
+      {q:'¿En qué año comenzó la Primera Guerra Mundial?', options:['1910','1914','1918','1920'], correct:1},
+      {q:'¿Cuál es el idioma más hablado del mundo como lengua materna?', options:['Inglés','Español','Mandarín','Hindi'], correct:2},
     ],
     adultos: [
       {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
       {q:'¿Cuál es la velocidad aproximada de la luz?', options:['300.000 km/s','150.000 km/s','1.000.000 km/s','30.000 km/s'], correct:0},
       {q:'¿Quién formuló la teoría de la relatividad?', options:['Newton','Einstein','Bohr','Tesla'], correct:1},
+      {q:'¿Cuál es la capital de Kazajistán?', options:['Almatý','Astaná','Bishkek','Tashkent'], correct:1},
+      {q:'¿Quién compuso "La novena sinfonía"?', options:['Mozart','Bach','Beethoven','Chopin'], correct:2},
+      {q:'¿Cuánto es la raíz cuadrada de 225?', options:['13','14','15','16'], correct:2},
     ],
     mayores: [
       {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
       {q:'¿Quién pintó "Guernica"?', options:['Dalí','Picasso','Miró','Goya'], correct:1},
       {q:'¿Cuál era la capital del Imperio Romano de Oriente?', options:['Roma','Atenas','Constantinopla','Alejandría'], correct:2},
+      {q:'¿En qué año asumió la primera democracia post-dictadura en Argentina?', options:['1981','1983','1985','1989'], correct:1},
+      {q:'¿Quién escribió "El Quijote"?', options:['Lope de Vega','Cervantes','Calderón','Góngora'], correct:1},
+      {q:'¿Cuál es la capital de Bolivia (sede de gobierno)?', options:['Sucre','La Paz','Cochabamba','Santa Cruz'], correct:1},
     ],
   };
   const triviaOutcomeRules = {
@@ -357,11 +441,52 @@
     carcel:   { onSuccess: pos => ({ pos }),                  onFail: pos => ({ pos, skipNext:true }) },
     calavera: { onSuccess: pos => ({ pos }),                  onFail: pos => ({ pos: 0 }) },
   };
+  function elegirAlAzar(lista){
+    return lista[Math.floor(Math.random()*lista.length)];
+  }
+
   function mensajeTrivia(tipo, acierto, quien){
-    if(tipo==='oca') return acierto ? `🪿 ¡Bien! ${quien} tira de nuevo.` : `🪿 ${quien} no acertó, sigue en la misma casilla.`;
-    if(tipo==='carcel') return acierto ? `⛓️ ¡${quien} se salvó de la cárcel!` : `⛓️ ${quien} cayó preso y pierde el próximo turno.`;
-    if(tipo==='calavera') return acierto ? `💀 Trivia difícil superada, ${quien} se queda en esta casilla.` : `💀 ${quien} no la supo y vuelve a la salida.`;
-    return '';
+    const variantes = {
+      oca: {
+        exito: [
+          `🪿 ¡Bien! ${quien} tira de nuevo.`,
+          `🪿 La oca sonríe: ${quien} repite turno.`,
+          `🪿 ¡Respuesta correcta! ${quien} vuelve a tirar el dado.`,
+        ],
+        fallo: [
+          `🪿 ${quien} no acertó, sigue en la misma casilla.`,
+          `🪿 La oca no perdona: ${quien} se queda donde está.`,
+          `🪿 Casi... ${quien} pierde el tiro extra.`,
+        ],
+      },
+      carcel: {
+        exito: [
+          `⛓️ ¡${quien} se salvó de la cárcel!`,
+          `⛓️ El carcelero lo/la deja pasar: ${quien} sigue libre.`,
+          `⛓️ ¡Respuesta correcta! ${quien} evita la prisión.`,
+        ],
+        fallo: [
+          `⛓️ ${quien} cayó preso y pierde el próximo turno.`,
+          `⛓️ Directo al calabozo: ${quien} pierde su siguiente turno.`,
+          `⛓️ Mala suerte, ${quien} queda tras las rejas un turno.`,
+        ],
+      },
+      calavera: {
+        exito: [
+          `💀 Trivia difícil superada, ${quien} se queda en esta casilla.`,
+          `💀 ${quien} esquiva la maldición y no retrocede.`,
+          `💀 ¡Uf, salvado/a! ${quien} sigue en su lugar.`,
+        ],
+        fallo: [
+          `💀 ${quien} no la supo y vuelve a la salida.`,
+          `💀 La calavera reclama su prenda: ${quien} vuelve al principio.`,
+          `💀 Sin piedad: ${quien} arranca de nuevo desde la casilla 0.`,
+        ],
+      },
+    };
+    const grupo = variantes[tipo];
+    if(!grupo) return '';
+    return elegirAlAzar(acierto ? grupo.exito : grupo.fallo);
   }
 
   // ---------- Sesión persistente (para no perder identidad si se recarga la página) ----------
@@ -537,8 +662,11 @@
     await client.from('jugadores_partida').insert({
       partida_id: partida.id, nombre: 'Bot', orden_turno: 1, posicion: 0, es_bot: true, edad_bracket: myEdadBracket
     });
-    await client.from('partidas').update({ estado: 'en_curso' }).eq('id', partida.id);
-    partidaCache = { ...partidaCache, estado: 'en_curso' };
+    const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
+    await client.from('partidas').update({
+      estado: 'en_curso', layout_casillas: layoutCasillas, layout_puentes: layoutPuentes
+    }).eq('id', partida.id);
+    partidaCache = { ...partidaCache, estado: 'en_curso', layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
 
     await refreshPlayersList();
     subscribeRealtime();
@@ -630,9 +758,12 @@
   }
 
   document.getElementById('btn-start-game').addEventListener('click', async () => {
-    const { error } = await client.from('partidas').update({ estado: 'en_curso' }).eq('id', myPartidaId);
+    const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
+    const { error } = await client.from('partidas').update({
+      estado: 'en_curso', layout_casillas: layoutCasillas, layout_puentes: layoutPuentes
+    }).eq('id', myPartidaId);
     if(error){ alert('Error al iniciar: ' + error.message); return; }
-    partidaCache = { ...partidaCache, estado: 'en_curso' };
+    partidaCache = { ...partidaCache, estado: 'en_curso', layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     enterGameScreen();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
@@ -740,17 +871,21 @@
   async function continuarSiguienteEtapaCampana(etapaActual, nuevaEtapa, msEtapa){
     etapaInicioTs = Date.now();
     aplicarConfigEtapa(nuevaEtapa);
+    const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({ etapa_actual: nuevaEtapa, estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, estado_turno: null };
+    await client.from('partidas').update({
+      etapa_actual: nuevaEtapa, estado_turno: null,
+      layout_casillas: layoutCasillas, layout_puentes: layoutPuentes
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
     document.getElementById('marcador-tanda').textContent = `Campaña: etapa ${nuevaEtapa} de 10`;
+    buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: turnoInicial };
     document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
     renderBoard();
-    updateTurnUI();
   }
 
   // ---------- Transición de premio: mini-juego aleatorio + ruleta (campaña solo Y salas multijugador) ----------
@@ -823,23 +958,36 @@
   function startReflexGame(onDone){
     const reflexBtn = document.getElementById('reflex-btn');
     const reflexResultEl = document.getElementById('reflex-result');
-    reflexResultEl.textContent = '';
+    const VENTANA_MS = 900; // si no tocás dentro de este tiempo despues de ponerse verde, perdés
+    reflexResultEl.textContent = 'Esperá a que se ponga verde y tocá rápido (tenés menos de 1 segundo).';
     reflexBtn.textContent = 'Esperá...';
-    reflexBtn.style.background = '#9AA1A8';
+    reflexBtn.style.background = '#5C7CFA';
     reflexBtn.disabled = false;
     let armado = false;
+    let resuelto = false;
     let listoTs = 0;
+    let ventanaTimer = null;
     const delay = 1000 + Math.random()*1800;
     const armTimer = setTimeout(() => {
       armado = true;
       reflexBtn.textContent = '¡YA! Tocá';
-      reflexBtn.style.background = '#5c9c5c';
+      reflexBtn.style.background = '#2ECC71';
       listoTs = Date.now();
+      ventanaTimer = setTimeout(() => {
+        if(resuelto) return;
+        resuelto = true;
+        reflexBtn.disabled = true;
+        reflexResultEl.textContent = '🐢 Muy lento, se te pasó el tiempo.';
+        setTimeout(() => onDone(false), 1100);
+      }, VENTANA_MS);
     }, delay);
     reflexBtn.onclick = () => {
+      if(resuelto) return;
+      resuelto = true;
       reflexBtn.disabled = true;
       let exito;
       if(armado){
+        clearTimeout(ventanaTimer);
         const ms = Date.now() - listoTs;
         reflexResultEl.textContent = `⚡ ¡${ms}ms! Buen reflejo.`;
         exito = true;
@@ -856,7 +1004,7 @@
     const memoryResultEl = document.getElementById('memory-result');
     const memoryTilesEl = document.getElementById('memory-tiles');
     memoryResultEl.textContent = 'Mirá la secuencia...';
-    const colors = ['#8FBF8F','#D98A8A','#7aa7d9','#e4c77a'];
+    const colors = ['#43D67D','#FF5A7A','#29B6F6','#FFD93D'];
     const sequence = Array.from({length:3}, () => Math.floor(Math.random()*colors.length));
     memoryTilesEl.innerHTML = '';
     let showing = true;
@@ -901,13 +1049,13 @@
 
   const wheelPrizes = [
     '+3 casillas de ventaja',
-    'Trivia gratis (sin publicidad si fallás)',
+    'Cuestionados gratis (sin publicidad si fallás)',
     'Nada esta vez',
     '+1 tirada extra al empezar',
     'Inmunidad a una trampa',
     'Nada esta vez'
   ];
-  const wheelColors = ['#8FBF8F','#E4C77A','#B7C9C1','#7aa7d9','#D98A8A','#C9A24B'];
+  const wheelColors = ['#43D67D','#FFD93D','#4FD8E0','#29B6F6','#FF5A7A','#FFC93C'];
 
   function buildWheelGradient(){
     const seg = 360/wheelPrizes.length;
@@ -941,16 +1089,19 @@
   async function reintentarEtapaCampana(){
     const etapaActual = partidaCache.etapa_actual || 1;
     etapaInicioTs = Date.now();
+    const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({ estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, estado_turno: null };
+    await client.from('partidas').update({
+      estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
+    buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: turnoInicial };
     document.getElementById('game-msg').textContent = `😕 Te ganó el bot en la etapa ${etapaActual}. ¡Reintentá!`;
     renderBoard();
-    updateTurnUI();
   }
 
   function mostrarFinCampana(msTotal){
@@ -1078,7 +1229,7 @@
   function mostrarTriviaDesempate(jugadorId, pendientesActuales){
     const bank = triviaBankDificil[myEdadBracket] || triviaBankDificil.adultos;
     const pregunta = bank[Math.floor(Math.random()*bank.length)];
-    document.getElementById('trivia-titulo').textContent = '🎯 Desempate — trivia decisiva';
+    document.getElementById('trivia-titulo').textContent = '🎯 Desempate — Cuestionados decisiva';
     document.getElementById('trivia-question').textContent = pregunta.q;
     const opts = document.getElementById('trivia-options');
     opts.innerHTML = '';
@@ -1094,7 +1245,7 @@
         if(!resuelto){
           resuelto = true;
           Array.from(opts.children).forEach(b => b.disabled = true);
-          opts.children[pregunta.correct].style.background = '#8FBF8F';
+          opts.children[pregunta.correct].style.background = '#43D67D';
           resolverDesempate(jugadorId, false, pendientesActuales);
         }
       }
@@ -1109,8 +1260,8 @@
         clearInterval(intervalId);
         Array.from(opts.children).forEach(b => b.disabled = true);
         const acierto = idx === pregunta.correct;
-        btn.style.background = acierto ? '#8FBF8F' : '#D98A8A';
-        if(!acierto) opts.children[pregunta.correct].style.background = '#8FBF8F';
+        btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
+        if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
         await wait(900);
         document.getElementById('trivia-overlay').classList.add('hidden');
         await resolverDesempate(jugadorId, acierto, pendientesActuales);
@@ -1150,40 +1301,39 @@
     location.reload();
   });
 
-  document.getElementById('btn-revancha').addEventListener('click', async () => {
-    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({
-      estado: 'esperando', turno_actual: 0, estado_turno: null,
-      ronda_actual: (partidaCache.ronda_actual || 1) + 1,
-      desempate_pendientes: null, desempate_turno_idx: 0
-    }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, estado:'esperando', ronda_actual: (partidaCache.ronda_actual||1)+1 };
+  async function reiniciarYArrancarDirecto(actualizacionesExtra){
+    const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, ...(actualizacionesExtra.jugadores||{}) }).eq('partida_id', myPartidaId);
+    const updatesPartida = {
+      estado: 'en_curso', turno_actual: 0, estado_turno: null,
+      desempate_pendientes: null, desempate_turno_idx: 0,
+      layout_casillas: layoutCasillas, layout_puentes: layoutPuentes,
+      ...(actualizacionesExtra.partida||{})
+    };
+    await client.from('partidas').update(updatesPartida).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, ...updatesPartida };
     document.getElementById('btn-play-again').classList.add('hidden');
     document.getElementById('btn-revancha').classList.add('hidden');
+    document.getElementById('btn-nueva-tanda').classList.add('hidden');
     document.getElementById('desempate-panel').classList.add('hidden');
+    document.getElementById('game-msg').textContent = '';
     await refreshPlayersList();
-    document.getElementById('room-code-display').textContent = partidaCache.codigo;
-    showScreen('screen-waiting');
-    renderPlayersList();
-    iniciarPollingWaiting();
+    buildBoard();
+    const turnoInicial = await sortearTurnoInicial();
+    await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: turnoInicial };
+    renderBoard();
+  }
+
+  document.getElementById('btn-revancha').addEventListener('click', async () => {
+    await reiniciarYArrancarDirecto({ partida: { ronda_actual: (partidaCache.ronda_actual || 1) + 1 } });
   });
 
   document.getElementById('btn-nueva-tanda').addEventListener('click', async () => {
-    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, victorias: 0 }).eq('partida_id', myPartidaId);
-    await client.from('partidas').update({
-      estado: 'esperando', turno_actual: 0, estado_turno: null,
-      ronda_actual: 1, ultimo_ganador_id: null, racha_ganador: 0,
-      ganador_tanda_id: null, desempate_pendientes: null, desempate_turno_idx: 0
-    }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, estado:'esperando', ronda_actual:1, ultimo_ganador_id:null, racha_ganador:0, ganador_tanda_id:null };
-    document.getElementById('btn-play-again').classList.add('hidden');
-    document.getElementById('btn-nueva-tanda').classList.add('hidden');
-    document.getElementById('desempate-panel').classList.add('hidden');
-    await refreshPlayersList();
-    document.getElementById('room-code-display').textContent = partidaCache.codigo;
-    showScreen('screen-waiting');
-    renderPlayersList();
-    iniciarPollingWaiting();
+    await reiniciarYArrancarDirecto({
+      jugadores: { victorias: 0 },
+      partida: { ronda_actual: 1, ultimo_ganador_id: null, racha_ganador: 0, ganador_tanda_id: null }
+    });
   });
 
   document.getElementById('btn-leave-game').addEventListener('click', () => {
@@ -1218,7 +1368,7 @@
       const pos = { left:(cx*cellPct)+'%', top:(cy*cellPct)+'%', w:cellPct+'%', h:cellPct+'%' };
       cellPositions.push(pos);
       const cell = document.createElement('div');
-      const tipo = special[i];
+      const tipo = tipoCasilla(i);
       cell.className = 'cell' + (tipo ? ' '+tipo : '');
       cell.style.left = pos.left; cell.style.top = pos.top;
       cell.style.width = pos.w; cell.style.height = pos.h;
@@ -1241,6 +1391,7 @@
       const pos = cellPositions[Math.min(j.posicion, TOTAL_CELLS-1)];
       const token = document.createElement('div');
       token.className = 'token';
+      token.dataset.jugadorId = j.id;
       token.style.background = TOKEN_COLORS[idx % TOKEN_COLORS.length];
       token.style.left = (parseFloat(pos.left) + 1 + (idx%3)*3) + '%';
       token.style.top = (parseFloat(pos.top) + 1 + Math.floor(idx/3)*3) + '%';
@@ -1248,31 +1399,91 @@
       token.textContent = j.nombre.charAt(0).toUpperCase();
       boardEl.appendChild(token);
     });
+    renderJugadoresStatus();
     updateTurnUI();
   }
 
-  let botJugando = false;
+  function renderJugadoresStatus(){
+    const cont = document.getElementById('jugadores-status');
+    cont.innerHTML = jugadoresCache.map((j, idx) => {
+      let badge = '';
+      if(j.salta_turno) badge = ' ⛓️';
+      else if(j.posicion === 0 && !j.es_bot) badge = ''; // en la salida, sin badge especial
+      const color = TOKEN_COLORS[idx % TOKEN_COLORS.length];
+      return `<span style="background:${color}22; border:1px solid ${color}; border-radius:12px; padding:3px 8px;">${j.nombre}${badge} · #${j.posicion}</span>`;
+    }).join('');
+  }
 
-  // ---------- Sorteo de quién empieza (animación propia, distinta al dado) ----------
-  function sortearTurnoInicial(){
+  function animarCaminataLocal(jugadorId, desde, hasta){
     return new Promise(resolve => {
-      const cantidad = jugadoresCache.length || 2;
-      const elegido = Math.floor(Math.random() * cantidad);
-      const nombres = jugadoresCache.map(j => j.nombre);
-      document.getElementById('dice').classList.add('disabled');
-      let i = 0;
-      const intervalId = setInterval(() => {
-        const nombre = nombres[i % nombres.length] || '...';
-        document.getElementById('turn-indicator').textContent = `🎯 Sorteando... ${nombre}`;
-        i++;
-      }, 140);
-      setTimeout(() => {
-        clearInterval(intervalId);
-        const nombreElegido = nombres[elegido] || '...';
-        document.getElementById('turn-indicator').textContent = `🎯 ¡Empieza ${nombreElegido}!`;
-        resolve(elegido);
-      }, 1600);
+      const boardEl = document.getElementById('board');
+      const token = boardEl.querySelector(`.token[data-jugador-id="${jugadorId}"]`);
+      if(!token || hasta === desde){ resolve(); return; }
+      const idx = jugadoresCache.findIndex(j => j.id === jugadorId);
+      const offX = 1 + (Math.max(idx,0)%3)*3, offY = 1 + Math.floor(Math.max(idx,0)/3)*3;
+      const paso_ = hasta > desde ? 1 : -1;
+      let actual = desde;
+      const paso = () => {
+        if(actual === hasta){ resolve(); return; }
+        actual += paso_;
+        const pos = cellPositions[Math.max(0, Math.min(actual, TOTAL_CELLS-1))];
+        token.style.left = (parseFloat(pos.left)+offX) + '%';
+        token.style.top = (parseFloat(pos.top)+offY) + '%';
+        setTimeout(paso, 220);
+      };
+      paso();
     });
+  }
+
+  let botJugando = false;
+  let sorteoMostrado = false;
+
+  // ---------- Sorteo de quién empieza: cada jugador "tira un dado", gana el más alto, se ve en todas las pantallas ----------
+  function mostrarSorteoDados(tiradas, ganadorId, duracionMs){
+    if(sorteoMostrado) return;
+    sorteoMostrado = true;
+    const panel = document.getElementById('sorteo-panel');
+    panel.classList.remove('hidden');
+    document.getElementById('dice').classList.add('disabled');
+    const lineas = jugadoresCache.map(j => {
+      const valor = (tiradas || {})[j.id];
+      const esGanador = j.id === ganadorId;
+      return `${esGanador ? '👑' : '🎲'} <b>${j.nombre}</b>: ${valor ?? '...'} ${esGanador ? '¡empieza!' : ''}`;
+    }).join('<br>');
+    panel.innerHTML = `<b>🎲 Sorteo de turno</b><br>${lineas}`;
+    setTimeout(() => {
+      panel.classList.add('hidden');
+      sorteoMostrado = false;
+    }, duracionMs || 2500);
+  }
+
+  async function sortearTurnoInicial(){
+    let candidatos = jugadoresCache.map(j => j.id);
+    let tiradas = {};
+    let ganadorId = null;
+    let vueltas = 0;
+    while(!ganadorId && vueltas < 5){
+      candidatos.forEach(id => { tiradas[id] = 1 + Math.floor(Math.random()*6); });
+      const maxVal = Math.max(...candidatos.map(id => tiradas[id]));
+      const empatados = candidatos.filter(id => tiradas[id] === maxVal);
+      if(empatados.length === 1) ganadorId = empatados[0];
+      else candidatos = empatados; // solo vuelven a tirar los empatados
+      vueltas++;
+    }
+    if(!ganadorId) ganadorId = candidatos[0];
+    const turnoInicial = Math.max(0, jugadoresCache.findIndex(j => j.id === ganadorId));
+
+    await client.from('partidas').update({
+      estado_turno: 'sorteo', turno_actual: turnoInicial, sorteo_tiradas: tiradas
+    }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado_turno: 'sorteo', turno_actual: turnoInicial, sorteo_tiradas: tiradas };
+
+    mostrarSorteoDados(tiradas, ganadorId, 2500);
+    await wait(2600);
+
+    await client.from('partidas').update({ estado_turno: null }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado_turno: null };
+    return turnoInicial;
   }
 
   let saltandoTurno = false;
@@ -1307,11 +1518,25 @@
     }
 
     const esMiTurno = jugadorEnTurno.id === myPlayerId;
-    if(partidaCache.estado_turno === 'resolviendo_trivia'){
-      document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (resolviendo trivia)' : `${jugadorEnTurno.nombre} está resolviendo una trivia...`;
+    if(partidaCache.estado_turno === 'sorteo'){
+      const ganadorId = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length]?.id;
+      mostrarSorteoDados(partidaCache.sorteo_tiradas, ganadorId, 2500);
       dice.classList.add('disabled');
       return;
     }
+    if(partidaCache.estado_turno === 'resolviendo_trivia'){
+      document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (respondiendo Cuestionados)' : `${jugadorEnTurno.nombre} está respondiendo Cuestionados...`;
+      dice.classList.add('disabled');
+      const panelEsp = document.getElementById('espectador-trivia');
+      if(!esMiTurno && partidaCache.trivia_pregunta_actual){
+        panelEsp.classList.remove('hidden');
+        panelEsp.textContent = `🤔 Pensala vos también: "${partidaCache.trivia_pregunta_actual}"`;
+      } else {
+        panelEsp.classList.add('hidden');
+      }
+      return;
+    }
+    document.getElementById('espectador-trivia').classList.add('hidden');
     if(partidaCache.estado_turno === 'jugando_minijuego'){
       document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno! (jugando minijuego)' : `${jugadorEnTurno.nombre} está jugando un minijuego...`;
       dice.classList.add('disabled');
@@ -1320,6 +1545,11 @@
 
     document.getElementById('turn-indicator').textContent = esMiTurno ? '¡Tu turno!' : `Turno de ${jugadorEnTurno.nombre}`;
     dice.classList.toggle('disabled', !esMiTurno || partidaCache.estado !== 'en_curso');
+    if(partidaCache.estado === 'en_curso'){
+      document.getElementById('btn-play-again').classList.add('hidden');
+      document.getElementById('btn-revancha').classList.add('hidden');
+      document.getElementById('btn-nueva-tanda').classList.add('hidden');
+    }
   }
 
   async function saltarTurnoAutomatico(jugador){
@@ -1347,14 +1577,19 @@
       rawNewPos = Math.max(0, (2*META) - posActual - valorDado); // regla real de la oca: rebota si te pasás
       rebotó = true;
     }
-    const tipo = special[rawNewPos];
+    const tipo = tipoCasilla(rawNewPos);
+
+    await animarCaminataLocal(jugadorId, posActual, Math.min(posActual + valorDado, META));
+    if(rebotó){
+      await animarCaminataLocal(jugadorId, Math.min(posActual + valorDado, META), rawNewPos);
+    }
 
     if(rebotó){
       document.getElementById('game-msg').textContent = `↩️ ${esBot?'El bot se pasó':'Te pasaste'} de la meta y rebota a la casilla ${rawNewPos}.`;
     }
 
     if(tipo === 'puente'){
-      const destino = puenteDestino[rawNewPos];
+      const destino = destinoPuente(rawNewPos);
       await client.from('jugadores_partida').update({ posicion: destino }).eq('id', jugadorId);
       document.getElementById('game-msg').textContent = `🌉 ¡Puente! ${esBot ? 'El bot salta' : 'Saltás'} a la casilla ${destino}.`;
       await terminarTurno(false);
@@ -1460,9 +1695,11 @@
     const bankSet = usaDificil ? triviaBankDificil : triviaBank;
     const bank = bankSet[edadBracket] || bankSet.adultos;
     const pregunta = bank[Math.floor(Math.random()*bank.length)];
-    const titulos = { oca:'🪿 Oca — trivia', carcel:'⛓️ Cárcel — trivia', calavera:'💀 Calavera — trivia DIFÍCIL' };
-    document.getElementById('trivia-titulo').textContent = titulos[tipo] || '🎯 Trivia';
+    const titulos = { oca:'🪿 Oca — Cuestionados', carcel:'⛓️ Cárcel — Cuestionados', calavera:'💀 Calavera — Cuestionados DIFÍCIL' };
+    document.getElementById('trivia-titulo').textContent = titulos[tipo] || '🎯 Cuestionados';
     document.getElementById('trivia-question').textContent = pregunta.q;
+    client.from('partidas').update({ trivia_pregunta_actual: pregunta.q }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, trivia_pregunta_actual: pregunta.q };
     const opts = document.getElementById('trivia-options');
     opts.innerHTML = '';
     let resuelto = false;
@@ -1477,7 +1714,7 @@
         if(!resuelto){
           resuelto = true;
           Array.from(opts.children).forEach(b => b.disabled = true);
-          opts.children[pregunta.correct].style.background = '#8FBF8F';
+          opts.children[pregunta.correct].style.background = '#43D67D';
           finalizarTrivia(false, true);
         }
       }
@@ -1498,8 +1735,8 @@
         clearInterval(intervalId);
         Array.from(opts.children).forEach(b => b.disabled = true);
         const acierto = idx === pregunta.correct;
-        btn.style.background = acierto ? '#8FBF8F' : '#D98A8A';
-        if(!acierto) opts.children[pregunta.correct].style.background = '#8FBF8F';
+        btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
+        if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
         await wait(900);
         await finalizarTrivia(acierto, false);
       });

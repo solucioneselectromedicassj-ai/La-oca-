@@ -4,8 +4,8 @@
   "description": "Juego de mesa multijugador tipo oca",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#EFE3C8",
-  "theme_color": "#2F4A3C",
+  "background_color": "#FFF3FA",
+  "theme_color": "#7C4DFF",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
