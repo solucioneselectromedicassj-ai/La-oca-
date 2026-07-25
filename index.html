@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ocaland">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <style>
   :root{
     --parchment:#FFF3FA;
@@ -134,6 +135,17 @@
   </div>
 </div>
 
+<div class="screen hidden" id="screen-pais">
+  <div class="card">
+    <p style="margin-top:0;">¿De qué país sos? Así te tiramos preguntas de cultura local además de las generales.</p>
+    <div class="edad-options">
+      <button data-pais="argentina" class="pais-btn secondary">🇦🇷 Argentina</button>
+      <button data-pais="chile" class="pais-btn secondary">🇨🇱 Chile</button>
+      <button data-pais="otros" class="pais-btn secondary">🌎 Otro / Internacional</button>
+    </div>
+  </div>
+</div>
+
 <!-- Pantalla 2: crear, unirse o solo -->
 <div class="screen hidden" id="screen-lobby-choice">
   <p id="lobby-saludo" class="hidden" style="font-weight:600; color:var(--forest-dark); text-align:center;"></p>
@@ -150,6 +162,14 @@
   </div>
   <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
   <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
+  <button id="btn-ver-mis-partidas" class="secondary">🎮 Mis partidas</button>
+</div>
+
+<!-- Pantalla de mis partidas (varias en simultáneo) -->
+<div class="screen hidden" id="screen-mis-partidas">
+  <div class="card" id="mis-partidas-contenido"></div>
+  <button id="btn-nueva-partida-desde-lista">+ Nueva sala / campaña</button>
+  <button id="btn-volver-lobby-mis-partidas" class="secondary">← Volver</button>
 </div>
 
 <!-- Pantalla de ranking -->
@@ -170,6 +190,7 @@
     <p style="margin:0 0 4px; text-align:center; font-size:12px; color:#9B8AB5;">CÓDIGO DE SALA</p>
     <div id="room-code-display">----</div>
     <button id="btn-copy-code" class="secondary" style="margin-top:10px;">📋 Copiar código</button>
+    <button id="btn-share-code" class="secondary" style="margin-top:6px;">📲 Compartir por WhatsApp/chat</button>
   </div>
   <div class="card">
     <p style="margin-top:0; font-size:13px;">Jugadores en la sala (<span id="players-count">0</span>/6):</p>
@@ -183,7 +204,18 @@
 <!-- Pantalla 4: juego -->
 <div class="screen hidden" id="screen-game">
   <div id="turn-indicator">Cargando...</div>
+  <div id="turno-plazo" style="font-size:11px; color:#9B8AB5; margin-bottom:4px;"></div>
   <div id="marcador-tanda" style="font-size:11.5px; color:#9B8AB5; margin:2px 0 8px;"></div>
+  <div id="banner-etapa" class="hidden" style="background:#fff; border-radius:10px; padding:8px 12px; margin-bottom:8px; font-size:12.5px; text-align:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span id="banner-etapa-nombre" style="font-weight:700; color:var(--forest-dark);"></span>
+      <span>
+        <button id="btn-leer-leyenda" style="width:auto; padding:3px 8px; font-size:11px; margin:0 4px;">📖 Leer</button>
+        <button id="btn-cerrar-leyenda" class="secondary" style="width:auto; padding:3px 8px; font-size:11px;">✕</button>
+      </span>
+    </div>
+    <div id="banner-etapa-leyenda" class="hidden" style="margin-top:6px; font-style:italic; color:#7A6A99; text-align:left;"></div>
+  </div>
   <div id="desempate-panel" class="hidden" style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; text-align:center;"></div>
   <div id="sorteo-panel" class="hidden" style="background:#fff; border-radius:10px; padding:14px; margin-bottom:10px; font-size:13.5px; text-align:center; line-height:1.7;"></div>
   <div id="jugadores-status" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:8px; font-size:11.5px;"></div>
@@ -301,6 +333,35 @@
   let reintentosEtapaActual = 0;
   let etapaConfig = null;
 
+  const etapasInfo = {
+    1: { nombre: 'El Nido Inicial', leyenda: 'Todo viaje empieza en el nido. Acá aprendés a caminar por el sendero y a conocer las primeras trampas de Ocaland.' },
+    2: { nombre: 'El Estanque Sereno', leyenda: 'Las aguas se ven tranquilas, pero esconden más de una sorpresa bajo la superficie.' },
+    3: { nombre: 'El Bosque de las Dudas', leyenda: 'Entre árboles retorcidos, hasta las preguntas más simples empiezan a parecer trampas.' },
+    4: { nombre: 'La Colina Ventosa', leyenda: 'El viento sopla fuerte acá arriba. Un paso en falso y volvés más atrás de lo que pensás.' },
+    5: { nombre: 'El Valle de los Espejismos', leyenda: 'Nada es lo que parece en este valle. La oca ya no perdona tan fácil.' },
+    6: { nombre: 'La Cueva Oscura', leyenda: 'La oscuridad esconde secretos. Los Cuestionados se ponen serios a partir de acá.' },
+    7: { nombre: 'El Puente Colgante', leyenda: 'Un solo paso mal dado y todo se derrumba. Hasta la oca y la cárcel exigen respuestas difíciles ahora.' },
+    8: { nombre: 'La Montaña Helada', leyenda: 'El frío pone a prueba tu paciencia y tu memoria. Pocos llegan hasta acá sin tropezar.' },
+    9: { nombre: 'El Desfiladero Final', leyenda: 'Ya casi no quedan casillas seguras. Solo los más preparados siguen de pie.' },
+    10: { nombre: 'La Cima de Ocaland', leyenda: 'La cima. El desafío final. Acá se corona a quien de verdad se ganó el lugar.' },
+  };
+
+  function mostrarBannerEtapa(etapaNum){
+    const info = etapasInfo[etapaNum];
+    if(!info) return;
+    document.getElementById('banner-etapa-nombre').textContent = `Etapa ${etapaNum}: ${info.nombre}`;
+    document.getElementById('banner-etapa-leyenda').textContent = info.leyenda;
+    document.getElementById('banner-etapa-leyenda').classList.add('hidden');
+    document.getElementById('banner-etapa').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-leer-leyenda').addEventListener('click', () => {
+    document.getElementById('banner-etapa-leyenda').classList.toggle('hidden');
+  });
+  document.getElementById('btn-cerrar-leyenda').addEventListener('click', () => {
+    document.getElementById('banner-etapa').classList.add('hidden');
+  });
+
   function generarConfigEtapa(etapa){
     const d = (etapa - 1) / 9; // 0 (etapa1) a 1 (etapa10)
     return {
@@ -321,6 +382,7 @@
   let myPartidaId = null;
   let myOrdenTurno = null;
   let myEdadBracket = null;
+  let myPais = null;
   let jugadoresCache = [];
   let partidaCache = null;
 
@@ -371,72 +433,161 @@
 
   const cellIcons = { oca:'🪿', puente:'🌉', carcel:'⛓️', calavera:'💀', meta:'🏆', minijuego:'🎮' };
 
-  const triviaBank = {
-    ninos: [
-      {q:'¿Cuántos días tiene una semana?', options:['5','6','7','8'], correct:2},
-      {q:'¿De qué color es el cielo en un día despejado?', options:['Verde','Azul','Rojo','Negro'], correct:1},
-      {q:'¿Cuántas patas tiene un perro?', options:['2','4','6','8'], correct:1},
-      {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
-      {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
-      {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
-      {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
-      {q:'¿Cuánto es 5 + 3?', options:['7','8','9','10'], correct:1},
-      {q:'¿Cuánto es 10 menos 4?', options:['5','6','7','8'], correct:1},
-      {q:'¿Cuál es el planeta donde vivimos?', options:['Marte','Venus','Tierra','Júpiter'], correct:2},
-      {q:'¿Qué astro nos da luz de día?', options:['La Luna','El Sol','Una estrella lejana','Un cometa'], correct:1},
-      {q:'¿Cuál es el continente donde está Argentina?', options:['África','América','Asia','Europa'], correct:1},
-      {q:'¿Cuál es la capital de Argentina?', options:['Córdoba','Rosario','Buenos Aires','Mendoza'], correct:2},
-      {q:'¿Cuántos lados tiene un triángulo?', options:['2','3','4','5'], correct:1},
-      {q:'¿Qué animal es el más grande del mundo?', options:['Elefante','Ballena azul','Jirafa','Tiburón'], correct:1},
-      {q:'¿De qué están hechas las nubes?', options:['Algodón','Humo','Agua','Arena'], correct:2},
-      {q:'¿Cuántas estaciones del año hay?', options:['2','3','4','5'], correct:2},
-    ],
-    adolescentes: [
-      {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
-      {q:'¿En qué continente está Egipto?', options:['Asia','África','Europa','Oceanía'], correct:1},
-      {q:'¿Cuántos huesos tiene el cuerpo humano adulto?', options:['186','206','256','300'], correct:1},
-      {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
-      {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
-      {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
-      {q:'¿Cuánto es 12 x 8?', options:['86','96','106','108'], correct:1},
-      {q:'¿Cuál es la raíz cuadrada de 144?', options:['11','12','13','14'], correct:1},
-      {q:'¿En qué año comenzó la Revolución de Mayo en Argentina?', options:['1806','1810','1816','1820'], correct:1},
-      {q:'¿Cuál es el país más grande del mundo por superficie?', options:['China','Canadá','Rusia','Brasil'], correct:2},
-      {q:'¿Qué gas necesitan las plantas para hacer fotosíntesis?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:1},
-      {q:'¿Cuál es el hueso más pequeño del cuerpo humano?', options:['Estribo (oído)','Falange','Rótula','Clavícula'], correct:0},
-      {q:'¿Cuál es la cordillera más larga del mundo?', options:['Himalaya','Andes','Alpes','Rocosas'], correct:1},
-      {q:'¿Quién escribió "Romeo y Julieta"?', options:['Cervantes','Shakespeare','Molière','Dante'], correct:1},
-    ],
-    adultos: [
-      {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
-      {q:'¿Cuál es la capital de Australia?', options:['Sídney','Melbourne','Canberra','Perth'], correct:2},
-      {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
-      {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
-      {q:'¿Cuántos continentes hay?', options:['5','6','7','8'], correct:2},
-      {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
-      {q:'¿Cuánto es el 20% de 150?', options:['20','25','30','35'], correct:2},
-      {q:'¿Cuál es el resultado de 7²?', options:['14','35','49','56'], correct:2},
-      {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
-      {q:'¿Quién pintó "Las Meninas"?', options:['Velázquez','Goya','El Greco','Dalí'], correct:0},
-      {q:'¿Cuál es el metal más abundante en la corteza terrestre?', options:['Hierro','Aluminio','Cobre','Oro'], correct:1},
-      {q:'¿Cuál es el país más poblado del mundo?', options:['China','India','Estados Unidos','Indonesia'], correct:1},
-      {q:'¿Qué órgano bombea la sangre en el cuerpo humano?', options:['Pulmón','Hígado','Corazón','Riñón'], correct:2},
-      {q:'¿En qué año se fundó la ONU?', options:['1919','1945','1950','1960'], correct:1},
-    ],
-    mayores: [
-      {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
-      {q:'¿Quién fue el primer presidente constitucional argentino?', options:['San Martín','Rivadavia','Belgrano','Sarmiento'], correct:1},
-      {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
-      {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
-      {q:'¿En qué año se independizó Argentina?', options:['1810','1816','1820','1853'], correct:1},
-      {q:'¿Cuánto es la mitad de 88?', options:['44','40','48','42'], correct:0},
-      {q:'¿Quién fue el general que cruzó los Andes?', options:['Belgrano','San Martín','Güemes','Alvear'], correct:1},
-      {q:'¿Cuál es la capital de Perú?', options:['Bogotá','Quito','Lima','La Paz'], correct:2},
-      {q:'¿Qué científico formuló la ley de la gravedad?', options:['Einstein','Galileo','Newton','Darwin'], correct:2},
-      {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
-      {q:'¿Cuál es el país vecino más grande de Argentina?', options:['Chile','Brasil','Bolivia','Uruguay'], correct:1},
-      {q:'¿Cuántos días tiene un año bisiesto?', options:['364','365','366','367'], correct:2},
-    ],
+  const triviaBankPorPais = {
+    argentina: {
+      ninos: [
+        {q:'¿Cuántos días tiene una semana?', options:['5','6','7','8'], correct:2},
+        {q:'¿De qué color es el cielo en un día despejado?', options:['Verde','Azul','Rojo','Negro'], correct:1},
+        {q:'¿Cuántas patas tiene un perro?', options:['2','4','6','8'], correct:1},
+        {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
+        {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
+        {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
+        {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+        {q:'¿Cuánto es 5 + 3?', options:['7','8','9','10'], correct:1},
+        {q:'¿Cuánto es 10 menos 4?', options:['5','6','7','8'], correct:1},
+        {q:'¿Cuál es el planeta donde vivimos?', options:['Marte','Venus','Tierra','Júpiter'], correct:2},
+        {q:'¿Qué astro nos da luz de día?', options:['La Luna','El Sol','Una estrella lejana','Un cometa'], correct:1},
+        {q:'¿Cuál es el continente donde está Argentina?', options:['África','América','Asia','Europa'], correct:1},
+        {q:'¿Cuál es la capital de Argentina?', options:['Córdoba','Rosario','Buenos Aires','Mendoza'], correct:2},
+        {q:'¿Cuántos lados tiene un triángulo?', options:['2','3','4','5'], correct:1},
+        {q:'¿Qué animal es el más grande del mundo?', options:['Elefante','Ballena azul','Jirafa','Tiburón'], correct:1},
+        {q:'¿De qué están hechas las nubes?', options:['Algodón','Humo','Agua','Arena'], correct:2},
+        {q:'¿Cuántas estaciones del año hay?', options:['2','3','4','5'], correct:2},
+      ],
+      adolescentes: [
+        {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
+        {q:'¿En qué continente está Egipto?', options:['Asia','África','Europa','Oceanía'], correct:1},
+        {q:'¿Cuántos huesos tiene el cuerpo humano adulto?', options:['186','206','256','300'], correct:1},
+        {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
+        {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
+        {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
+        {q:'¿Cuánto es 12 x 8?', options:['86','96','106','108'], correct:1},
+        {q:'¿Cuál es la raíz cuadrada de 144?', options:['11','12','13','14'], correct:1},
+        {q:'¿En qué año comenzó la Revolución de Mayo en Argentina?', options:['1806','1810','1816','1820'], correct:1},
+        {q:'¿Cuál es el país más grande del mundo por superficie?', options:['China','Canadá','Rusia','Brasil'], correct:2},
+        {q:'¿Qué gas necesitan las plantas para hacer fotosíntesis?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:1},
+        {q:'¿Cuál es el hueso más pequeño del cuerpo humano?', options:['Estribo (oído)','Falange','Rótula','Clavícula'], correct:0},
+        {q:'¿Cuál es la cordillera más larga del mundo?', options:['Himalaya','Andes','Alpes','Rocosas'], correct:1},
+        {q:'¿Quién escribió "Romeo y Julieta"?', options:['Cervantes','Shakespeare','Molière','Dante'], correct:1},
+      ],
+      adultos: [
+        {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
+        {q:'¿Cuál es la capital de Australia?', options:['Sídney','Melbourne','Canberra','Perth'], correct:2},
+        {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
+        {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
+        {q:'¿Cuántos continentes hay?', options:['5','6','7','8'], correct:2},
+        {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
+        {q:'¿Cuánto es el 20% de 150?', options:['20','25','30','35'], correct:2},
+        {q:'¿Cuál es el resultado de 7²?', options:['14','35','49','56'], correct:2},
+        {q:'¿En qué año terminó la Segunda Guerra Mundial?', options:['1943','1945','1947','1950'], correct:1},
+        {q:'¿Quién pintó "Las Meninas"?', options:['Velázquez','Goya','El Greco','Dalí'], correct:0},
+        {q:'¿Cuál es el metal más abundante en la corteza terrestre?', options:['Hierro','Aluminio','Cobre','Oro'], correct:1},
+        {q:'¿Cuál es el país más poblado del mundo?', options:['China','India','Estados Unidos','Indonesia'], correct:1},
+        {q:'¿Qué órgano bombea la sangre en el cuerpo humano?', options:['Pulmón','Hígado','Corazón','Riñón'], correct:2},
+        {q:'¿En qué año se fundó la ONU?', options:['1919','1945','1950','1960'], correct:1},
+      ],
+      mayores: [
+        {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
+        {q:'¿Quién fue el primer presidente constitucional argentino?', options:['San Martín','Rivadavia','Belgrano','Sarmiento'], correct:1},
+        {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
+        {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
+        {q:'¿En qué año se independizó Argentina?', options:['1810','1816','1820','1853'], correct:1},
+        {q:'¿Cuánto es la mitad de 88?', options:['44','40','48','42'], correct:0},
+        {q:'¿Quién fue el general que cruzó los Andes?', options:['Belgrano','San Martín','Güemes','Alvear'], correct:1},
+        {q:'¿Cuál es la capital de Perú?', options:['Bogotá','Quito','Lima','La Paz'], correct:2},
+        {q:'¿Qué científico formuló la ley de la gravedad?', options:['Einstein','Galileo','Newton','Darwin'], correct:2},
+        {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
+        {q:'¿Cuál es el país vecino más grande de Argentina?', options:['Chile','Brasil','Bolivia','Uruguay'], correct:1},
+        {q:'¿Cuántos días tiene un año bisiesto?', options:['364','365','366','367'], correct:2},
+      ],
+    },
+    chile: {
+      ninos: [
+        {q:'¿Cuál es la capital de Chile?', options:['Valparaíso','Santiago','Concepción','Antofagasta'], correct:1},
+        {q:'¿Qué cordillera está al lado de Chile?', options:['Los Alpes','Los Andes','El Himalaya','Las Rocosas'], correct:1},
+        {q:'¿Cuántos días tiene una semana?', options:['5','6','7','8'], correct:2},
+        {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
+        {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
+        {q:'¿De qué color es el pasto?', options:['Azul','Verde','Rojo','Negro'], correct:1},
+        {q:'¿Cuál es el desierto más famoso de Chile?', options:['Sahara','Atacama','Gobi','Kalahari'], correct:1},
+        {q:'¿Cuántos lados tiene un triángulo?', options:['2','3','4','5'], correct:1},
+        {q:'¿Qué océano toca la costa de Chile?', options:['Atlántico','Pacífico','Índico','Ártico'], correct:1},
+      ],
+      adolescentes: [
+        {q:'¿Quién es considerado el padre de la patria en Chile?', options:['Bernardo O\'Higgins','San Martín','Manuel Rodríguez','Diego Portales'], correct:0},
+        {q:'¿En qué año se independizó Chile?', options:['1810','1818','1820','1825'], correct:1},
+        {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
+        {q:'¿Cuál es la isla chilena famosa por sus estatuas moái?', options:['Chiloé','Isla de Pascua','Juan Fernández','Isla Grande'], correct:1},
+        {q:'¿Cuánto es 12 x 8?', options:['86','96','106','108'], correct:1},
+        {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
+        {q:'¿Cuál es el punto más austral de Chile continental?', options:['Punta Arenas','Puerto Montt','Puerto Williams','Cabo de Hornos'], correct:3},
+        {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
+      ],
+      adultos: [
+        {q:'¿Quién fue Premio Nobel de Literatura chileno en 1971?', options:['Gabriela Mistral','Pablo Neruda','Isabel Allende','Nicanor Parra'], correct:1},
+        {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
+        {q:'¿Cuál es la moneda oficial de Chile?', options:['Peso chileno','Sol','Real','Bolívar'], correct:0},
+        {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
+        {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
+        {q:'¿En qué año retornó Chile a la democracia?', options:['1988','1990','1993','1995'], correct:1},
+        {q:'¿Cuál es el resultado de 7²?', options:['14','35','49','56'], correct:2},
+        {q:'¿Cuál es el país más poblado del mundo?', options:['China','India','Estados Unidos','Indonesia'], correct:1},
+      ],
+      mayores: [
+        {q:'¿En qué año fue el terremoto de Valdivia, el más fuerte registrado?', options:['1939','1960','1985','2010'], correct:1},
+        {q:'¿Quién fue el primer presidente de Chile?', options:['Bernardo O\'Higgins','Manuel Blanco Encalada','Diego Portales','José Miguel Carrera'], correct:1},
+        {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
+        {q:'¿Cuál es la capital de Perú?', options:['Bogotá','Quito','Lima','La Paz'], correct:2},
+        {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
+        {q:'¿Qué científico formuló la ley de la gravedad?', options:['Einstein','Galileo','Newton','Darwin'], correct:2},
+        {q:'¿Cuál es el país vecino más grande de Chile?', options:['Perú','Argentina','Bolivia','Brasil'], correct:1},
+        {q:'¿Cuántos días tiene un año bisiesto?', options:['364','365','366','367'], correct:2},
+      ],
+    },
+    otros: {
+      ninos: [
+        {q:'¿Cuántos días tiene una semana?', options:['5','6','7','8'], correct:2},
+        {q:'¿De qué color es el cielo en un día despejado?', options:['Verde','Azul','Rojo','Negro'], correct:1},
+        {q:'¿Cuántas patas tiene un perro?', options:['2','4','6','8'], correct:1},
+        {q:'¿Qué animal dice "muu"?', options:['Perro','Gato','Vaca','Pato'], correct:2},
+        {q:'¿Cuánto es 2 + 2?', options:['3','4','5','22'], correct:1},
+        {q:'¿Cuántos meses tiene el año?', options:['10','11','12','13'], correct:2},
+        {q:'¿Cuál es el planeta donde vivimos?', options:['Marte','Venus','Tierra','Júpiter'], correct:2},
+        {q:'¿Qué astro nos da luz de día?', options:['La Luna','El Sol','Una estrella lejana','Un cometa'], correct:1},
+        {q:'¿Cuántos lados tiene un triángulo?', options:['2','3','4','5'], correct:1},
+        {q:'¿Qué animal es el más grande del mundo?', options:['Elefante','Ballena azul','Jirafa','Tiburón'], correct:1},
+      ],
+      adolescentes: [
+        {q:'¿Cuál es el río más largo del mundo?', options:['Nilo','Amazonas','Paraná','Danubio'], correct:1},
+        {q:'¿En qué continente está Egipto?', options:['Asia','África','Europa','Oceanía'], correct:1},
+        {q:'¿Cuántos huesos tiene el cuerpo humano adulto?', options:['186','206','256','300'], correct:1},
+        {q:'¿Quién pintó la Mona Lisa?', options:['Van Gogh','Picasso','Da Vinci','Miguel Ángel'], correct:2},
+        {q:'¿Cuál es el planeta más cercano al Sol?', options:['Venus','Mercurio','Marte','Tierra'], correct:1},
+        {q:'¿Cuál es el océano más grande del mundo?', options:['Atlántico','Índico','Pacífico','Ártico'], correct:2},
+        {q:'¿Cuánto es 12 x 8?', options:['86','96','106','108'], correct:1},
+        {q:'¿Cuál es el país más grande del mundo por superficie?', options:['China','Canadá','Rusia','Brasil'], correct:2},
+      ],
+      adultos: [
+        {q:'¿En qué año llegó el hombre a la Luna?', options:['1965','1969','1972','1958'], correct:1},
+        {q:'¿Cuál es la capital de Australia?', options:['Sídney','Melbourne','Canberra','Perth'], correct:2},
+        {q:'¿Quién escribió "Cien años de soledad"?', options:['Borges','García Márquez','Cortázar','Neruda'], correct:1},
+        {q:'¿Qué gas es el más abundante en la atmósfera terrestre?', options:['Oxígeno','Dióxido de carbono','Nitrógeno','Hidrógeno'], correct:2},
+        {q:'¿En qué país está la Torre Eiffel?', options:['Italia','España','Francia','Alemania'], correct:2},
+        {q:'¿Cuál es el resultado de 7²?', options:['14','35','49','56'], correct:2},
+        {q:'¿Quién pintó "Las Meninas"?', options:['Velázquez','Goya','El Greco','Dalí'], correct:0},
+        {q:'¿Cuál es el país más poblado del mundo?', options:['China','India','Estados Unidos','Indonesia'], correct:1},
+      ],
+      mayores: [
+        {q:'¿En qué década comenzó la Segunda Guerra Mundial?', options:['1920s','1930s','1940s','1950s'], correct:1},
+        {q:'¿Qué instrumento mide la temperatura?', options:['Barómetro','Termómetro','Altímetro','Manómetro'], correct:1},
+        {q:'¿Cuál es la moneda de Brasil?', options:['Peso','Real','Sol','Bolívar'], correct:1},
+        {q:'¿Quién fue el general que cruzó los Andes?', options:['Belgrano','San Martín','Güemes','Alvear'], correct:1},
+        {q:'¿Cuál es la capital de Perú?', options:['Bogotá','Quito','Lima','La Paz'], correct:2},
+        {q:'¿Qué científico formuló la ley de la gravedad?', options:['Einstein','Galileo','Newton','Darwin'], correct:2},
+        {q:'¿En qué año cayó el Muro de Berlín?', options:['1985','1989','1991','1993'], correct:1},
+        {q:'¿Cuántos días tiene un año bisiesto?', options:['364','365','366','367'], correct:2},
+      ],
+    },
   };
   const triviaBankDificil = {
     ninos: [
@@ -526,19 +677,27 @@
   }
 
   // ---------- Sesión persistente (para no perder identidad si se recarga la página) ----------
-  function guardarSesion(){
+  function leerListaSesiones(){
     try {
-      localStorage.setItem('la_vuelta_sesion', JSON.stringify({ partidaId: myPartidaId, playerId: myPlayerId, nombre: myNombre, edadBracket: myEdadBracket }));
-    } catch(e){ /* localStorage no disponible, seguimos sin persistencia */ }
+      const raw = localStorage.getItem('ocaland_sesiones_activas');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function guardarListaSesiones(lista){
+    try { localStorage.setItem('ocaland_sesiones_activas', JSON.stringify(lista)); } catch(e){}
+  }
+  function guardarSesion(){
+    const lista = leerListaSesiones().filter(s => s.partidaId !== myPartidaId);
+    lista.push({
+      partidaId: myPartidaId, playerId: myPlayerId, nombre: myNombre,
+      edadBracket: myEdadBracket, pais: myPais, codigo: (partidaCache && partidaCache.codigo) || '',
+      esModoSolo: esModoSolo
+    });
+    guardarListaSesiones(lista);
   }
   function borrarSesion(){
-    try { localStorage.removeItem('la_vuelta_sesion'); } catch(e){}
-  }
-  function leerSesion(){
-    try {
-      const raw = localStorage.getItem('la_vuelta_sesion');
-      return raw ? JSON.parse(raw) : null;
-    } catch(e){ return null; }
+    const lista = leerListaSesiones().filter(s => s.partidaId !== myPartidaId);
+    guardarListaSesiones(lista);
   }
 
   function soyHost(){
@@ -550,7 +709,7 @@
 
   // ---------- Helpers de pantalla ----------
   function showScreen(id){
-    ['screen-nickname','screen-edad','screen-lobby-choice','screen-perfil','screen-ranking','screen-waiting','screen-game'].forEach(s => {
+    ['screen-nickname','screen-edad','screen-pais','screen-lobby-choice','screen-perfil','screen-ranking','screen-mis-partidas','screen-waiting','screen-game'].forEach(s => {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
   }
@@ -575,6 +734,7 @@
         myUsuarioStats = data;
         try { localStorage.setItem('ocaland_usuario_id', myUsuarioId); } catch(e){}
         mostrarPremioDiario({ monedasGanadas: monedasIniciales, nuevaRacha: 1, diaDelCiclo: 1 });
+        guardarOneSignalIdSiPosible();
       }
     }
     showScreen('screen-edad');
@@ -584,6 +744,14 @@
   document.querySelectorAll('.edad-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       myEdadBracket = btn.getAttribute('data-bracket');
+      showScreen('screen-pais');
+    });
+  });
+
+  // ---------- Pantalla 1.75: país ----------
+  document.querySelectorAll('.pais-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      myPais = btn.getAttribute('data-pais');
       showScreen('screen-lobby-choice');
     });
   });
@@ -653,6 +821,7 @@
         myPlayerId = j.id;
         myOrdenTurno = j.orden_turno;
         myEdadBracket = j.edad_bracket || 'adultos';
+        myPais = j.pais || 'otros';
         myNombre = j.nombre;
         partidaCache = partida;
         guardarSesion();
@@ -670,7 +839,7 @@
   async function joinAsPlayer(partidaId, ordenTurno){
     const { data, error } = await client
       .from('jugadores_partida')
-      .insert({ partida_id: partidaId, nombre: myNombre, orden_turno: ordenTurno, posicion: 0, edad_bracket: myEdadBracket })
+      .insert({ partida_id: partidaId, nombre: myNombre, orden_turno: ordenTurno, posicion: 0, edad_bracket: myEdadBracket, pais: myPais })
       .select()
       .single();
     if(error){ alert('Error al unirse: ' + error.message); return; }
@@ -698,6 +867,14 @@
   });
 
   document.getElementById('btn-volver-lobby-ranking').addEventListener('click', () => {
+    showScreen('screen-lobby-choice');
+  });
+
+  document.getElementById('btn-ver-mis-partidas').addEventListener('click', async () => {
+    await mostrarMisPartidas();
+  });
+
+  document.getElementById('btn-volver-lobby-mis-partidas').addEventListener('click', () => {
     showScreen('screen-lobby-choice');
   });
 
@@ -746,19 +923,23 @@
 
   async function registrarPartidaJugada(gane){
     if(!myUsuarioId) return;
-    const updates = { partidas_jugadas: (myUsuarioStats?.partidas_jugadas || 0) + 1 };
-    if(gane) updates.partidas_ganadas = (myUsuarioStats?.partidas_ganadas || 0) + 1;
-    await client.from('usuarios').update(updates).eq('id', myUsuarioId);
-    myUsuarioStats = { ...myUsuarioStats, ...updates };
+    await client.rpc('registrar_resultado_partida', { p_usuario_id: myUsuarioId, p_gano: gane });
+    myUsuarioStats = {
+      ...myUsuarioStats,
+      partidas_jugadas: (myUsuarioStats?.partidas_jugadas || 0) + 1,
+      partidas_ganadas: (myUsuarioStats?.partidas_ganadas || 0) + (gane ? 1 : 0)
+    };
   }
 
   async function registrarCampanaCompletada(msTotal){
     if(!myUsuarioId) return;
+    await client.rpc('registrar_campana_completada', { p_usuario_id: myUsuarioId, p_ms_total: msTotal });
     const mejorPrevio = myUsuarioStats?.mejor_tiempo_campana_ms;
-    const updates = { campanas_completadas: (myUsuarioStats?.campanas_completadas || 0) + 1 };
-    if(!mejorPrevio || msTotal < mejorPrevio) updates.mejor_tiempo_campana_ms = msTotal;
-    await client.from('usuarios').update(updates).eq('id', myUsuarioId);
-    myUsuarioStats = { ...myUsuarioStats, ...updates };
+    myUsuarioStats = {
+      ...myUsuarioStats,
+      campanas_completadas: (myUsuarioStats?.campanas_completadas || 0) + 1,
+      mejor_tiempo_campana_ms: (!mejorPrevio || msTotal < mejorPrevio) ? msTotal : mejorPrevio
+    };
   }
 
   document.getElementById('btn-solo').addEventListener('click', async () => {
@@ -800,6 +981,7 @@
     subscribeRealtime();
     enterGameScreen();
     document.getElementById('marcador-tanda').textContent = 'Campaña: etapa 1 de 10';
+    mostrarBannerEtapa(1);
   });
 
   // ---------- Pantalla 3: sala de espera ----------
@@ -844,6 +1026,23 @@
       setTimeout(() => { btn.textContent = original; }, 1500);
     } catch(e) {
       alert('No se pudo copiar automáticamente. El código es: ' + code);
+    }
+  });
+
+  document.getElementById('btn-share-code').addEventListener('click', async () => {
+    const code = document.getElementById('room-code-display').textContent;
+    const texto = `🎲 ¡Jugá conmigo a Ocaland! Entrá con el código: ${code}\n${location.href}`;
+    if(navigator.share){
+      try {
+        await navigator.share({ title: 'Ocaland', text: texto });
+      } catch(e) { /* el usuario canceló el share, no hacemos nada */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(texto);
+        alert('Tu navegador no soporta compartir directo, así que copiamos el mensaje — pegalo en WhatsApp.');
+      } catch(e) {
+        alert('Compartí este código con tus amigos: ' + code);
+      }
     }
   });
 
@@ -975,7 +1174,7 @@
   function iniciarDesafioTresCuestionados(){
     let respondidas = 0;
     let correctas = 0;
-    const bank = triviaBank[myEdadBracket] || triviaBank.adultos;
+    const bank = (triviaBankPorPais[myPais] || triviaBankPorPais.otros)[myEdadBracket] || triviaBankPorPais.otros.adultos;
     const usadas = new Set();
 
     function siguientePregunta(){
@@ -1079,6 +1278,7 @@
     partidaCache = { ...partidaCache, etapa_actual: nuevaEtapa, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
     actualizarMarcadorCampana();
+    mostrarBannerEtapa(nuevaEtapa);
     buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
@@ -1302,6 +1502,7 @@
     partidaCache = { ...partidaCache, estado_turno: null, layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
     await refreshPlayersList();
     actualizarMarcadorCampana();
+    mostrarBannerEtapa(etapaActual);
     buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
@@ -1508,6 +1709,7 @@
   });
 
   async function reiniciarYArrancarDirecto(actualizacionesExtra){
+    document.getElementById('banner-etapa').classList.add('hidden');
     const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
     await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, ...(actualizacionesExtra.jugadores||{}) }).eq('partida_id', myPartidaId);
     const updatesPartida = {
@@ -1698,8 +1900,8 @@
     mostrarSorteoDados(tiradas, ganadorId, 2500);
     await wait(2600);
 
-    await client.from('partidas').update({ estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, estado_turno: null };
+    await client.from('partidas').update({ estado_turno: null, turno_vence_ts: calcularNuevoVencimiento() }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, estado_turno: null, turno_vence_ts: calcularNuevoVencimiento() };
     return turnoInicial;
   }
 
@@ -1767,6 +1969,33 @@
       document.getElementById('btn-revancha').classList.add('hidden');
       document.getElementById('btn-nueva-tanda').classList.add('hidden');
     }
+
+    const plazoEl = document.getElementById('turno-plazo');
+    if(!esModoSolo && partidaCache.turno_vence_ts && partidaCache.estado === 'en_curso'){
+      const msRestante = new Date(partidaCache.turno_vence_ts).getTime() - Date.now();
+      if(msRestante <= 0){
+        plazoEl.textContent = '';
+        autoSaltarPorVencimiento();
+      } else {
+        const horas = Math.floor(msRestante/3600000);
+        const minutos = Math.floor((msRestante%3600000)/60000);
+        plazoEl.textContent = esMiTurno
+          ? `⏳ Tenés ${horas}h ${minutos}m para jugar tu turno`
+          : `⏳ ${jugadorEnTurno.nombre} tiene ${horas}h ${minutos}m para jugar`;
+      }
+    } else {
+      plazoEl.textContent = '';
+    }
+  }
+
+  let saltandoPorVencimiento = false;
+  async function autoSaltarPorVencimiento(){
+    if(saltandoPorVencimiento) return;
+    saltandoPorVencimiento = true;
+    const jugadorEnTurno = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length];
+    document.getElementById('game-msg').textContent = `⏰ Se venció el plazo de ${HORAS_PLAZO_TURNO}hs para ${jugadorEnTurno?.nombre || 'el jugador'}, se saltea su turno.`;
+    await terminarTurno(false);
+    saltandoPorVencimiento = false;
   }
 
   async function saltarTurnoAutomatico(jugador){
@@ -1778,15 +2007,21 @@
     saltandoTurno = false;
   }
 
+  const HORAS_PLAZO_TURNO = 6;
+  function calcularNuevoVencimiento(){
+    return new Date(Date.now() + HORAS_PLAZO_TURNO*60*60*1000).toISOString();
+  }
+
   async function terminarTurno(extraTurn){
     const siguienteIndice = extraTurn ? partidaCache.turno_actual : (partidaCache.turno_actual + 1) % jugadoresCache.length;
-    await client.from('partidas').update({ turno_actual: siguienteIndice, estado_turno: null }).eq('id', myPartidaId);
-    partidaCache = { ...partidaCache, turno_actual: siguienteIndice, estado_turno: null };
+    const vence = calcularNuevoVencimiento();
+    await client.from('partidas').update({ turno_actual: siguienteIndice, estado_turno: null, turno_vence_ts: vence }).eq('id', myPartidaId);
+    partidaCache = { ...partidaCache, turno_actual: siguienteIndice, estado_turno: null, turno_vence_ts: vence };
     await refreshPlayersList();
     updateTurnUI();
   }
 
-  async function resolverMovimiento(jugadorId, posActual, valorDado, edadBracket, esBot){
+  async function resolverMovimiento(jugadorId, posActual, valorDado, edadBracket, esBot, pais){
     const META = TOTAL_CELLS - 1;
     let rawNewPos = posActual + valorDado;
     let rebotó = false;
@@ -1825,7 +2060,7 @@
       } else {
         await client.from('partidas').update({ estado_turno: 'resolviendo_trivia' }).eq('id', myPartidaId);
         partidaCache = { ...partidaCache, estado_turno: 'resolviendo_trivia' };
-        mostrarTriviaLocal(tipo, rawNewPos, jugadorId, edadBracket);
+        mostrarTriviaLocal(tipo, rawNewPos, jugadorId, edadBracket, pais);
       }
       return;
     }
@@ -1907,9 +2142,9 @@
 
   const TIEMPO_LIMITE_TRIVIA = 15; // segundos
 
-  function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket){
+  function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket, pais){
     const usaDificil = tipo === 'calavera' || (esModoSolo && etapaConfig && etapaConfig.ocaCarcelUsanBancoDificil);
-    const bankSet = usaDificil ? triviaBankDificil : triviaBank;
+    const bankSet = usaDificil ? triviaBankDificil : (triviaBankPorPais[pais] || triviaBankPorPais.otros);
     const bank = bankSet[edadBracket] || bankSet.adultos;
     const pregunta = bank[Math.floor(Math.random()*bank.length)];
     const titulos = { oca:'🪿 Oca — Cuestionados', carcel:'⛓️ Cárcel — Cuestionados', calavera:'💀 Calavera — Cuestionados DIFÍCIL' };
@@ -1967,7 +2202,7 @@
     document.getElementById('game-msg').textContent = '🤖 El bot está pensando...';
     await wait(1100);
     const valor = 1 + Math.floor(Math.random()*6);
-    await resolverMovimiento(bot.id, bot.posicion, valor, bot.edad_bracket, true);
+    await resolverMovimiento(bot.id, bot.posicion, valor, bot.edad_bracket, true, bot.pais);
     botJugando = false;
   }
 
@@ -1979,7 +2214,7 @@
     const valor = 1 + Math.floor(Math.random()*6);
     dice.textContent = diceFaces[valor];
     const yo = jugadoresCache.find(j => j.id === myPlayerId);
-    await resolverMovimiento(myPlayerId, yo.posicion, valor, myEdadBracket, false);
+    await resolverMovimiento(myPlayerId, yo.posicion, valor, myEdadBracket, false, myPais);
     setTimeout(() => { dice.textContent = '🎲'; }, 1200);
   });
 
@@ -2034,40 +2269,98 @@
   });
 
   // ---------- Restaurar sesión al cargar la página (si venías de una sala) ----------
-  async function intentarRestaurarSesion(){
-    const sesion = leerSesion();
-    if(!sesion || !sesion.playerId || !sesion.partidaId){
-      irAPantallaDeInicio();
-      return;
-    }
-
+  async function entrarAPartidaGuardada(sesion){
     const { data: jugador, error: errJugador } = await client
       .from('jugadores_partida').select('*').eq('id', sesion.playerId).single();
-    if(errJugador || !jugador){ borrarSesion(); irAPantallaDeInicio(); return; }
+    if(errJugador || !jugador){
+      myPartidaId = sesion.partidaId;
+      borrarSesion();
+      return false;
+    }
 
     const { data: partida, error: errPartida } = await client
       .from('partidas').select('*').eq('id', sesion.partidaId).single();
-    if(errPartida || !partida){ borrarSesion(); irAPantallaDeInicio(); return; }
+    if(errPartida || !partida){
+      myPartidaId = sesion.partidaId;
+      borrarSesion();
+      return false;
+    }
+
+    if(pollingGame){ clearInterval(pollingGame); pollingGame = null; }
+    if(pollingWaiting){ clearInterval(pollingWaiting); pollingWaiting = null; }
 
     myNombre = sesion.nombre;
     myPlayerId = sesion.playerId;
     myPartidaId = sesion.partidaId;
     myOrdenTurno = jugador.orden_turno;
     myEdadBracket = jugador.edad_bracket || (sesion.edadBracket || 'adultos');
+    myPais = jugador.pais || sesion.pais || 'otros';
+    esModoSolo = !!sesion.esModoSolo;
     partidaCache = partida;
 
     await refreshPlayersList();
     subscribeRealtime();
 
     if(partida.estado === 'esperando'){
+      document.getElementById('banner-etapa').classList.add('hidden');
       document.getElementById('room-code-display').textContent = partida.codigo;
       showScreen('screen-waiting');
       renderPlayersList();
       iniciarPollingWaiting();
     } else {
       enterGameScreen();
+      if(esModoSolo) mostrarBannerEtapa(partida.etapa_actual || 1);
+      else document.getElementById('banner-etapa').classList.add('hidden');
       if(partida.estado === 'finalizada' && !esModoSolo) await mostrarFinDePartida();
     }
+    return true;
+  }
+
+  function renderMisPartidas(lista){
+    const cont = document.getElementById('mis-partidas-contenido');
+    cont.innerHTML = '<h2 style="margin-top:0;">🎮 Tus partidas activas</h2>' + lista.map((s, idx) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+        <span>${s.esModoSolo ? '🤖 Campaña solo' : '👥 Sala ' + (s.codigo || '----')}</span>
+        <button data-idx="${idx}" class="btn-entrar-partida" style="width:auto; padding:6px 14px; font-size:12.5px;">Entrar</button>
+      </div>
+    `).join('');
+    cont.querySelectorAll('.btn-entrar-partida').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const sesion = lista[parseInt(btn.dataset.idx)];
+        showScreen('screen-nickname'); // pantalla temporal mientras carga
+        const ok = await entrarAPartidaGuardada(sesion);
+        if(!ok){ alert('Esa partida ya no está disponible.'); mostrarMisPartidas(); }
+      });
+    });
+  }
+
+  async function mostrarMisPartidas(){
+    const lista = leerListaSesiones();
+    renderMisPartidas(lista);
+    showScreen('screen-mis-partidas');
+  }
+
+  document.getElementById('btn-nueva-partida-desde-lista').addEventListener('click', () => {
+    showScreen('screen-lobby-choice');
+  });
+
+  async function intentarRestaurarSesion(){
+    const lista = leerListaSesiones();
+    if(lista.length === 0){
+      irAPantallaDeInicio();
+      return;
+    }
+    if(lista.length === 1){
+      const ok = await entrarAPartidaGuardada(lista[0]);
+      if(!ok) irAPantallaDeInicio();
+      return;
+    }
+    // hay varias partidas activas: mostrar selector
+    if(!myUsuarioId){
+      // igual necesitamos saber quien sos para el saludo; usamos el nombre de la primera sesion
+      myNombre = lista[0].nombre;
+    }
+    mostrarMisPartidas();
   }
 
   async function restaurarIdentidad(){
@@ -2081,23 +2374,24 @@
     myUsuarioId = usuario.id;
     myNombre = usuario.nombre;
 
-    const hoy = new Date().toISOString().slice(0,10);
+    const { data: resultado, error: errRecompensa } = await client.rpc('reclamar_recompensa_diaria', { p_usuario_id: usuarioId });
+    const fila = Array.isArray(resultado) ? resultado[0] : resultado;
+
     let nuevaRacha = usuario.racha_dias;
     let nuevasMonedas = usuario.monedas || 0;
     let premioGanado = null;
 
-    if(usuario.ultima_conexion !== hoy){
-      const ayer = new Date(Date.now() - 86400000).toISOString().slice(0,10);
-      nuevaRacha = (usuario.ultima_conexion === ayer) ? usuario.racha_dias + 1 : 1;
-      const diaDelCiclo = ((nuevaRacha - 1) % 7) + 1; // ciclo semanal: 1 a 7
-      const monedasGanadas = 10 + (diaDelCiclo - 1) * 5; // dia1=10 ... dia7=40
-      nuevasMonedas += monedasGanadas;
-      premioGanado = { monedasGanadas, nuevaRacha, diaDelCiclo };
-      await client.from('usuarios').update({ ultima_conexion: hoy, racha_dias: nuevaRacha, monedas: nuevasMonedas }).eq('id', usuarioId);
+    if(!errRecompensa && fila){
+      nuevaRacha = fila.nueva_racha;
+      nuevasMonedas = fila.monedas_total;
+      if(!fila.ya_reclamado){
+        premioGanado = { monedasGanadas: fila.monedas_ganadas, nuevaRacha: fila.nueva_racha, diaDelCiclo: fila.dia_del_ciclo };
+      }
     }
-    myUsuarioStats = { ...usuario, racha_dias: nuevaRacha, ultima_conexion: hoy, monedas: nuevasMonedas };
+    myUsuarioStats = { ...usuario, racha_dias: nuevaRacha, monedas: nuevasMonedas };
 
     if(premioGanado) mostrarPremioDiario(premioGanado);
+    guardarOneSignalIdSiPosible();
     return true;
   }
 
@@ -2120,6 +2414,35 @@
       showScreen('screen-nickname');
     }
   }
+
+  // ---------- Notificaciones push (OneSignal) ----------
+  let miOneSignalId = null;
+
+  async function guardarOneSignalIdSiPosible(){
+    if(miOneSignalId && myUsuarioId){
+      await client.rpc('actualizar_onesignal_id', { p_usuario_id: myUsuarioId, p_onesignal_id: miOneSignalId });
+      if(myUsuarioStats) myUsuarioStats.onesignal_player_id = miOneSignalId;
+    }
+  }
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal){
+    try {
+      await OneSignal.init({ appId: "e435e540-70fa-4435-aecc-d84efc1f81cb" });
+
+      OneSignal.User.PushSubscription.addEventListener('change', (event) => {
+        if(event.current && event.current.id){
+          miOneSignalId = event.current.id;
+          guardarOneSignalIdSiPosible();
+        }
+      });
+
+      if(OneSignal.User.PushSubscription.id){
+        miOneSignalId = OneSignal.User.PushSubscription.id;
+        guardarOneSignalIdSiPosible();
+      }
+    } catch(e) { /* si falla la inicializacion de push, el juego sigue funcionando igual sin notificaciones */ }
+  });
 
   (async () => {
     await restaurarIdentidad();
