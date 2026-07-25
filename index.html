@@ -255,6 +255,14 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="premio-diario-overlay">
+  <div class="modal-card">
+    <h2>🎁 ¡Recompensa diaria!</h2>
+    <p id="premio-diario-texto"></p>
+    <button id="btn-cerrar-premio-diario">¡Genial!</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="reconectar-overlay">
   <div class="modal-card">
     <h2>🔌 Reconectar</h2>
@@ -560,10 +568,13 @@
     if(!val){ alert('Escribí un nombre.'); return; }
     myNombre = val;
     if(!myUsuarioId){
-      const { data, error } = await client.from('usuarios').insert({ nombre: myNombre }).select().single();
+      const monedasIniciales = 10; // premio del día 1
+      const { data, error } = await client.from('usuarios').insert({ nombre: myNombre, monedas: monedasIniciales }).select().single();
       if(!error && data){
         myUsuarioId = data.id;
+        myUsuarioStats = data;
         try { localStorage.setItem('ocaland_usuario_id', myUsuarioId); } catch(e){}
+        mostrarPremioDiario({ monedasGanadas: monedasIniciales, nuevaRacha: 1, diaDelCiclo: 1 });
       }
     }
     showScreen('screen-edad');
@@ -724,6 +735,7 @@
     const mejorTiempo = s.mejor_tiempo_campana_ms ? formatearMs(s.mejor_tiempo_campana_ms) : '—';
     document.getElementById('perfil-contenido').innerHTML = `
       <h2 style="margin-top:0;">📊 ${myNombre}</h2>
+      <p>🪙 Monedas: <b>${s.monedas || 0}</b></p>
       <p>🔥 Racha: <b>${s.racha_dias || 1} día${(s.racha_dias||1)===1?'':'s'}</b> seguidos jugando</p>
       <p>🎲 Partidas jugadas: <b>${s.partidas_jugadas || 0}</b></p>
       <p>🏆 Partidas ganadas: <b>${s.partidas_ganadas || 0}</b> (${winRate}%)</p>
@@ -2071,14 +2083,33 @@
 
     const hoy = new Date().toISOString().slice(0,10);
     let nuevaRacha = usuario.racha_dias;
+    let nuevasMonedas = usuario.monedas || 0;
+    let premioGanado = null;
+
     if(usuario.ultima_conexion !== hoy){
       const ayer = new Date(Date.now() - 86400000).toISOString().slice(0,10);
       nuevaRacha = (usuario.ultima_conexion === ayer) ? usuario.racha_dias + 1 : 1;
-      await client.from('usuarios').update({ ultima_conexion: hoy, racha_dias: nuevaRacha }).eq('id', usuarioId);
+      const diaDelCiclo = ((nuevaRacha - 1) % 7) + 1; // ciclo semanal: 1 a 7
+      const monedasGanadas = 10 + (diaDelCiclo - 1) * 5; // dia1=10 ... dia7=40
+      nuevasMonedas += monedasGanadas;
+      premioGanado = { monedasGanadas, nuevaRacha, diaDelCiclo };
+      await client.from('usuarios').update({ ultima_conexion: hoy, racha_dias: nuevaRacha, monedas: nuevasMonedas }).eq('id', usuarioId);
     }
-    myUsuarioStats = { ...usuario, racha_dias: nuevaRacha, ultima_conexion: hoy };
+    myUsuarioStats = { ...usuario, racha_dias: nuevaRacha, ultima_conexion: hoy, monedas: nuevasMonedas };
+
+    if(premioGanado) mostrarPremioDiario(premioGanado);
     return true;
   }
+
+  function mostrarPremioDiario(premio){
+    document.getElementById('premio-diario-texto').innerHTML =
+      `🔥 Racha de <b>${premio.nuevaRacha} día${premio.nuevaRacha===1?'':'s'}</b> seguidos (día ${premio.diaDelCiclo} de 7).<br>Ganaste <b>${premio.monedasGanadas} 🪙 monedas</b>.<br>Total: <b>${myUsuarioStats.monedas} 🪙</b>`;
+    document.getElementById('premio-diario-overlay').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-cerrar-premio-diario').addEventListener('click', () => {
+    document.getElementById('premio-diario-overlay').classList.add('hidden');
+  });
 
   function irAPantallaDeInicio(){
     if(myUsuarioId){
