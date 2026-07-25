@@ -97,6 +97,29 @@
     transition:left 0.3s ease, top 0.3s ease; display:flex; align-items:center; justify-content:center;
     font-size:8px; color:#fff; font-weight:700; z-index:5;
   }
+  @keyframes sufrir-shake {
+    0%,100% { transform: translate(0,0) rotate(0deg) scale(1); }
+    15% { transform: translate(-5px,-3px) rotate(-12deg) scale(1.15); }
+    30% { transform: translate(5px,3px) rotate(12deg) scale(1.1); }
+    45% { transform: translate(-4px,2px) rotate(-8deg) scale(1.1); }
+    60% { transform: translate(4px,-2px) rotate(8deg) scale(1.05); }
+    75% { transform: translate(-2px,1px) rotate(-4deg) scale(1.02); }
+  }
+  .token.sufriendo{
+    animation: sufrir-shake 0.65s ease-in-out;
+    box-shadow: 0 0 0 4px rgba(255,60,60,0.75), 0 2px 4px rgba(0,0,0,0.4) !important;
+    z-index:20;
+  }
+  .token.en-carcel{
+    filter: grayscale(0.75) brightness(0.75);
+  }
+  .token.en-carcel::after{
+    content:'⛓️';
+    position:absolute;
+    top:-9px; right:-6px;
+    font-size:9px;
+    filter:none;
+  }
   #dice{
     width:60px; height:60px; background:#fff; border-radius:12px; display:flex;
     align-items:center; justify-content:center; font-size:28px; box-shadow:0 4px 10px rgba(0,0,0,0.25);
@@ -153,16 +176,39 @@
     <button id="btn-solo" class="secondary">🤖 Jugar solo (contra la bot)</button>
   </div>
   <div class="card">
-    <button id="btn-create-room">Crear sala nueva</button>
+    <button id="btn-create-room">Crear sala nueva (tanda)</button>
+    <button id="btn-create-room-campana" class="secondary" style="margin-top:8px;">🏆 Crear campaña grupal (10 etapas, en vivo)</button>
   </div>
   <div class="card">
     <p style="margin-top:0;">¿Ya tenés un código?</p>
     <input type="text" id="join-code-input" placeholder="CÓDIGO" maxlength="4">
     <button id="btn-join-room" class="secondary" style="margin-top:10px;">Unirme</button>
   </div>
+  <div class="card">
+    <button id="btn-desafio-grupal" class="secondary">🎯 Desafío grupal (campañas por separado)</button>
+  </div>
   <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
   <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
   <button id="btn-ver-mis-partidas" class="secondary">🎮 Mis partidas</button>
+</div>
+
+<!-- Pantalla de desafío grupal (campañas individuales comparadas) -->
+<div class="screen hidden" id="screen-desafio-grupal">
+  <div class="card">
+    <button id="btn-crear-desafio">+ Crear desafío nuevo</button>
+  </div>
+  <div class="card">
+    <p style="margin-top:0;">¿Tenés un código de desafío?</p>
+    <input type="text" id="desafio-code-input" placeholder="CÓDIGO" maxlength="4">
+    <button id="btn-unirse-desafio" class="secondary" style="margin-top:10px;">Ver / Unirme</button>
+  </div>
+  <div class="card hidden" id="card-desafio-activo">
+    <p style="margin:0 0 4px; text-align:center; font-size:12px; color:#9B8AB5;">CÓDIGO DE DESAFÍO</p>
+    <div id="desafio-code-display" style="font-size:28px; font-weight:700; text-align:center; letter-spacing:6px; color:var(--forest-dark);">----</div>
+    <button id="btn-jugar-mi-campana-desafio" style="margin-top:10px;">Jugar mi campaña para este desafío</button>
+    <div id="desafio-ranking-contenido" style="margin-top:12px;"></div>
+  </div>
+  <button id="btn-volver-lobby-desafio" class="secondary">← Volver</button>
 </div>
 
 <!-- Pantalla de mis partidas (varias en simultáneo) -->
@@ -387,6 +433,37 @@
   let partidaCache = null;
 
   function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  // ---------- Sonido (Web Audio API, sin archivos externos) ----------
+  let audioCtx = null;
+  function getAudioCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function beep(freq, duration, type, vol){
+    try{
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.value = vol || 0.1;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.stop(ctx.currentTime + duration);
+    }catch(e){ /* audio no disponible, seguimos sin sonido */ }
+  }
+  function playTick(){ beep(440, 0.07, 'square', 0.05); }
+  function playDiceRoll(){ beep(300, 0.15, 'triangle', 0.07); }
+  function playCorrect(){ beep(660,0.12,'sine',0.12); setTimeout(()=>beep(880,0.15,'sine',0.12),110); }
+  function playWrong(){ beep(180,0.25,'sawtooth',0.09); }
+  function playSuffer(){ beep(150,0.3,'sawtooth',0.11); }
+  function playWin(){ beep(523,0.12); setTimeout(()=>beep(659,0.12),120); setTimeout(()=>beep(784,0.22),240); }
+  function playCoin(){ beep(988,0.08,'square',0.08); setTimeout(()=>beep(1319,0.12,'square',0.08),80); }
+  function playSorteo(){ beep(220,0.06,'square',0.05); }
+  function playNotificacion(){ beep(740,0.1,'sine',0.08); setTimeout(()=>beep(988,0.14,'sine',0.08),100); }
+
 
   // ---------- Casillas especiales (mismo diseño que el prototipo de 1 jugador) ----------
   const CANTIDAD_TRAMPAS = 20; // de 30 casillas (antes eran 13-16, ahora más denso)
@@ -709,7 +786,7 @@
 
   // ---------- Helpers de pantalla ----------
   function showScreen(id){
-    ['screen-nickname','screen-edad','screen-pais','screen-lobby-choice','screen-perfil','screen-ranking','screen-mis-partidas','screen-waiting','screen-game'].forEach(s => {
+    ['screen-nickname','screen-edad','screen-pais','screen-lobby-choice','screen-perfil','screen-ranking','screen-mis-partidas','screen-desafio-grupal','screen-waiting','screen-game'].forEach(s => {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
   }
@@ -757,14 +834,16 @@
   });
 
   // ---------- Pantalla 2: crear / unirse ----------
-  document.getElementById('btn-create-room').addEventListener('click', async () => {
+  async function crearSalaConModo(modo){
     let partida = null;
     let lastError = null;
     for(let attempt=0; attempt<5 && !partida; attempt++){
       const code = genCode();
+      const insertObj = { codigo: code, estado: 'esperando', max_jugadores: 6 };
+      if(modo === 'campana_grupal') insertObj.etapa_actual = 1;
       const { data, error } = await client
         .from('partidas')
-        .insert({ codigo: code, estado: 'esperando', max_jugadores: 6 })
+        .insert(insertObj)
         .select()
         .single();
       if(!error) partida = data;
@@ -774,12 +853,24 @@
       alert('No se pudo crear la sala.\n\nDetalle: ' + (lastError ? (lastError.message + (lastError.code ? ' (código: '+lastError.code+')' : '') + (lastError.details ? '\n' + lastError.details : '') + (lastError.hint ? '\nSugerencia: ' + lastError.hint : '')) : 'sin detalle'));
       return;
     }
+    if(modo === 'campana_grupal'){
+      await client.from('partidas').update({ modo: 'campana_grupal' }).eq('id', partida.id);
+      partida.modo = 'campana_grupal';
+    }
 
     myPartidaId = partida.id;
     partidaCache = partida;
     await joinAsPlayer(partida.id, 0);
     guardarSesion();
     enterWaitingRoom(partida.codigo);
+  }
+
+  document.getElementById('btn-create-room').addEventListener('click', async () => {
+    await crearSalaConModo('tanda');
+  });
+
+  document.getElementById('btn-create-room-campana').addEventListener('click', async () => {
+    await crearSalaConModo('campana_grupal');
   });
 
   document.getElementById('btn-join-room').addEventListener('click', async () => {
@@ -876,6 +967,75 @@
 
   document.getElementById('btn-volver-lobby-mis-partidas').addEventListener('click', () => {
     showScreen('screen-lobby-choice');
+  });
+
+  // ---------- Desafío grupal: campañas individuales comparadas ----------
+  let desafioActivoId = null;
+  let desafioActivoCodigo = null;
+
+  document.getElementById('btn-desafio-grupal').addEventListener('click', () => {
+    document.getElementById('card-desafio-activo').classList.add('hidden');
+    showScreen('screen-desafio-grupal');
+  });
+
+  document.getElementById('btn-volver-lobby-desafio').addEventListener('click', () => {
+    showScreen('screen-lobby-choice');
+  });
+
+  document.getElementById('btn-crear-desafio').addEventListener('click', async () => {
+    let desafio = null;
+    for(let i=0;i<5 && !desafio;i++){
+      const code = genCode();
+      const { data, error } = await client.from('desafios_grupales').insert({ codigo: code }).select().single();
+      if(!error) desafio = data;
+    }
+    if(!desafio){ alert('No se pudo crear el desafío.'); return; }
+    await mostrarDesafioActivo(desafio);
+  });
+
+  document.getElementById('btn-unirse-desafio').addEventListener('click', async () => {
+    const code = document.getElementById('desafio-code-input').value.trim().toUpperCase();
+    if(code.length !== 4){ alert('El código tiene 4 caracteres.'); return; }
+    const { data, error } = await client.from('desafios_grupales').select('*').eq('codigo', code).single();
+    if(error || !data){ alert('No se encontró ese desafío.'); return; }
+    await mostrarDesafioActivo(data);
+  });
+
+  async function mostrarDesafioActivo(desafio){
+    desafioActivoId = desafio.id;
+    desafioActivoCodigo = desafio.codigo;
+    document.getElementById('desafio-code-display').textContent = desafio.codigo;
+    document.getElementById('card-desafio-activo').classList.remove('hidden');
+    await renderDesafioRanking();
+  }
+
+  async function renderDesafioRanking(){
+    const cont = document.getElementById('desafio-ranking-contenido');
+    cont.innerHTML = '<p>Cargando resultados...</p>';
+    const { data, error } = await client
+      .from('desafios_resultados')
+      .select('*')
+      .eq('desafio_id', desafioActivoId)
+      .order('etapas_completadas', { ascending: false });
+    if(error || !data || data.length === 0){
+      cont.innerHTML = '<p style="font-size:12.5px;">Todavía nadie completó su campaña para este desafío.</p>';
+      return;
+    }
+    const ordenados = data.slice().sort((a,b) => {
+      if(b.etapas_completadas !== a.etapas_completadas) return b.etapas_completadas - a.etapas_completadas;
+      return (a.ms_total||Infinity) - (b.ms_total||Infinity);
+    });
+    const medallas = ['🥇','🥈','🥉'];
+    cont.innerHTML = '<b>Resultados del desafío:</b>' + ordenados.map((r,idx) => `
+      <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:12.5px;">
+        <span>${medallas[idx]||(idx+1)+'.'} ${r.nombre}</span>
+        <span>${r.etapas_completadas}/10 · ${formatearMs(r.ms_total||0)}</span>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('btn-jugar-mi-campana-desafio').addEventListener('click', async () => {
+    document.getElementById('btn-solo').dispatchEvent(new Event('click'));
   });
 
   async function renderRanking(){
@@ -1091,7 +1251,9 @@
     }).eq('id', myPartidaId);
     if(error){ alert('Error al iniciar: ' + error.message); return; }
     partidaCache = { ...partidaCache, estado: 'en_curso', layout_casillas: layoutCasillas, layout_puentes: layoutPuentes };
+    if(esModoCampanaGrupal()) aplicarConfigEtapa(partidaCache.etapa_actual || 1);
     enterGameScreen();
+    if(esModoCampanaGrupal()) mostrarBannerEtapa(partidaCache.etapa_actual || 1);
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: turnoInicial };
@@ -1142,6 +1304,7 @@
 
   async function manejarVictoria(jugadorGanadorId){
     const gane = jugadorGanadorId === myPlayerId;
+    if(gane) playWin();
     await registrarPartidaJugada(gane);
     if(esModoSolo){
       if(gane){
@@ -1195,6 +1358,7 @@
         btn.addEventListener('click', async () => {
           Array.from(opts.children).forEach(b => b.disabled = true);
           const acierto = idx === pregunta.correct;
+          if(acierto) playCorrect(); else playWrong();
           btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
           if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
           if(acierto) correctas++;
@@ -1254,6 +1418,12 @@
       partidaCache = { ...partidaCache, estado: 'finalizada' };
       guardarHistorialCampana(msTotal);
       await registrarCampanaCompletada(msTotal);
+      if(desafioActivoId){
+        await client.from('desafios_resultados').insert({
+          desafio_id: desafioActivoId, usuario_id: myUsuarioId, nombre: myNombre,
+          etapas_completadas: 10, ms_total: msTotal
+        });
+      }
       if(pollingGame){ clearInterval(pollingGame); pollingGame = null; }
       mostrarFinCampana(msTotal);
       return;
@@ -1512,6 +1682,8 @@
   }
 
   function mostrarFinCampana(msTotal){
+    playWin();
+    setTimeout(playWin, 350);
     const historial = leerHistorialCampanas();
     const listaHtml = historial.slice(0,5).map((h,i) =>
       `${i+1}. ${h.nombre} — ${formatearMs(h.msTotal)} (${new Date(h.fecha).toLocaleDateString()})`
@@ -1542,24 +1714,30 @@
     return jugadoresCache.map(j => `${j.nombre}: ${j.victorias||0}`).join('  ·  ');
   }
 
+  function esModoCampanaGrupal(){ return partidaCache && partidaCache.modo === 'campana_grupal'; }
+
   async function mostrarFinDePartida(){
     await refreshPlayersList();
     const ganadorRonda = jugadoresCache.find(j => j.id === partidaCache.ultimo_ganador_id);
     const ronda = partidaCache.ronda_actual || 1;
     const rachaTermina = (partidaCache.racha_ganador || 0) >= 2;
+    const enGrupal = esModoCampanaGrupal();
+    const totalBase = enGrupal ? 10 : 3;
+    const palabra = enGrupal ? 'etapa' : 'partida';
+    const marcadorPrefijo = enGrupal ? `Campaña grupal (etapa ${ronda} de 10)` : `Tanda (partida ${ronda})`;
 
     document.getElementById('dice').classList.add('disabled');
     document.getElementById('btn-play-again').classList.remove('hidden');
-    document.getElementById('marcador-tanda').textContent = `Tanda (partida ${ronda}): ${marcadorTexto()}`;
+    document.getElementById('marcador-tanda').textContent = `${marcadorPrefijo}: ${marcadorTexto()}`;
 
     if(rachaTermina){
       await finalizarTanda(ganadorRonda.id);
       return;
     }
 
-    if(ronda < 3){
-      document.getElementById('game-msg').textContent = `🏆 ¡Ganó ${ganadorRonda?.nombre} la partida ${ronda}! (${marcadorTexto()})`;
-      document.getElementById('btn-revancha').textContent = '▶️ Siguiente partida de la tanda';
+    if(ronda < totalBase){
+      document.getElementById('game-msg').textContent = `🏆 ¡Ganó ${ganadorRonda?.nombre} la ${palabra} ${ronda}! (${marcadorTexto()})`;
+      document.getElementById('btn-revancha').textContent = enGrupal ? '▶️ Siguiente etapa' : '▶️ Siguiente partida de la tanda';
       document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
       document.getElementById('btn-nueva-tanda').classList.add('hidden');
       return;
@@ -1573,15 +1751,15 @@
       return;
     }
 
-    if(ronda === 3){
-      document.getElementById('game-msg').textContent = `🤝 Empate entre ${empatados.map(j=>j.nombre).join(', ')} tras 3 partidas. Se juega una más para definir.`;
-      document.getElementById('btn-revancha').textContent = '▶️ Partida extra de desempate';
+    if(ronda === totalBase){
+      document.getElementById('game-msg').textContent = `🤝 Empate entre ${empatados.map(j=>j.nombre).join(', ')} tras ${totalBase} ${palabra}s. Se juega una más para definir.`;
+      document.getElementById('btn-revancha').textContent = `▶️ ${enGrupal ? 'Etapa' : 'Partida'} extra de desempate`;
       document.getElementById('btn-revancha').classList.toggle('hidden', !soyHost());
       document.getElementById('btn-nueva-tanda').classList.add('hidden');
       return;
     }
 
-    // ronda >= 4 y sigue empatado -> desempate directo por trivia, eliminando de a uno
+    // ronda > totalBase y sigue empatado -> desempate directo por trivia, eliminando de a uno
     document.getElementById('game-msg').textContent = `🎯 Sigue el empate entre ${empatados.map(j=>j.nombre).join(', ')}. ¡Desempate por trivia!`;
     document.getElementById('btn-revancha').classList.add('hidden');
     document.getElementById('btn-play-again').classList.add('hidden');
@@ -1594,7 +1772,8 @@
     await client.from('partidas').update({ ganador_tanda_id: jugadorGanadorId, estado: 'finalizada' }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, ganador_tanda_id: jugadorGanadorId, estado: 'finalizada' };
     const ganador = jugadoresCache.find(j => j.id === jugadorGanadorId);
-    document.getElementById('game-msg').textContent = `🏆🏆 ¡${ganador?.nombre} gana la TANDA! (${marcadorTexto()})`;
+    const nombreCompeticion = esModoCampanaGrupal() ? 'CAMPAÑA GRUPAL' : 'TANDA';
+    document.getElementById('game-msg').textContent = `🏆🏆 ¡${ganador?.nombre} gana la ${nombreCompeticion}! (${marcadorTexto()})`;
     document.getElementById('desempate-panel').classList.add('hidden');
     document.getElementById('btn-revancha').classList.add('hidden');
     document.getElementById('btn-play-again').classList.remove('hidden');
@@ -1667,6 +1846,7 @@
         clearInterval(intervalId);
         Array.from(opts.children).forEach(b => b.disabled = true);
         const acierto = idx === pregunta.correct;
+        if(acierto) playCorrect(); else playWrong();
         btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
         if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
         await wait(900);
@@ -1718,6 +1898,11 @@
       layout_casillas: layoutCasillas, layout_puentes: layoutPuentes,
       ...(actualizacionesExtra.partida||{})
     };
+    if(esModoCampanaGrupal()){
+      const nuevaRonda = updatesPartida.ronda_actual || partidaCache.ronda_actual || 1;
+      updatesPartida.etapa_actual = Math.min(nuevaRonda, 10);
+      aplicarConfigEtapa(updatesPartida.etapa_actual);
+    }
     await client.from('partidas').update(updatesPartida).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, ...updatesPartida };
     document.getElementById('btn-play-again').classList.add('hidden');
@@ -1726,6 +1911,7 @@
     document.getElementById('desempate-panel').classList.add('hidden');
     document.getElementById('game-msg').textContent = '';
     await refreshPlayersList();
+    if(esModoCampanaGrupal()) mostrarBannerEtapa(partidaCache.etapa_actual);
     buildBoard();
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
@@ -1807,7 +1993,7 @@
     jugadoresCache.forEach((j, idx) => {
       const pos = cellPositions[Math.min(j.posicion, TOTAL_CELLS-1)];
       const token = document.createElement('div');
-      token.className = 'token';
+      token.className = 'token' + (j.salta_turno ? ' en-carcel' : '');
       token.dataset.jugadorId = j.id;
       token.style.background = TOKEN_COLORS[idx % TOKEN_COLORS.length];
       token.style.left = (parseFloat(pos.left) + 1 + (idx%3)*3) + '%';
@@ -1831,6 +2017,17 @@
     }).join('');
   }
 
+  function mostrarSufrimiento(jugadorId){
+    playSuffer();
+    const boardEl = document.getElementById('board');
+    const token = boardEl.querySelector(`.token[data-jugador-id="${jugadorId}"]`);
+    if(!token) return;
+    token.classList.remove('sufriendo');
+    void token.offsetWidth; // forzar reflow para poder re-disparar la animación si ya se había usado
+    token.classList.add('sufriendo');
+    setTimeout(() => token.classList.remove('sufriendo'), 700);
+  }
+
   function animarCaminataLocal(jugadorId, desde, hasta){
     return new Promise(resolve => {
       const boardEl = document.getElementById('board');
@@ -1848,6 +2045,7 @@
         const pos = cellPositions[Math.max(0, Math.min(actual, TOTAL_CELLS-1))];
         token.style.left = (parseFloat(pos.left)+offX) + '%';
         token.style.top = (parseFloat(pos.top)+offY) + '%';
+        playTick();
         setTimeout(paso, 220);
       };
       paso();
@@ -1861,6 +2059,7 @@
   function mostrarSorteoDados(tiradas, ganadorId, duracionMs){
     if(sorteoMostrado) return;
     sorteoMostrado = true;
+    playSorteo();
     const panel = document.getElementById('sorteo-panel');
     panel.classList.remove('hidden');
     document.getElementById('dice').classList.add('disabled');
@@ -2124,6 +2323,15 @@
   async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot, forzarSkip){
     const rule = triviaOutcomeRules[tipo];
     const outcome = acierto ? rule.onSuccess(posActual) : rule.onFail(posActual);
+
+    if(!acierto && (tipo === 'calavera' || tipo === 'carcel')){
+      mostrarSufrimiento(jugadorId);
+      await wait(650); // dejar que se vea la sacudida antes de mover/actualizar
+    }
+    if(!acierto && tipo === 'calavera'){
+      await animarCaminataLocal(jugadorId, posActual, outcome.pos); // camina de vuelta hacia la salida
+    }
+
     await client.from('jugadores_partida').update({ posicion: outcome.pos }).eq('id', jugadorId);
     const quien = esBot ? 'El bot' : 'Vos';
     document.getElementById('game-msg').textContent = forzarSkip
@@ -2143,7 +2351,7 @@
   const TIEMPO_LIMITE_TRIVIA = 15; // segundos
 
   function mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket, pais){
-    const usaDificil = tipo === 'calavera' || (esModoSolo && etapaConfig && etapaConfig.ocaCarcelUsanBancoDificil);
+    const usaDificil = tipo === 'calavera' || ((esModoSolo || esModoCampanaGrupal()) && etapaConfig && etapaConfig.ocaCarcelUsanBancoDificil);
     const bankSet = usaDificil ? triviaBankDificil : (triviaBankPorPais[pais] || triviaBankPorPais.otros);
     const bank = bankSet[edadBracket] || bankSet.adultos;
     const pregunta = bank[Math.floor(Math.random()*bank.length)];
@@ -2155,7 +2363,7 @@
     const opts = document.getElementById('trivia-options');
     opts.innerHTML = '';
     let resuelto = false;
-    let segundosRestantes = (esModoSolo && etapaConfig) ? etapaConfig.tiempoLimiteTrivia : TIEMPO_LIMITE_TRIVIA;
+    let segundosRestantes = ((esModoSolo || esModoCampanaGrupal()) && etapaConfig) ? etapaConfig.tiempoLimiteTrivia : TIEMPO_LIMITE_TRIVIA;
     const timerEl = document.getElementById('trivia-timer');
     timerEl.textContent = `⏱️ ${segundosRestantes}s`;
     const intervalId = setInterval(() => {
@@ -2187,6 +2395,7 @@
         clearInterval(intervalId);
         Array.from(opts.children).forEach(b => b.disabled = true);
         const acierto = idx === pregunta.correct;
+        if(acierto) playCorrect(); else playWrong();
         btn.style.background = acierto ? '#43D67D' : '#FF5A7A';
         if(!acierto) opts.children[pregunta.correct].style.background = '#43D67D';
         await wait(900);
@@ -2211,6 +2420,7 @@
     const dice = document.getElementById('dice');
     if(dice.classList.contains('disabled')) return;
     dice.classList.add('disabled');
+    playDiceRoll();
     const valor = 1 + Math.floor(Math.random()*6);
     dice.textContent = diceFaces[valor];
     const yo = jugadoresCache.find(j => j.id === myPlayerId);
@@ -2396,6 +2606,7 @@
   }
 
   function mostrarPremioDiario(premio){
+    playCoin();
     document.getElementById('premio-diario-texto').innerHTML =
       `🔥 Racha de <b>${premio.nuevaRacha} día${premio.nuevaRacha===1?'':'s'}</b> seguidos (día ${premio.diaDelCiclo} de 7).<br>Ganaste <b>${premio.monedasGanadas} 🪙 monedas</b>.<br>Total: <b>${myUsuarioStats.monedas} 🪙</b>`;
     document.getElementById('premio-diario-overlay').classList.remove('hidden');
