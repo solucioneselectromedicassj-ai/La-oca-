@@ -44,6 +44,18 @@ flutter run -d chrome  # en el navegador, para probar rápido
   (`game/campana/config_etapa.dart`), las 10 etapas con nombre y lore
   (`game/campana/etapa.dart`), y el flujo de "Reintentar" / "Responder 3
   Cuestionados para pasar igual" al perder una etapa.
+- **Identidad visual v2** (`docs/SPEC_VISUAL_V2.md`): paletas por bloque de
+  etapas (`lib/theme/paleta_bloque.dart`), casillas de trampa más grandes
+  con animación de reposo (`lib/widgets/board/casilla_trampa_animada.dart`),
+  y efectos de feedback — destello de estrellas, sacudida+rojo, confeti,
+  monedas flotantes (`lib/widgets/effects/`).
+- **Personalización de avatar** (`lib/screens/mi_avatar_screen.dart`):
+  catálogo de siluetas/colores/accesorios en Supabase
+  (`personalizacion_catalogo`), desbloqueables con monedas vía RPC
+  (`comprar_item_personalizacion`, `equipar_personalizacion`, ambas
+  `SECURITY DEFINER` — el precio se valida del lado del servidor, nunca se
+  confía en el cliente). Sin el arte final todavía, se muestra con
+  placeholders (círculo de color + inicial + ícono de accesorio).
 
 ### Simplificaciones de este corte (a mejorar después)
 
@@ -55,6 +67,14 @@ flutter run -d chrome  # en el navegador, para probar rápido
   `adultos` fijo por ahora.
 - No están: pistas, reintentar-con-video-o-monedas, comodines (doble
   tiempo / inmunidad), ruleta de premio entre etapas, ni sonido.
+- Los avatares animados (ciclo de caminata, festejo, reacción al fallar)
+  quedan pendientes: necesitan arte que no se puede generar en este
+  entorno. El sistema de personalización ya está funcional pero con
+  placeholders en vez del arte final.
+- Las fichas del tablero (`tablero_widget.dart`) todavía no usan el
+  avatar personalizado del jugador — siguen siendo círculos con la
+  inicial. Conectarlo es un paso corto una vez que se valide la UI de
+  personalización.
 
 Todavía **no** están implementados: multijugador en tiempo real (sala,
 campaña grupal, desafío grupal), economía de monedas visible en pantalla,

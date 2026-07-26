@@ -37,7 +37,9 @@ class SessionService {
     final usuario = await _supabase.crearUsuario(nombre);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKeyUsuarioId, usuario.id);
-    return usuario;
+    await _supabase.inicializarPersonalizacion(usuario.id);
+    final usuarioInicializado = await _supabase.obtenerUsuario(usuario.id);
+    return usuarioInicializado ?? usuario;
   }
 
   /// Genera un identificador local sin depender del backend (uso interno /

@@ -1,3 +1,5 @@
+import 'personalizacion.dart';
+
 /// Espeja la tabla `la_vuelta.usuarios`.
 class Usuario {
   final String id;
@@ -20,6 +22,7 @@ class Usuario {
   final String? codigoReferido;
   final String? referidoPor;
   final int amigosInvitados;
+  final Personalizacion personalizacion;
 
   const Usuario({
     required this.id,
@@ -42,12 +45,44 @@ class Usuario {
     this.fechaActividad,
     this.codigoReferido,
     this.referidoPor,
+    this.personalizacion = const Personalizacion(
+      silueta: null,
+      color: null,
+      accesorio: null,
+      desbloqueados: {},
+    ),
   });
 
   bool get tieneMultiplicadorActivo =>
       multiplicadorVenceTs != null &&
       multiplicadorVenceTs!.isAfter(DateTime.now()) &&
       multiplicadorValor > 1;
+
+  Usuario copyWith({int? monedas, Personalizacion? personalizacion}) {
+    return Usuario(
+      id: id,
+      nombre: nombre,
+      creadoEn: creadoEn,
+      ultimaConexion: ultimaConexion,
+      rachaDias: rachaDias,
+      partidasJugadas: partidasJugadas,
+      partidasGanadas: partidasGanadas,
+      campanasCompletadas: campanasCompletadas,
+      mejorTiempoCampanaMs: mejorTiempoCampanaMs,
+      monedas: monedas ?? this.monedas,
+      onesignalPlayerId: onesignalPlayerId,
+      multiplicadorValor: multiplicadorValor,
+      multiplicadorVenceTs: multiplicadorVenceTs,
+      ultimaRuletaBonus: ultimaRuletaBonus,
+      ultimoShareApp: ultimoShareApp,
+      minutosActivosHoy: minutosActivosHoy,
+      fechaActividad: fechaActividad,
+      codigoReferido: codigoReferido,
+      referidoPor: referidoPor,
+      amigosInvitados: amigosInvitados,
+      personalizacion: personalizacion ?? this.personalizacion,
+    );
+  }
 
   factory Usuario.fromMap(Map<String, dynamic> map) {
     return Usuario(
@@ -80,6 +115,8 @@ class Usuario {
       codigoReferido: map['codigo_referido'] as String?,
       referidoPor: map['referido_por'] as String?,
       amigosInvitados: map['amigos_invitados'] as int? ?? 0,
+      personalizacion:
+          Personalizacion.fromMap(map['personalizacion'] as Map<String, dynamic>?),
     );
   }
 }

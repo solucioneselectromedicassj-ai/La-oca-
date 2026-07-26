@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import '../models/item_personalizacion.dart';
 import '../models/usuario.dart';
 
 /// Wrapper fino sobre el cliente de Supabase, fijado al schema `la_vuelta`.
@@ -45,6 +46,55 @@ class SupabaseService {
         .select()
         .single();
     return Usuario.fromMap(row);
+  }
+
+  // ---------------------------------------------------------------------
+  // Personalización de avatar
+  // ---------------------------------------------------------------------
+
+  Future<List<ItemPersonalizacion>> obtenerCatalogoPersonalizacion() async {
+    final rows = await _db
+        .from('personalizacion_catalogo')
+        .select()
+        .eq('activo', true)
+        .order('precio');
+    return rows.map((row) => ItemPersonalizacion.fromMap(row)).toList();
+  }
+
+  /// Inicializa el avatar de un usuario recién creado (desbloquea lo
+  /// gratis y equipa el primero de cada tipo). Se llama una sola vez.
+  Future<void> inicializarPersonalizacion(String usuarioId) async {
+    await _client.rpc(
+      'inicializar_personalizacion',
+      params: {'p_usuario_id': usuarioId},
+    );
+  }
+
+  Future<void> comprarItemPersonalizacion({
+    required String usuarioId,
+    required String itemId,
+  }) async {
+    await _client.rpc(
+      'comprar_item_personalizacion',
+      params: {'p_usuario_id': usuarioId, 'p_item_id': itemId},
+    );
+  }
+
+  Future<void> equiparPersonalizacion({
+    required String usuarioId,
+    required String silueta,
+    required String color,
+    String? accesorio,
+  }) async {
+    await _client.rpc(
+      'equipar_personalizacion',
+      params: {
+        'p_usuario_id': usuarioId,
+        'p_silueta': silueta,
+        'p_color': color,
+        'p_accesorio': accesorio,
+      },
+    );
   }
 
   // ---------------------------------------------------------------------

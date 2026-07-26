@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../theme/ocaland_theme.dart';
 import 'board_screen.dart';
+import 'mi_avatar_screen.dart';
 
 /// Menú principal reorganizado en pestañas (Jugar / Bonus / Cuenta),
 /// tal como quedó tras el reordenamiento descrito en la sección 15 de la
@@ -143,6 +144,15 @@ class _CuentaTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        _ModoCard(
+          icono: Icons.face,
+          titulo: 'Mi avatar',
+          subtitulo: 'Personalizá tu silueta, color y accesorios',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => MiAvatarScreen(usuario: usuario)),
+          ),
+        ),
+        const SizedBox(height: 12),
         _StatTile(label: 'Monedas', value: '${usuario.monedas}'),
         _StatTile(label: 'Partidas jugadas', value: '${usuario.partidasJugadas}'),
         _StatTile(label: 'Partidas ganadas', value: '${usuario.partidasGanadas}'),

@@ -95,7 +95,17 @@ Decisión sugerida: usar **Rive** para avatares y casillas de trampa (necesitan 
 - ✅ Paletas por bloque (sección 1): `lib/theme/paleta_bloque.dart`, aplicadas en `board_screen.dart` (fondo con gradiente + AppBar).
 - ✅ Casillas de trampa más grandes y animadas (sección 4): `lib/widgets/board/casilla_trampa_animada.dart`.
 - ✅ Efectos de feedback (sección 5, salvo la parte de avatar): `lib/widgets/effects/` — destello de estrellas, sacudida+rojo, confeti, monedas flotantes.
-- ⏳ Avatares animados (sección 3) y el "el avatar hace su animación de salto/festejo" del punto 5: **pendiente**. Requiere generar las poses/frames de los 6 personajes base con una herramienta de generación de imágenes — no disponible en el entorno de desarrollo actual. Mientras tanto, los jugadores se siguen representando con círculos de color e inicial (placeholder), con la mecánica de animación (Rive/AnimationController) lista para conectar en cuanto exista el arte.
+- ⏳ Avatares animados (sección 3) y el "el avatar hace su animación de salto/festejo" del punto 5: **pendiente**. Requiere generar las poses/frames de personajes con una herramienta de generación de imágenes — no disponible en el entorno de desarrollo actual. Mientras tanto, los jugadores se siguen representando con círculos de color e inicial (placeholder), con la mecánica de animación (Rive/AnimationController) lista para conectar en cuanto exista el arte.
+- **Corrección acordada en el chat**: la sección 3 habla de "6 personajes base" fijos; se decidió en cambio un catálogo abierto y creciente de siluetas (no un número fijo), para que muchos jugadores puedan tener looks distintos. Ver sección 9.
+
+## 9. Personalización de avatar (acordado en el chat, no estaba en la v2 original)
+
+Sistema de personalización combinable, pensado para que entre mucha gente y cada uno se vea distinto sin depender de un catálogo enorme de arte:
+
+- **Siluetas**: catálogo abierto de criaturas base (no 6 fijas), algunas gratis desde el arranque, otras desbloqueables con monedas. Se pueden seguir agregando con el tiempo.
+- **Color** y **accesorio**: capas sobre la silueta elegida (sin rediseñar su forma), también desbloqueables con monedas.
+- **Implementado**: tabla `la_vuelta.personalizacion_catalogo` (siluetas/colores/accesorios con precio), columna `usuarios.personalizacion` (jsonb: equipado + desbloqueados), funciones `SECURITY DEFINER` `inicializar_personalizacion`, `comprar_item_personalizacion` y `equipar_personalizacion` (el precio se valida siempre del lado del servidor). Pantalla `lib/screens/mi_avatar_screen.dart` con grilla de compra/equipar, con placeholders en vez del arte final.
+- **Pendiente**: el arte real de cada silueta/color/accesorio, y conectar el avatar equipado a la ficha del jugador en el tablero (hoy sigue siendo un círculo genérico con inicial).
 
 ---
 
