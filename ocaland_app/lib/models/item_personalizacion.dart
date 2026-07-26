@@ -22,6 +22,7 @@ class ItemPersonalizacion {
     required this.precio,
     required this.gratis,
     this.colorHex,
+    this.siluetaId,
   });
 
   final String id;
@@ -30,6 +31,11 @@ class ItemPersonalizacion {
   final int precio;
   final bool gratis;
   final String? colorHex;
+
+  /// Solo para tipo `color`: a qué silueta pertenece este skin (los
+  /// colores son variantes de arte completo por silueta, no un tinte
+  /// universal — ver docs/SPEC_VISUAL_V2.md sección 9).
+  final String? siluetaId;
 
   Color? get color {
     if (colorHex == null) return null;
@@ -44,6 +50,7 @@ class ItemPersonalizacion {
       precio: map['precio'] as int? ?? 0,
       gratis: map['gratis'] as bool? ?? false,
       colorHex: map['color_hex'] as String?,
+      siluetaId: map['silueta_id'] as String?,
     );
   }
 }

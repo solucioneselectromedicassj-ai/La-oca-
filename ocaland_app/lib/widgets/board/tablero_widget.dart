@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../game/board_layout.dart';
 import '../../game/casilla.dart';
 import '../../theme/ocaland_theme.dart';
+import 'casilla_iconos.dart';
 import 'casilla_trampa_animada.dart';
+import 'oca_vuelo_animado.dart';
 
 /// Tablero de 30 casillas en trazado de serpiente (boustrophedon: de
 /// izquierda a derecha y luego de derecha a izquierda, fila por fila).
@@ -18,11 +20,22 @@ class TableroWidget extends StatelessWidget {
     required this.layout,
     required this.posJugador,
     required this.posBot,
+    this.spriteJugador,
+    this.frameJugador = 0,
+    this.spriteBot,
+    this.frameBot = 0,
   });
 
   final BoardLayout layout;
   final int posJugador;
   final int posBot;
+
+  /// Frames de caminata del avatar equipado (si tiene arte real, sección 3
+  /// de la spec visual v2); `null` usa el placeholder de círculo+letra.
+  final List<String>? spriteJugador;
+  final int frameJugador;
+  final List<String>? spriteBot;
+  final int frameBot;
 
   static const int columnas = 5;
   static const int filas = 6;
@@ -47,6 +60,10 @@ class TableroWidget extends StatelessWidget {
                         tipo: layout.tipoDe(pos),
                         tieneJugador: pos == posJugador,
                         tieneBot: pos == posBot,
+                        spriteJugador: spriteJugador,
+                        frameJugador: frameJugador,
+                        spriteBot: spriteBot,
+                        frameBot: frameBot,
                       )))
                   .toList(),
             ),
@@ -63,12 +80,20 @@ class _CasillaCelda extends StatelessWidget {
     required this.tipo,
     required this.tieneJugador,
     required this.tieneBot,
+    this.spriteJugador,
+    this.frameJugador = 0,
+    this.spriteBot,
+    this.frameBot = 0,
   });
 
   final int posicion;
   final TipoCasilla tipo;
   final bool tieneJugador;
   final bool tieneBot;
+  final List<String>? spriteJugador;
+  final int frameJugador;
+  final List<String>? spriteBot;
+  final int frameBot;
 
   Color get _colorFondo {
     switch (tipo) {
@@ -110,10 +135,18 @@ class _CasillaCelda extends StatelessWidget {
             left: 4,
             child: Text('$posicion', style: const TextStyle(fontSize: 9, color: Colors.black45)),
           ),
-          if (tipo.esCasillaFlotante)
+          if (tipo == TipoCasilla.oca)
+            const OcaVueloAnimado()
+          else if (tipo.esCasillaFlotante)
             CasillaTrampaAnimada(
               tipo: tipo,
-              child: Text(tipo.emoji, style: const TextStyle(fontSize: 26)),
+              child: CasillaIconos.iconoEstatico.containsKey(tipo)
+                  ? Image.asset(
+                      CasillaIconos.iconoEstatico[tipo]!,
+                      height: 30,
+                      cacheHeight: 90,
+                    )
+                  : Text(tipo.emoji, style: const TextStyle(fontSize: 26)),
             )
           else if (tipo == TipoCasilla.meta)
             Text(tipo.emoji, style: const TextStyle(fontSize: 16)),
@@ -122,13 +155,42 @@ class _CasillaCelda extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (tieneJugador) const _Ficha(color: OcalandColors.violeta, letra: 'J'),
+                if (tieneJugador)
+                  spriteJugador != null
+                      ? _FichaSprite(
+                          frames: spriteJugador!,
+                          indice: frameJugador,
+                        )
+                      : const _Ficha(color: OcalandColors.violeta, letra: 'J'),
                 if (tieneJugador && tieneBot) const SizedBox(width: 2),
-                if (tieneBot) const _Ficha(color: OcalandColors.fucsia, letra: 'B'),
+                if (tieneBot)
+                  spriteBot != null
+                      ? _FichaSprite(frames: spriteBot!, indice: frameBot)
+                      : const _Ficha(color: OcalandColors.fucsia, letra: 'B'),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FichaSprite extends StatelessWidget {
+  const _FichaSprite({required this.frames, required this.indice});
+
+  final List<String> frames;
+  final int indice;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: Image.asset(
+        frames[indice % frames.length],
+        height: 34,
+        cacheHeight: 100,
+        fit: BoxFit.contain,
       ),
     );
   }

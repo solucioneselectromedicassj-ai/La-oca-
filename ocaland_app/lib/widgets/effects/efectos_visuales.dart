@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ciclo_sprite_overlay.dart';
 import 'confeti_overlay.dart';
 import 'destello_estrellas.dart';
 import 'monedas_ganadas_flotante.dart';
@@ -21,6 +22,30 @@ class EfectosVisuales {
     _mostrarOverlay(
       context,
       (remover) => MonedasGanadasFlotante(cantidad: cantidad, onTerminado: remover),
+    );
+  }
+
+  /// Festejo/salto del avatar al ganar una etapa/partida (spec visual v2,
+  /// sección 5). No hace nada si `frames` es null (silueta sin arte real).
+  static void mostrarFestejo(BuildContext context, List<String>? frames) {
+    if (frames == null || frames.isEmpty) return;
+    _mostrarOverlay(
+      context,
+      (remover) => CicloSpriteOverlay(frames: frames, onTerminado: remover, alto: 180),
+    );
+  }
+
+  /// Reacción de sorpresa/susto al fallar Cuestionados en una trampa.
+  static void mostrarReaccion(BuildContext context, List<String>? frames) {
+    if (frames == null || frames.isEmpty) return;
+    _mostrarOverlay(
+      context,
+      (remover) => CicloSpriteOverlay(
+        frames: frames,
+        onTerminado: remover,
+        alto: 140,
+        porFrame: const Duration(milliseconds: 450),
+      ),
     );
   }
 

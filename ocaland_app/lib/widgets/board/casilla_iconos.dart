@@ -1,0 +1,25 @@
+import '../../game/casilla.dart';
+
+/// Arte real de las casillas de trampa (spec visual v2, sección 4),
+/// reemplazando los emojis de `TipoCasillaEmoji`. Lo que no está acá
+/// (normal, meta) sigue usando el emoji como antes.
+class CasillaIconos {
+  CasillaIconos._();
+
+  static const String _base = 'assets/casillas';
+
+  static const Map<TipoCasilla, String> iconoEstatico = {
+    TipoCasilla.puente: '$_base/puente.png',
+    TipoCasilla.carcel: '$_base/carcel.png',
+    TipoCasilla.calavera: '$_base/calavera.png',
+    TipoCasilla.minijuego: '$_base/minijuego.png',
+  };
+
+  /// La oca tiene animación de vuelo propia (3 frames) en vez de ícono
+  /// estático + transform.
+  static const List<String> framesOca = [
+    '$_base/oca_vuelo_1.png',
+    '$_base/oca_vuelo_2.png',
+    '$_base/oca_vuelo_3.png',
+  ];
+}

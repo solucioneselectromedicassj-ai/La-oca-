@@ -53,9 +53,14 @@ flutter run -d chrome  # en el navegador, para probar rápido
   catálogo de siluetas/colores/accesorios en Supabase
   (`personalizacion_catalogo`), desbloqueables con monedas vía RPC
   (`comprar_item_personalizacion`, `equipar_personalizacion`, ambas
-  `SECURITY DEFINER` — el precio se valida del lado del servidor, nunca se
-  confía en el cliente). Sin el arte final todavía, se muestra con
-  placeholders (círculo de color + inicial + ícono de accesorio).
+  `SECURITY DEFINER` — el precio y la pertenencia silueta↔color se validan
+  del lado del servidor, nunca se confía en el cliente).
+- **Arte real de avatares y casillas** (`assets/avatars/`, `assets/casillas/`):
+  3 personajes jugables con ciclo de caminata, festejo y reacción al
+  fallar (`lib/game/avatares/avatar_sprites.dart`), usados en la ficha del
+  tablero y en los efectos de festejo/reacción. Íconos reales para
+  puente/cárcel/calavera/minijuego, y animación de vuelo real para la
+  oca. Ícono de la app actualizado en Android/iOS/web.
 
 ### Simplificaciones de este corte (a mejorar después)
 
@@ -67,14 +72,16 @@ flutter run -d chrome  # en el navegador, para probar rápido
   `adultos` fijo por ahora.
 - No están: pistas, reintentar-con-video-o-monedas, comodines (doble
   tiempo / inmunidad), ruleta de premio entre etapas, ni sonido.
-- Los avatares animados (ciclo de caminata, festejo, reacción al fallar)
-  quedan pendientes: necesitan arte que no se puede generar en este
-  entorno. El sistema de personalización ya está funcional pero con
-  placeholders en vez del arte final.
-- Las fichas del tablero (`tablero_widget.dart`) todavía no usan el
-  avatar personalizado del jugador — siguen siendo círculos con la
-  inicial. Conectarlo es un paso corto una vez que se valide la UI de
-  personalización.
+- Los accesorios (gorro, anteojos, bufanda, corona) todavía no tienen
+  arte real — se muestran con un ícono de Material Design.
+- El bot no tiene personalización propia todavía: usa un color fijo
+  para verse distinto del jugador.
+- **Inconsistencia de estilo pendiente de resolver**: los íconos de
+  casillas de trampa y el vuelo de la oca tienen un estilo "cristal/gema
+  brillante" bien distinto al cartoon plano de los avatares, y la
+  calavera en particular es más intensa (ojos rojos brillantes) de lo
+  que pide el tono "nunca oscuro/tétrico" del documento visual. Ver
+  sección 8 de `docs/SPEC_VISUAL_V2.md`.
 
 Todavía **no** están implementados: multijugador en tiempo real (sala,
 campaña grupal, desafío grupal), economía de monedas visible en pantalla,

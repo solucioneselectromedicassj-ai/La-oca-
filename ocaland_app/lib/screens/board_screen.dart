@@ -2,11 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../game/avatares/avatar_sprites.dart';
 import '../game/campana/campana_solo_controller.dart';
 import '../game/campana/etapa.dart';
 import '../game/casilla.dart';
 import '../game/cuestionados/banco_preguntas.dart';
 import '../game/cuestionados/pregunta.dart';
+import '../models/avatar_sprite_set.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
 import '../theme/paleta_bloque.dart';
@@ -31,12 +33,24 @@ class _BoardScreenState extends State<BoardScreen> {
   final _rng = Random();
   bool _procesando = false;
   String _mensaje = '';
+  int _frameCaminataJugador = 0;
+  int _frameCaminataBot = 0;
+  late final AvatarSpriteSet? _avatarJugador;
+  late final AvatarSpriteSet? _avatarBot;
 
   @override
   void initState() {
     super.initState();
     _controller.iniciarEtapa(1);
     _mensaje = 'Tu turno: tirá el dado.';
+    _avatarJugador = AvatarSprites.de(widget.usuario.personalizacion.color);
+    // El bot no tiene personalización propia todavía: usa un color fijo
+    // (distinto al del jugador si coincide) solo para verse mejor.
+    _avatarBot = AvatarSprites.de(
+      widget.usuario.personalizacion.color == 'androgino_azul'
+          ? 'masculino_azul'
+          : 'androgino_azul',
+    );
   }
 
   Etapa get _etapaInfo => Etapa.deNumero(_controller.etapa);
@@ -94,8 +108,10 @@ class _BoardScreenState extends State<BoardScreen> {
       setState(() {
         if (esJugador) {
           _controller.posJugador = paso;
+          _frameCaminataJugador++;
         } else {
           _controller.posBot = paso;
+          _frameCaminataBot++;
         }
       });
       await Future.delayed(const Duration(milliseconds: 220));
@@ -197,6 +213,9 @@ class _BoardScreenState extends State<BoardScreen> {
     required TipoCasilla tipo,
     required bool acerto,
   }) async {
+    if (esJugador && !acerto) {
+      EfectosVisuales.mostrarReaccion(context, _avatarJugador?.reaccion);
+    }
     final quien = esJugador ? 'Vos' : 'El bot';
     switch (tipo) {
       case TipoCasilla.oca:
@@ -292,6 +311,7 @@ class _BoardScreenState extends State<BoardScreen> {
     EfectosVisuales.mostrarMonedasGanadas(context, ganoJugador ? 5 : 2);
     if (ganoJugador) {
       EfectosVisuales.mostrarConfeti(context);
+      EfectosVisuales.mostrarFestejo(context, _avatarJugador?.festejo);
       await _mostrarDialogoVictoriaEtapa();
     } else {
       await _mostrarDialogoDerrotaEtapa();
@@ -425,6 +445,10 @@ class _BoardScreenState extends State<BoardScreen> {
                   layout: _controller.layout,
                   posJugador: _controller.posJugador,
                   posBot: _controller.posBot,
+                  spriteJugador: _avatarJugador?.caminata,
+                  frameJugador: _frameCaminataJugador,
+                  spriteBot: _avatarBot?.caminata,
+                  frameBot: _frameCaminataBot,
                 )),
                 const SizedBox(height: 12),
                 Text(_mensaje, textAlign: TextAlign.center),
