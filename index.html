@@ -120,6 +120,11 @@
     font-size:9px;
     filter:none;
   }
+  .lobby-tab{
+    flex:1; padding:10px 4px; border-radius:10px; border:2px solid var(--forest); background:#fff;
+    color:var(--forest-dark); font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .lobby-tab.active{ background:var(--forest); color:#fff; }
   #dice{
     width:60px; height:60px; background:#fff; border-radius:12px; display:flex;
     align-items:center; justify-content:center; font-size:28px; box-shadow:0 4px 10px rgba(0,0,0,0.25);
@@ -173,28 +178,42 @@
 <!-- Pantalla 2: crear, unirse o solo -->
 <div class="screen hidden" id="screen-lobby-choice">
   <p id="lobby-saludo" class="hidden" style="font-weight:600; color:var(--forest-dark); text-align:center;"></p>
-  <div class="card">
-    <button id="btn-solo" class="secondary">🤖 Jugar solo (contra la bot)</button>
+  <div style="display:flex; gap:6px; margin-bottom:10px;">
+    <button id="tab-jugar" class="lobby-tab">🎲 Jugar</button>
+    <button id="tab-bonus" class="lobby-tab">🎰 Bonus</button>
+    <button id="tab-cuenta" class="lobby-tab">👤 Cuenta</button>
   </div>
-  <div class="card">
-    <button id="btn-create-room">Crear sala nueva (tanda)</button>
-    <button id="btn-create-room-campana" class="secondary" style="margin-top:8px;">🏆 Crear campaña grupal (10 etapas, en vivo)</button>
+
+  <div id="lobby-panel-jugar" class="lobby-panel">
+    <div class="card">
+      <button id="btn-solo" class="secondary">🤖 Jugar solo (contra la bot)</button>
+    </div>
+    <div class="card">
+      <button id="btn-create-room">Crear sala nueva (tanda)</button>
+      <button id="btn-create-room-campana" class="secondary" style="margin-top:8px;">🏆 Crear campaña grupal (10 etapas, en vivo)</button>
+    </div>
+    <div class="card">
+      <p style="margin-top:0;">¿Ya tenés un código?</p>
+      <input type="text" id="join-code-input" placeholder="CÓDIGO" maxlength="4">
+      <button id="btn-join-room" class="secondary" style="margin-top:10px;">Unirme</button>
+    </div>
+    <div class="card">
+      <button id="btn-desafio-grupal" class="secondary">🎯 Desafío grupal (campañas por separado)</button>
+    </div>
   </div>
-  <div class="card">
-    <p style="margin-top:0;">¿Ya tenés un código?</p>
-    <input type="text" id="join-code-input" placeholder="CÓDIGO" maxlength="4">
-    <button id="btn-join-room" class="secondary" style="margin-top:10px;">Unirme</button>
+
+  <div id="lobby-panel-bonus" class="lobby-panel hidden">
+    <div class="card">
+      <button id="btn-ruleta-bonus" class="secondary">🎰 Ruleta de bonus diaria (multiplicador)</button>
+      <button id="btn-compartir-app" class="secondary" style="margin-top:8px;">📲 Compartir Ocaland (+15 🪙 hoy)</button>
+    </div>
   </div>
-  <div class="card">
-    <button id="btn-desafio-grupal" class="secondary">🎯 Desafío grupal (campañas por separado)</button>
+
+  <div id="lobby-panel-cuenta" class="lobby-panel hidden">
+    <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
+    <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
+    <button id="btn-ver-mis-partidas" class="secondary">🎮 Mis partidas</button>
   </div>
-  <div class="card">
-    <button id="btn-ruleta-bonus" class="secondary">🎰 Ruleta de bonus diaria (multiplicador)</button>
-    <button id="btn-compartir-app" class="secondary" style="margin-top:8px;">📲 Compartir Ocaland (+15 🪙 hoy)</button>
-  </div>
-  <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
-  <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
-  <button id="btn-ver-mis-partidas" class="secondary">🎮 Mis partidas</button>
 </div>
 
 <!-- Overlay de la ruleta de bonus (multiplicador) -->
@@ -820,7 +839,18 @@
     ['screen-nickname','screen-edad','screen-pais','screen-lobby-choice','screen-perfil','screen-ranking','screen-mis-partidas','screen-desafio-grupal','screen-waiting','screen-game'].forEach(s => {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
+    if(id === 'screen-lobby-choice') mostrarPestanaLobby('jugar');
   }
+
+  function mostrarPestanaLobby(nombre){
+    ['jugar','bonus','cuenta'].forEach(n => {
+      document.getElementById(`lobby-panel-${n}`).classList.toggle('hidden', n !== nombre);
+      document.getElementById(`tab-${n}`).classList.toggle('active', n === nombre);
+    });
+  }
+  document.getElementById('tab-jugar').addEventListener('click', () => mostrarPestanaLobby('jugar'));
+  document.getElementById('tab-bonus').addEventListener('click', () => mostrarPestanaLobby('bonus'));
+  document.getElementById('tab-cuenta').addEventListener('click', () => mostrarPestanaLobby('cuenta'));
 
   function genCode(){
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1581,7 +1611,7 @@
       await client.from('jugadores_partida').update({ posicion: 3 }).eq('id', myPlayerId);
       mensajeComodin = ' 🎁 ¡Arrancás con 3 casillas de ventaja!';
     } else if(comodin === 'tirada_extra'){
-      tiradaExtraPendiente = true;
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'tirada_extra_activa' }).eq('id', myPlayerId);
       mensajeComodin = ' 🎁 Tu primera tirada de esta etapa te da un turno extra.';
     } else if(comodin === 'inmunidad'){
       await client.from('jugadores_partida').update({ comodin_pendiente: 'inmunidad' }).eq('id', myPlayerId);
@@ -1929,6 +1959,12 @@
       racha_ganador: nuevaRacha,
     }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, estado:'finalizada', ultimo_ganador_id: jugadorGanadorId, racha_ganador: nuevaRacha };
+
+    if(esModoCampanaGrupal() && jugadorGanadorId === myPlayerId){
+      // el ganador de la etapa tira el mini-juego + ruleta para su propio comodín;
+      // es cosmetico y no bloquea al resto de la sala, que ya ve el marcador normal
+      mostrarTransicionPremio('campana', async () => {});
+    }
   }
 
   function marcadorTexto(){
@@ -2112,7 +2148,28 @@
   async function reiniciarYArrancarDirecto(actualizacionesExtra){
     document.getElementById('banner-etapa').classList.add('hidden');
     const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
-    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, ...(actualizacionesExtra.jugadores||{}) }).eq('partida_id', myPartidaId);
+
+    const ganadorId = partidaCache.ultimo_ganador_id;
+    const ganador = jugadoresCache.find(j => j.id === ganadorId);
+    const comodinGanador = (esModoCampanaGrupal() && ganador) ? ganador.comodin_pendiente : null;
+
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, comodin_pendiente: null, ...(actualizacionesExtra.jugadores||{}) }).eq('partida_id', myPartidaId);
+
+    let mensajeComodin = '';
+    if(comodinGanador === 'ventaja3'){
+      await client.from('jugadores_partida').update({ posicion: 3 }).eq('id', ganadorId);
+      mensajeComodin = ` 🎁 ${ganador.nombre} arranca con 3 casillas de ventaja.`;
+    } else if(comodinGanador === 'tirada_extra'){
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'tirada_extra_activa' }).eq('id', ganadorId);
+      mensajeComodin = ` 🎁 ${ganador.nombre} tiene tirada extra en su primer turno.`;
+    } else if(comodinGanador === 'inmunidad'){
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'inmunidad' }).eq('id', ganadorId);
+      mensajeComodin = ` 🛡️ ${ganador.nombre} tiene inmunidad para la próxima trampa.`;
+    } else if(comodinGanador === 'doble_tiempo'){
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'doble_tiempo' }).eq('id', ganadorId);
+      mensajeComodin = ` ⏳ ${ganador.nombre} tiene doble tiempo en su próxima Cuestionados.`;
+    }
+
     const updatesPartida = {
       estado: 'en_curso', turno_actual: 0, estado_turno: null,
       desempate_pendientes: null, desempate_turno_idx: 0,
@@ -2130,7 +2187,7 @@
     document.getElementById('btn-revancha').classList.add('hidden');
     document.getElementById('btn-nueva-tanda').classList.add('hidden');
     document.getElementById('desempate-panel').classList.add('hidden');
-    document.getElementById('game-msg').textContent = '';
+    document.getElementById('game-msg').textContent = mensajeComodin;
     await refreshPlayersList();
     if(esModoCampanaGrupal()) mostrarBannerEtapa(partidaCache.etapa_actual);
     buildBoard();
@@ -2432,16 +2489,16 @@
     return new Date(Date.now() + HORAS_PLAZO_TURNO*60*60*1000).toISOString();
   }
 
-  let tiradaExtraPendiente = false;
-
   async function terminarTurno(extraTurn){
     let usarExtra = extraTurn;
-    if(!usarExtra && tiradaExtraPendiente){
+    if(!usarExtra){
       const jugadorQueTermina = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length];
-      if(jugadorQueTermina && jugadorQueTermina.id === myPlayerId){
+      if(jugadorQueTermina && jugadorQueTermina.comodin_pendiente === 'tirada_extra_activa'){
         usarExtra = true;
-        tiradaExtraPendiente = false;
-        document.getElementById('game-msg').textContent = '🎁 ¡Tirada extra! Tirá de nuevo.';
+        await client.from('jugadores_partida').update({ comodin_pendiente: null }).eq('id', jugadorQueTermina.id);
+        document.getElementById('game-msg').textContent = jugadorQueTermina.id === myPlayerId
+          ? '🎁 ¡Tirada extra! Tirá de nuevo.'
+          : `🎁 ¡${jugadorQueTermina.nombre} tiene tirada extra!`;
       }
     }
     const siguienteIndice = usarExtra ? partidaCache.turno_actual : (partidaCache.turno_actual + 1) % jugadoresCache.length;
