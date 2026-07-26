@@ -21,8 +21,6 @@ flutter run -d chrome  # en el navegador, para probar rápido
 
 ## Estado actual
 
-Primer esqueleto funcional:
-
 - Conexión a Supabase (`lib/services/supabase_service.dart`) apuntando al
   schema `la_vuelta`, con wrappers para las funciones RPC del servidor
   (monedas, stats, recompensa diaria, etc.).
@@ -35,11 +33,33 @@ Primer esqueleto funcional:
   volver a abrir la app.
 - Menú principal con las 3 pestañas (Jugar / Bonus / Cuenta) y tema visual
   "Candy Crush" (`lib/theme/ocaland_theme.dart`).
+- **Campaña Solo jugable** (`lib/screens/board_screen.dart`, `lib/game/`):
+  tablero de 30 casillas con layout aleatorio por etapa (`board_layout.dart`,
+  20/30 trampa repartidas 6 oca / 6 minijuego / 3 puente / 3 cárcel /
+  2 calavera), motor de movimiento con la regla de rebote real
+  (`game_engine.dart`), animación de caminata casilla por casilla,
+  Cuestionados con timer y banco chico por franja de edad
+  (`game/cuestionados/`), minijuego de Reflejos, puentes con avance
+  automático, bot con dificultad creciente por etapa
+  (`game/campana/config_etapa.dart`), las 10 etapas con nombre y lore
+  (`game/campana/etapa.dart`), y el flujo de "Reintentar" / "Responder 3
+  Cuestionados para pasar igual" al perder una etapa.
 
-Todavía **no** están implementados: el tablero y su animación, Cuestionados,
-minijuegos, multijugador en tiempo real, campaña, economía de monedas en
-pantalla, sonido, ni notificaciones push. Eso es el próximo tramo de trabajo
-(ver sección 16 de la especificación para lo pendiente de más largo plazo).
+### Simplificaciones de este corte (a mejorar después)
+
+- El tablero se dibuja en trazado de serpiente (fila por fila), no en
+  espiral real — el orden lógico de casillas es el mismo, solo cambia la
+  disposición visual.
+- Cuestionados todavía no está segmentado por país (Argentina / Chile /
+  Internacional) ni tiene pantalla de selección de edad/país — usa
+  `adultos` fijo por ahora.
+- No están: pistas, reintentar-con-video-o-monedas, comodines (doble
+  tiempo / inmunidad), ruleta de premio entre etapas, ni sonido.
+
+Todavía **no** están implementados: multijugador en tiempo real (sala,
+campaña grupal, desafío grupal), economía de monedas visible en pantalla,
+sonido, ni notificaciones push. Eso es el próximo tramo de trabajo (ver
+sección 16 de la especificación para lo pendiente de más largo plazo).
 
 ## Notas
 

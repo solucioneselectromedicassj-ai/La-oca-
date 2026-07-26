@@ -41,8 +41,6 @@ dependencies:
   shared_preferences: ^2.3.3
   # UUID para usuario_id / device id
   uuid: ^4.5.1
-  # Sonido generado por eventos del juego
-  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +63,16 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Roboto empaquetado localmente: sin esto, el motor web (CanvasKit)
+  # depende de descargarlo de fonts.gstatic.com en cada carga, lo que
+  # falla sin conexión y agrega una dependencia externa innecesaria.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

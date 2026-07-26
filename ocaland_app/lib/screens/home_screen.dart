@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/usuario.dart';
 import '../theme/ocaland_theme.dart';
+import 'board_screen.dart';
 
 /// Menú principal reorganizado en pestañas (Jugar / Bonus / Cuenta),
 /// tal como quedó tras el reordenamiento descrito en la sección 15 de la
@@ -73,23 +74,26 @@ class _JugarTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: const [
+      children: [
         _ModoCard(
           icono: Icons.smart_toy,
           titulo: 'Campaña Solo',
           subtitulo: '10 etapas contra un bot con dificultad creciente',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => BoardScreen(usuario: usuario)),
+          ),
         ),
-        _ModoCard(
+        const _ModoCard(
           icono: Icons.groups,
           titulo: 'Sala multijugador (tanda)',
           subtitulo: 'Mejor de 3 con amigos, vía código de sala',
         ),
-        _ModoCard(
+        const _ModoCard(
           icono: Icons.emoji_events,
           titulo: 'Campaña grupal en vivo',
           subtitulo: 'Todos en el mismo tablero, etapa por etapa',
         ),
-        _ModoCard(
+        const _ModoCard(
           icono: Icons.flag,
           titulo: 'Desafío grupal',
           subtitulo: 'Cada uno juega su campaña y se compara en un ranking',
@@ -159,11 +163,13 @@ class _ModoCard extends StatelessWidget {
     required this.icono,
     required this.titulo,
     required this.subtitulo,
+    this.onTap,
   });
 
   final IconData icono;
   final String titulo;
   final String subtitulo;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -180,11 +186,12 @@ class _ModoCard extends StatelessWidget {
         title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitulo),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$titulo: próximamente')),
-          );
-        },
+        onTap: onTap ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$titulo: próximamente')),
+              );
+            },
       ),
     );
   }
