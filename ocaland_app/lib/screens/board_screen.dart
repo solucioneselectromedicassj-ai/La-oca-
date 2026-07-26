@@ -443,6 +443,7 @@ class _BoardScreenState extends State<BoardScreen> {
               children: [
                 Expanded(child: TableroWidget(
                   layout: _controller.layout,
+                  camino: _controller.camino,
                   posJugador: _controller.posJugador,
                   posBot: _controller.posBot,
                   spriteJugador: _avatarJugador?.caminata,

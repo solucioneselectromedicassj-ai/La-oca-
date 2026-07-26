@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../game/board_layout.dart';
 import '../../game/casilla.dart';
 import '../../theme/ocaland_theme.dart';
-import 'camino_tablero.dart';
 import 'casilla_iconos.dart';
 import 'casilla_trampa_animada.dart';
 import 'oca_vuelo_animado.dart';
@@ -17,6 +16,7 @@ class TableroWidget extends StatelessWidget {
   const TableroWidget({
     super.key,
     required this.layout,
+    required this.camino,
     required this.posJugador,
     required this.posBot,
     this.spriteJugador,
@@ -26,6 +26,10 @@ class TableroWidget extends StatelessWidget {
   });
 
   final BoardLayout layout;
+
+  /// Forma del camino de esta etapa (varía por etapa, ver
+  /// `CampanaSoloController.camino`).
+  final List<Offset> camino;
   final int posJugador;
   final int posBot;
 
@@ -37,7 +41,6 @@ class TableroWidget extends StatelessWidget {
   final int frameBot;
 
   static const int totalCasillas = 30;
-  static final List<Offset> _puntos = CaminoTablero.generar(totalCasillas);
 
   double _radioDe(int posicion, TipoCasilla tipo) {
     if (tipo.esCasillaFlotante || tipo == TipoCasilla.oca) return 24;
@@ -57,7 +60,7 @@ class TableroWidget extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(
-                child: CustomPaint(painter: _CaminoPainter(_puntos)),
+                child: CustomPaint(painter: _CaminoPainter(camino)),
               ),
               for (var i = 0; i < totalCasillas; i++)
                 _posicionarCasilla(i, size),
@@ -73,8 +76,8 @@ class TableroWidget extends StatelessWidget {
     final tipo = layout.tipoDe(posicion);
     final radio = _radioDe(posicion, tipo);
     final centro = Offset(
-      _puntos[posicion].dx * size.width,
-      _puntos[posicion].dy * size.height,
+      camino[posicion].dx * size.width,
+      camino[posicion].dy * size.height,
     );
     return Positioned(
       left: centro.dx - radio,
@@ -88,12 +91,12 @@ class TableroWidget extends StatelessWidget {
   Widget _posicionarFichas(Size size) {
     final mismaCasilla = posJugador == posBot;
     final centroJugador = Offset(
-      _puntos[posJugador].dx * size.width,
-      _puntos[posJugador].dy * size.height,
+      camino[posJugador].dx * size.width,
+      camino[posJugador].dy * size.height,
     );
     final centroBot = Offset(
-      _puntos[posBot].dx * size.width,
-      _puntos[posBot].dy * size.height,
+      camino[posBot].dx * size.width,
+      camino[posBot].dy * size.height,
     );
     const fichaTamano = 30.0;
     return Stack(

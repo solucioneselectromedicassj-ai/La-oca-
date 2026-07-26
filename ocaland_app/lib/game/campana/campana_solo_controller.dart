@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import '../board_layout.dart';
+import '../camino_tablero.dart';
 import '../game_engine.dart';
 import 'config_etapa.dart';
 
@@ -16,6 +19,10 @@ class CampanaSoloController {
   late GameEngine engine;
   late ConfigEtapa config;
 
+  /// Forma del camino serpenteante de esta etapa (no siempre la misma,
+  /// igual que el layout de trampas).
+  late List<Offset> camino;
+
   int posJugador = 0;
   int posBot = 0;
   bool jugadorSaltaTurno = false;
@@ -28,6 +35,7 @@ class CampanaSoloController {
     layout = BoardLayout.generar();
     engine = GameEngine(layout);
     config = ConfigEtapa.generar(numero);
+    camino = CaminoTablero.generar(BoardLayout.meta + 1);
     posJugador = 0;
     posBot = 0;
     jugadorSaltaTurno = false;
