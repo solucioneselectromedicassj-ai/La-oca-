@@ -61,12 +61,17 @@ flutter run -d chrome  # en el navegador, para probar rápido
   tablero y en los efectos de festejo/reacción. Íconos reales para
   puente/cárcel/calavera/minijuego, y animación de vuelo real para la
   oca. Ícono de la app actualizado en Android/iOS/web.
+- **Tablero como camino serpenteante** (`lib/widgets/board/camino_tablero.dart`,
+  `tablero_widget.dart`): las 30 casillas se ubican sobre una curva
+  paramétrica (no una grilla), tipo mapa de Candy Crush, con casillas de
+  trampa más grandes que las normales y un camino pintado debajo
+  conectándolas.
 
 ### Simplificaciones de este corte (a mejorar después)
 
-- El tablero se dibuja en trazado de serpiente (fila por fila), no en
-  espiral real — el orden lógico de casillas es el mismo, solo cambia la
-  disposición visual.
+- El camino serpenteante es una curva paramétrica genérica (seno), no un
+  trazado dibujado a mano — funciona para cualquier cantidad de casillas
+  pero no imita un mapa puntual.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.
