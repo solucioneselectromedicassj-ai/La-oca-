@@ -139,6 +139,7 @@
   <div class="card">
     <p style="margin-top:0;">Ingresá tu nombre para identificarte en la sala.</p>
     <input type="text" id="nickname-input" placeholder="Tu nombre" maxlength="20">
+    <input type="text" id="referido-input" placeholder="¿Alguien te invitó? Código (opcional)" maxlength="5" style="margin-top:8px; font-size:12.5px;">
     <button id="btn-continue-nick" style="margin-top:10px;">Continuar</button>
   </div>
 </div>
@@ -187,9 +188,24 @@
   <div class="card">
     <button id="btn-desafio-grupal" class="secondary">🎯 Desafío grupal (campañas por separado)</button>
   </div>
+  <div class="card">
+    <button id="btn-ruleta-bonus" class="secondary">🎰 Ruleta de bonus diaria (multiplicador)</button>
+    <button id="btn-compartir-app" class="secondary" style="margin-top:8px;">📲 Compartir Ocaland (+15 🪙 hoy)</button>
+  </div>
   <button id="btn-ver-perfil" class="secondary">📊 Mi perfil</button>
   <button id="btn-ver-ranking" class="secondary">🏆 Ranking</button>
   <button id="btn-ver-mis-partidas" class="secondary">🎮 Mis partidas</button>
+</div>
+
+<!-- Overlay de la ruleta de bonus (multiplicador) -->
+<div class="overlay hidden" id="ruleta-bonus-overlay">
+  <div class="modal-card">
+    <h2>🎰 Ruleta de bonus</h2>
+    <p style="font-size:12.5px;">Girá una vez por día para conseguir un multiplicador de monedas por un rato.</p>
+    <p id="ruleta-bonus-resultado" style="font-weight:700; min-height:20px;"></p>
+    <button id="btn-girar-bonus">Girar</button>
+    <button id="btn-cerrar-ruleta-bonus" class="secondary" style="margin-top:8px;">Cerrar</button>
+  </div>
 </div>
 
 <!-- Pantalla de desafío grupal (campañas individuales comparadas) -->
@@ -265,6 +281,7 @@
   <div id="desempate-panel" class="hidden" style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; text-align:center;"></div>
   <div id="sorteo-panel" class="hidden" style="background:#fff; border-radius:10px; padding:14px; margin-bottom:10px; font-size:13.5px; text-align:center; line-height:1.7;"></div>
   <div id="jugadores-status" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:8px; font-size:11.5px;"></div>
+  <div id="toast-monedas" class="hidden" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); background:var(--gold); color:#3A2E4D; font-weight:700; padding:6px 16px; border-radius:20px; font-size:13px; z-index:200; box-shadow:0 4px 10px rgba(0,0,0,0.25);"></div>
   <div id="espectador-trivia" class="hidden" style="background:#fff; border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:12.5px; text-align:center; color:var(--ink); border:2px dashed var(--gold);"></div>
   <div id="board-wrap"><div id="board"></div></div>
   <div id="dice" class="disabled">🎲</div>
@@ -298,6 +315,7 @@
         <p id="memory-result" style="font-size:13px; min-height:18px; color:#7A6A99;"></p>
       </div>
       <button id="skip-ad-btn" class="secondary" style="margin-top:10px; font-size:12.5px;">📺 Mirar un video y pasar directo</button>
+      <button id="skip-coins-btn" class="secondary" style="margin-top:6px; font-size:12.5px;">🪙 Gastar 15 monedas y pasar directo</button>
     </div>
 
     <div id="transition-phase2" class="hidden">
@@ -308,6 +326,7 @@
       </div>
       <button id="spin-btn">Girar ruleta</button>
       <p id="wheel-result" style="font-size:14px; font-weight:600; min-height:20px; margin-top:8px; color:var(--forest-dark);"></p>
+      <button id="btn-girar-de-nuevo" class="secondary hidden" style="margin-top:6px; font-size:12.5px;">🔄 Girar una vez más</button>
     </div>
 
     <button id="transition-continue" class="hidden" style="margin-top:12px;">Continuar a la siguiente etapa</button>
@@ -320,6 +339,16 @@
     <p>Acá va un anuncio (simulado). En la app real sería un video de AdMob.</p>
     <div id="ad-countdown" style="font-size:22px; font-weight:700; color:var(--forest-dark); margin-bottom:12px;">3</div>
     <button id="ad-close" disabled style="opacity:0.5;">Continuar</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="eleccion-video-monedas-overlay">
+  <div class="modal-card">
+    <h2 id="eleccion-titulo">🎁 Elegí cómo seguir</h2>
+    <p id="eleccion-descripcion"></p>
+    <button id="btn-eleccion-video">📺 Mirar un video (gratis)</button>
+    <button id="btn-eleccion-monedas" class="secondary" style="margin-top:8px;"></button>
+    <button id="btn-eleccion-cancelar" class="secondary" style="margin-top:8px; opacity:0.7;">Seguir sin esto</button>
   </div>
 </div>
 
@@ -337,6 +366,7 @@
   <div class="modal-card">
     <h2>🎁 ¡Recompensa diaria!</h2>
     <p id="premio-diario-texto"></p>
+    <button id="btn-duplicar-premio" class="secondary" style="margin-bottom:8px;">📺 Duplicar mirando un video</button>
     <button id="btn-cerrar-premio-diario">¡Genial!</button>
   </div>
 </div>
@@ -355,6 +385,7 @@
     <div id="trivia-timer" style="font-size:13px; font-weight:700; color:var(--oxblood); margin-bottom:4px;"></div>
     <div id="trivia-question"></div>
     <div class="trivia-options" id="trivia-options"></div>
+    <button id="btn-pedir-pista" class="secondary" style="margin-top:8px; font-size:12px;">💡 Pedir una pista</button>
   </div>
 </div>
 
@@ -798,6 +829,13 @@
     return s;
   }
 
+  function genCodeReferido(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for(let i=0;i<5;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
   // ---------- Pantalla 1: nombre ----------
   document.getElementById('btn-continue-nick').addEventListener('click', async () => {
     const val = document.getElementById('nickname-input').value.trim();
@@ -805,13 +843,19 @@
     myNombre = val;
     if(!myUsuarioId){
       const monedasIniciales = 10; // premio del día 1
-      const { data, error } = await client.from('usuarios').insert({ nombre: myNombre, monedas: monedasIniciales }).select().single();
+      const codigoReferidoPropio = genCodeReferido();
+      const { data, error } = await client.from('usuarios').insert({ nombre: myNombre, monedas: monedasIniciales, codigo_referido: codigoReferidoPropio }).select().single();
       if(!error && data){
         myUsuarioId = data.id;
         myUsuarioStats = data;
         try { localStorage.setItem('ocaland_usuario_id', myUsuarioId); } catch(e){}
         mostrarPremioDiario({ monedasGanadas: monedasIniciales, nuevaRacha: 1, diaDelCiclo: 1 });
         guardarOneSignalIdSiPosible();
+
+        const codigoIngresado = document.getElementById('referido-input').value.trim();
+        if(codigoIngresado){
+          await client.rpc('aplicar_codigo_referido', { p_usuario_nuevo_id: myUsuarioId, p_codigo: codigoIngresado });
+        }
       }
     }
     showScreen('screen-edad');
@@ -978,6 +1022,61 @@
     showScreen('screen-desafio-grupal');
   });
 
+  // ---------- Ruleta de bonus (multiplicador de monedas) ----------
+  document.getElementById('btn-ruleta-bonus').addEventListener('click', () => {
+    document.getElementById('ruleta-bonus-resultado').textContent = '';
+    document.getElementById('btn-girar-bonus').disabled = false;
+    document.getElementById('btn-girar-bonus').classList.remove('hidden');
+    document.getElementById('ruleta-bonus-overlay').classList.remove('hidden');
+  });
+
+  document.getElementById('btn-cerrar-ruleta-bonus').addEventListener('click', () => {
+    document.getElementById('ruleta-bonus-overlay').classList.add('hidden');
+  });
+
+  document.getElementById('btn-girar-bonus').addEventListener('click', async () => {
+    if(!myUsuarioId){ alert('Necesitás un perfil para esto.'); return; }
+    const btn = document.getElementById('btn-girar-bonus');
+    btn.disabled = true;
+    playSorteo();
+    const { data } = await client.rpc('girar_ruleta_bonus', { p_usuario_id: myUsuarioId });
+    const fila = Array.isArray(data) ? data[0] : data;
+    const resEl = document.getElementById('ruleta-bonus-resultado');
+    if(!fila || fila.ya_usado){
+      resEl.textContent = '⏳ Ya usaste tu giro de hoy. Volvé mañana.';
+      return;
+    }
+    if(fila.valor > 1){
+      myUsuarioStats = { ...myUsuarioStats, multiplicador_valor: fila.valor, multiplicador_vence_ts: fila.vence_ts };
+      resEl.textContent = `🎉 ¡Conseguiste x${fila.valor} monedas por ${fila.minutos_duracion} minutos!`;
+      playWin();
+    } else {
+      resEl.textContent = '😅 Nada esta vez. Probá de nuevo mañana.';
+    }
+    btn.classList.add('hidden');
+  });
+
+  // ---------- Compartir la app (recompensa diaria por compartir) ----------
+  document.getElementById('btn-compartir-app').addEventListener('click', async () => {
+    const texto = `🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.\n${location.href}`;
+    let compartido = false;
+    if(navigator.share){
+      try { await navigator.share({ title: 'Ocaland', text: texto }); compartido = true; }
+      catch(e){ /* el usuario cancelo el share */ }
+    } else {
+      try { await navigator.clipboard.writeText(texto); alert('Copiamos el mensaje para que lo compartas.'); compartido = true; }
+      catch(e){ alert('Compartí Ocaland con tus amigos: ' + location.href); }
+    }
+    if(compartido && myUsuarioId){
+      const { data } = await client.rpc('recompensa_por_compartir', { p_usuario_id: myUsuarioId });
+      const fila = Array.isArray(data) ? data[0] : data;
+      if(fila && !fila.ya_reclamado){
+        myUsuarioStats = { ...myUsuarioStats, monedas: fila.monedas_total };
+        mostrarToastMonedas(`+${fila.monedas_ganadas} 🪙 por compartir Ocaland`);
+      }
+    }
+  });
+
   document.getElementById('btn-volver-lobby-desafio').addEventListener('click', () => {
     showScreen('screen-lobby-choice');
   });
@@ -1070,36 +1169,68 @@
     const s = myUsuarioStats || {};
     const winRate = (s.partidas_jugadas > 0) ? Math.round((s.partidas_ganadas/s.partidas_jugadas)*100) : 0;
     const mejorTiempo = s.mejor_tiempo_campana_ms ? formatearMs(s.mejor_tiempo_campana_ms) : '—';
+    const multiplicadorActivo = s.multiplicador_vence_ts && new Date(s.multiplicador_vence_ts) > new Date();
+    const multiplicadorHtml = multiplicadorActivo
+      ? `<p>⚡ Multiplicador activo: <b>x${s.multiplicador_valor}</b> hasta las ${new Date(s.multiplicador_vence_ts).toLocaleTimeString().slice(0,5)}</p>`
+      : '';
     document.getElementById('perfil-contenido').innerHTML = `
       <h2 style="margin-top:0;">📊 ${myNombre}</h2>
       <p>🪙 Monedas: <b>${s.monedas || 0}</b></p>
+      ${multiplicadorHtml}
       <p>🔥 Racha: <b>${s.racha_dias || 1} día${(s.racha_dias||1)===1?'':'s'}</b> seguidos jugando</p>
       <p>🎲 Partidas jugadas: <b>${s.partidas_jugadas || 0}</b></p>
       <p>🏆 Partidas ganadas: <b>${s.partidas_ganadas || 0}</b> (${winRate}%)</p>
       <p>🏁 Campañas de 10 etapas completadas: <b>${s.campanas_completadas || 0}</b></p>
       <p>⏱️ Mejor tiempo de campaña: <b>${mejorTiempo}</b></p>
+      <p>👥 Amigos invitados: <b>${s.amigos_invitados || 0}</b></p>
+      <p style="font-size:12px;">Tu código para invitar: <b>${s.codigo_referido || '—'}</b> (+20 🪙 por cada amigo que lo use)</p>
+      <button id="btn-compartir-codigo-referido" class="secondary" style="font-size:12px; margin-top:6px;">📲 Compartir mi código</button>
     `;
+    const btnRef = document.getElementById('btn-compartir-codigo-referido');
+    if(btnRef){
+      btnRef.onclick = async () => {
+        const texto = `🎲 ¡Jugá Ocaland conmigo! Usá mi código ${s.codigo_referido} al entrar.\n${location.href}`;
+        if(navigator.share){ try { await navigator.share({ title:'Ocaland', text: texto }); } catch(e){} }
+        else { try { await navigator.clipboard.writeText(texto); alert('Copiado para compartir.'); } catch(e){} }
+      };
+    }
   }
 
   async function registrarPartidaJugada(gane){
     if(!myUsuarioId) return;
-    await client.rpc('registrar_resultado_partida', { p_usuario_id: myUsuarioId, p_gano: gane });
+    const { data } = await client.rpc('registrar_resultado_partida', { p_usuario_id: myUsuarioId, p_gano: gane });
+    const fila = Array.isArray(data) ? data[0] : data;
     myUsuarioStats = {
       ...myUsuarioStats,
       partidas_jugadas: (myUsuarioStats?.partidas_jugadas || 0) + 1,
-      partidas_ganadas: (myUsuarioStats?.partidas_ganadas || 0) + (gane ? 1 : 0)
+      partidas_ganadas: (myUsuarioStats?.partidas_ganadas || 0) + (gane ? 1 : 0),
+      monedas: fila ? fila.monedas_total : myUsuarioStats?.monedas
     };
+    if(fila) mostrarToastMonedas(`+${fila.monedas_ganadas} 🪙 por ${gane ? 'ganar' : 'jugar'}`);
   }
 
   async function registrarCampanaCompletada(msTotal){
     if(!myUsuarioId) return;
-    await client.rpc('registrar_campana_completada', { p_usuario_id: myUsuarioId, p_ms_total: msTotal });
+    const { data } = await client.rpc('registrar_campana_completada', { p_usuario_id: myUsuarioId, p_ms_total: msTotal });
+    const fila = Array.isArray(data) ? data[0] : data;
     const mejorPrevio = myUsuarioStats?.mejor_tiempo_campana_ms;
     myUsuarioStats = {
       ...myUsuarioStats,
       campanas_completadas: (myUsuarioStats?.campanas_completadas || 0) + 1,
-      mejor_tiempo_campana_ms: (!mejorPrevio || msTotal < mejorPrevio) ? msTotal : mejorPrevio
+      mejor_tiempo_campana_ms: (!mejorPrevio || msTotal < mejorPrevio) ? msTotal : mejorPrevio,
+      monedas: fila ? fila.monedas_total : myUsuarioStats?.monedas
     };
+    if(fila) mostrarToastMonedas(`+${fila.monedas_ganadas} 🪙 por completar la campaña`);
+  }
+
+  function mostrarToastMonedas(texto){
+    const toast = document.getElementById('toast-monedas');
+    if(!toast) return;
+    toast.textContent = texto;
+    toast.classList.remove('hidden');
+    playCoin();
+    clearTimeout(toast._timeoutId);
+    toast._timeoutId = setTimeout(() => toast.classList.add('hidden'), 2200);
   }
 
   document.getElementById('btn-solo').addEventListener('click', async () => {
@@ -1440,7 +1571,26 @@
     reintentosEtapaActual = 0;
     aplicarConfigEtapa(nuevaEtapa);
     const { layoutCasillas, layoutPuentes } = generarLayoutAleatorio();
-    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false }).eq('partida_id', myPartidaId);
+    const yo = jugadoresCache.find(j => j.id === myPlayerId);
+    const comodin = yo ? yo.comodin_pendiente : null;
+
+    await client.from('jugadores_partida').update({ posicion: 0, salta_turno: false, comodin_pendiente: null }).eq('partida_id', myPartidaId);
+
+    let mensajeComodin = '';
+    if(comodin === 'ventaja3'){
+      await client.from('jugadores_partida').update({ posicion: 3 }).eq('id', myPlayerId);
+      mensajeComodin = ' 🎁 ¡Arrancás con 3 casillas de ventaja!';
+    } else if(comodin === 'tirada_extra'){
+      tiradaExtraPendiente = true;
+      mensajeComodin = ' 🎁 Tu primera tirada de esta etapa te da un turno extra.';
+    } else if(comodin === 'inmunidad'){
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'inmunidad' }).eq('id', myPlayerId);
+      mensajeComodin = ' 🛡️ Tenés inmunidad para la próxima trampa que te toque.';
+    } else if(comodin === 'doble_tiempo'){
+      await client.from('jugadores_partida').update({ comodin_pendiente: 'doble_tiempo' }).eq('id', myPlayerId);
+      mensajeComodin = ' ⏳ Tu próxima Cuestionados tiene el doble de tiempo.';
+    }
+
     await client.from('partidas').update({
       etapa_actual: nuevaEtapa, estado_turno: null,
       layout_casillas: layoutCasillas, layout_puentes: layoutPuentes
@@ -1453,7 +1603,7 @@
     const turnoInicial = await sortearTurnoInicial();
     await client.from('partidas').update({ turno_actual: turnoInicial }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: turnoInicial };
-    document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.`;
+    document.getElementById('game-msg').textContent = `🎉 ¡Superaste la etapa ${etapaActual}! (${formatearMs(msEtapa)}) Arranca la etapa ${nuevaEtapa} de 10.${mensajeComodin}`;
     renderBoard();
   }
 
@@ -1484,6 +1634,7 @@
     document.getElementById('transition-continue').classList.add('hidden');
     document.getElementById('wheel-result').textContent = '';
     document.getElementById('spin-btn').disabled = false;
+    document.getElementById('btn-girar-de-nuevo').classList.add('hidden');
     const wheelDisc = document.getElementById('wheel-disc');
     wheelDisc.style.transition = 'none';
     wheelDisc.style.transform = 'rotate(0deg)';
@@ -1494,6 +1645,50 @@
   document.getElementById('skip-ad-btn').addEventListener('click', () => {
     showAdSimulada(() => goToWheelPhase());
   });
+
+  document.getElementById('skip-coins-btn').addEventListener('click', async () => {
+    if(!myUsuarioId){ alert('Necesitás un perfil para gastar monedas (probá cerrando y volviendo a entrar).'); return; }
+    const { data } = await client.rpc('gastar_monedas', { p_usuario_id: myUsuarioId, p_cantidad: 15 });
+    const fila = Array.isArray(data) ? data[0] : data;
+    if(fila && fila.exito){
+      myUsuarioStats.monedas = fila.monedas_restantes;
+      goToWheelPhase();
+    } else {
+      alert('No te alcanzan las monedas (necesitás 15 🪙).');
+    }
+  });
+
+  function ofrecerVideoOMonedas(costo, descripcion, onExito, onCancelar){
+    const overlay = document.getElementById('eleccion-video-monedas-overlay');
+    document.getElementById('eleccion-descripcion').textContent = descripcion;
+    const monedasActuales = (myUsuarioStats && myUsuarioStats.monedas) || 0;
+    const btnMonedas = document.getElementById('btn-eleccion-monedas');
+    btnMonedas.textContent = `🪙 Gastar ${costo} monedas (tenés ${monedasActuales})`;
+    btnMonedas.disabled = monedasActuales < costo || !myUsuarioId;
+    btnMonedas.style.opacity = btnMonedas.disabled ? '0.5' : '1';
+    overlay.classList.remove('hidden');
+
+    document.getElementById('btn-eleccion-video').onclick = () => {
+      overlay.classList.add('hidden');
+      showAdSimulada(onExito);
+    };
+    btnMonedas.onclick = async () => {
+      if(btnMonedas.disabled) return;
+      const { data } = await client.rpc('gastar_monedas', { p_usuario_id: myUsuarioId, p_cantidad: costo });
+      const fila = Array.isArray(data) ? data[0] : data;
+      if(fila && fila.exito){
+        myUsuarioStats.monedas = fila.monedas_restantes;
+        overlay.classList.add('hidden');
+        onExito();
+      } else {
+        alert('No te alcanzan las monedas.');
+      }
+    };
+    document.getElementById('btn-eleccion-cancelar').onclick = () => {
+      overlay.classList.add('hidden');
+      if(onCancelar) onCancelar();
+    };
+  }
 
   function showAdSimulada(onDone){
     const overlay = document.getElementById('ad-overlay');
@@ -1623,12 +1818,12 @@
   }
 
   const wheelPrizes = [
-    '+3 casillas de ventaja',
-    'Cuestionados gratis (sin publicidad si fallás)',
-    'Nada esta vez',
-    '+1 tirada extra al empezar',
-    'Inmunidad a una trampa',
-    'Nada esta vez'
+    { id:'ventaja3', label:'+3 casillas de ventaja' },
+    { id:'doble_tiempo', label:'Doble tiempo en tu próxima Cuestionados' },
+    { id:'nada', label:'Nada esta vez' },
+    { id:'tirada_extra', label:'+1 tirada extra al empezar' },
+    { id:'inmunidad', label:'Inmunidad a una trampa' },
+    { id:'nada', label:'Nada esta vez' },
   ];
   const wheelColors = ['#43D67D','#FFD93D','#4FD8E0','#29B6F6','#FF5A7A','#FFC93C'];
 
@@ -1642,15 +1837,41 @@
   document.getElementById('spin-btn').addEventListener('click', () => {
     const spinBtn = document.getElementById('spin-btn');
     spinBtn.disabled = true;
+    girarRuletaInterna(() => {
+      document.getElementById('btn-girar-de-nuevo').classList.remove('hidden');
+      document.getElementById('btn-girar-de-nuevo').disabled = false;
+    });
+  });
+
+  async function girarRuletaInterna(onTerminar){
     const seg = 360/wheelPrizes.length;
     const chosenIdx = Math.floor(Math.random()*wheelPrizes.length);
     const center = chosenIdx*seg + seg/2;
     const rotation = 4*360 + (360 - center);
+    document.getElementById('wheel-disc').style.transition = 'none';
+    document.getElementById('wheel-disc').style.transform = 'rotate(0deg)';
+    void document.getElementById('wheel-disc').offsetWidth;
+    document.getElementById('wheel-disc').style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.32,1.02)';
     document.getElementById('wheel-disc').style.transform = `rotate(${rotation}deg)`;
-    setTimeout(() => {
-      document.getElementById('wheel-result').textContent = `🎁 ¡Premio: ${wheelPrizes[chosenIdx]}!`;
+    setTimeout(async () => {
+      const premio = wheelPrizes[chosenIdx];
+      document.getElementById('wheel-result').textContent = `🎁 ¡Premio: ${premio.label}!`;
       document.getElementById('transition-continue').classList.remove('hidden');
+      if(premio.id !== 'nada' && myPlayerId){
+        await client.from('jugadores_partida').update({ comodin_pendiente: premio.id }).eq('id', myPlayerId);
+      }
+      if(onTerminar) onTerminar();
     }, 3600);
+  }
+
+  document.getElementById('btn-girar-de-nuevo').addEventListener('click', () => {
+    const btn = document.getElementById('btn-girar-de-nuevo');
+    if(btn.disabled) return;
+    ofrecerVideoOMonedas(10, '¿Cómo querés girar la ruleta una vez más?', () => {
+      btn.classList.add('hidden');
+      document.getElementById('transition-continue').classList.add('hidden');
+      girarRuletaInterna(() => {});
+    });
   });
 
   document.getElementById('transition-continue').addEventListener('click', async () => {
@@ -2211,8 +2432,19 @@
     return new Date(Date.now() + HORAS_PLAZO_TURNO*60*60*1000).toISOString();
   }
 
+  let tiradaExtraPendiente = false;
+
   async function terminarTurno(extraTurn){
-    const siguienteIndice = extraTurn ? partidaCache.turno_actual : (partidaCache.turno_actual + 1) % jugadoresCache.length;
+    let usarExtra = extraTurn;
+    if(!usarExtra && tiradaExtraPendiente){
+      const jugadorQueTermina = jugadoresCache[partidaCache.turno_actual % jugadoresCache.length];
+      if(jugadorQueTermina && jugadorQueTermina.id === myPlayerId){
+        usarExtra = true;
+        tiradaExtraPendiente = false;
+        document.getElementById('game-msg').textContent = '🎁 ¡Tirada extra! Tirá de nuevo.';
+      }
+    }
+    const siguienteIndice = usarExtra ? partidaCache.turno_actual : (partidaCache.turno_actual + 1) % jugadoresCache.length;
     const vence = calcularNuevoVencimiento();
     await client.from('partidas').update({ turno_actual: siguienteIndice, estado_turno: null, turno_vence_ts: vence }).eq('id', myPartidaId);
     partidaCache = { ...partidaCache, turno_actual: siguienteIndice, estado_turno: null, turno_vence_ts: vence };
@@ -2321,6 +2553,15 @@
   }
 
   async function aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, esBot, forzarSkip){
+    if(!acierto && !esBot && jugadorId === myPlayerId){
+      const yo = jugadoresCache.find(j => j.id === myPlayerId);
+      if(yo && yo.comodin_pendiente === 'inmunidad'){
+        acierto = true;
+        await client.from('jugadores_partida').update({ comodin_pendiente: null }).eq('id', myPlayerId);
+        document.getElementById('game-msg').textContent = '🛡️ ¡Tu inmunidad te salvó de la trampa!';
+        await wait(1100);
+      }
+    }
     const rule = triviaOutcomeRules[tipo];
     const outcome = acierto ? rule.onSuccess(posActual) : rule.onFail(posActual);
 
@@ -2364,6 +2605,14 @@
     opts.innerHTML = '';
     let resuelto = false;
     let segundosRestantes = ((esModoSolo || esModoCampanaGrupal()) && etapaConfig) ? etapaConfig.tiempoLimiteTrivia : TIEMPO_LIMITE_TRIVIA;
+    if(jugadorId === myPlayerId){
+      const yo = jugadoresCache.find(j => j.id === myPlayerId);
+      if(yo && yo.comodin_pendiente === 'doble_tiempo'){
+        segundosRestantes *= 2;
+        client.from('jugadores_partida').update({ comodin_pendiente: null }).eq('id', myPlayerId);
+        document.getElementById('game-msg').textContent = '⏳ ¡Usaste tu doble tiempo!';
+      }
+    }
     const timerEl = document.getElementById('trivia-timer');
     timerEl.textContent = `⏱️ ${segundosRestantes}s`;
     const intervalId = setInterval(() => {
@@ -2383,6 +2632,13 @@
     async function finalizarTrivia(acierto, porTimeout){
       await wait(porTimeout ? 900 : 0);
       document.getElementById('trivia-overlay').classList.add('hidden');
+      if(!acierto){
+        ofrecerVideoOMonedas(15, '¿Querés otra oportunidad para responder antes de la penitencia?',
+          () => { mostrarTriviaLocal(tipo, posActual, jugadorId, edadBracket, pais); },
+          async () => { await aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, false, porTimeout); }
+        );
+        return;
+      }
       await aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, false, porTimeout);
     }
 
@@ -2403,6 +2659,26 @@
       });
       opts.appendChild(btn);
     });
+
+    const btnPista = document.getElementById('btn-pedir-pista');
+    btnPista.classList.remove('hidden');
+    btnPista.disabled = false;
+    btnPista.textContent = '💡 Pedir una pista';
+    btnPista.onclick = () => {
+      if(resuelto) return;
+      ofrecerVideoOMonedas(10, 'Una pista elimina una opción incorrecta. ¿Cómo la conseguís?', () => {
+        if(resuelto) return;
+        const incorrectas = Array.from(opts.children).filter((b,i) => i !== pregunta.correct && !b.disabled);
+        if(incorrectas.length === 0) return;
+        const elegida = incorrectas[Math.floor(Math.random()*incorrectas.length)];
+        elegida.disabled = true;
+        elegida.style.opacity = '0.35';
+        elegida.style.textDecoration = 'line-through';
+        btnPista.disabled = true;
+        btnPista.textContent = '💡 Pista usada';
+      });
+    };
+
     document.getElementById('trivia-overlay').classList.remove('hidden');
   }
 
@@ -2605,12 +2881,32 @@
     return true;
   }
 
+  let ultimoPremioMonedasGanadas = 0;
+  let premioYaDuplicado = false;
+
   function mostrarPremioDiario(premio){
     playCoin();
+    ultimoPremioMonedasGanadas = premio.monedasGanadas;
+    premioYaDuplicado = false;
+    document.getElementById('btn-duplicar-premio').classList.toggle('hidden', premio.monedasGanadas <= 0);
     document.getElementById('premio-diario-texto').innerHTML =
       `🔥 Racha de <b>${premio.nuevaRacha} día${premio.nuevaRacha===1?'':'s'}</b> seguidos (día ${premio.diaDelCiclo} de 7).<br>Ganaste <b>${premio.monedasGanadas} 🪙 monedas</b>.<br>Total: <b>${myUsuarioStats.monedas} 🪙</b>`;
     document.getElementById('premio-diario-overlay').classList.remove('hidden');
   }
+
+  document.getElementById('btn-duplicar-premio').addEventListener('click', () => {
+    if(premioYaDuplicado || ultimoPremioMonedasGanadas <= 0) return;
+    showAdSimulada(async () => {
+      const { data } = await client.rpc('agregar_monedas', { p_usuario_id: myUsuarioId, p_cantidad: ultimoPremioMonedasGanadas });
+      if(data != null) myUsuarioStats.monedas = data;
+      premioYaDuplicado = true;
+      playCoin();
+      document.getElementById('premio-diario-texto').innerHTML =
+        `🎉 ¡Duplicado! Ganaste <b>${ultimoPremioMonedasGanadas*2} 🪙 monedas</b> en total hoy.<br>Total: <b>${myUsuarioStats.monedas} 🪙</b>`;
+      document.getElementById('premio-diario-overlay').classList.remove('hidden');
+      document.getElementById('btn-duplicar-premio').classList.add('hidden');
+    });
+  });
 
   document.getElementById('btn-cerrar-premio-diario').addEventListener('click', () => {
     document.getElementById('premio-diario-overlay').classList.add('hidden');
@@ -2659,6 +2955,17 @@
     await restaurarIdentidad();
     await intentarRestaurarSesion();
   })();
+
+  // ---------- Recompensa por tiempo activo en la app ----------
+  setInterval(async () => {
+    if(document.visibilityState !== 'visible' || !myUsuarioId) return;
+    const { data } = await client.rpc('registrar_minuto_activo', { p_usuario_id: myUsuarioId });
+    const fila = Array.isArray(data) ? data[0] : data;
+    if(fila){
+      myUsuarioStats = { ...myUsuarioStats, monedas: fila.monedas_total };
+      if(fila.hubo_premio) mostrarToastMonedas(`+${fila.monedas_ganadas} 🪙 por seguir jugando (${fila.minutos_hoy} min hoy)`);
+    }
+  }, 60000);
 
 })();
 </script>
