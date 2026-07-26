@@ -34,6 +34,15 @@ extension TipoCasillaEmoji on TipoCasilla {
       this == TipoCasilla.oca ||
       this == TipoCasilla.carcel ||
       this == TipoCasilla.calavera;
+
+  /// Casillas de trampa: se ven más grandes que las normales y tienen
+  /// animación de reposo en loop (spec visual v2, sección 4).
+  bool get esCasillaFlotante =>
+      this == TipoCasilla.oca ||
+      this == TipoCasilla.puente ||
+      this == TipoCasilla.carcel ||
+      this == TipoCasilla.calavera ||
+      this == TipoCasilla.minijuego;
 }
 
 class InfoPuente {

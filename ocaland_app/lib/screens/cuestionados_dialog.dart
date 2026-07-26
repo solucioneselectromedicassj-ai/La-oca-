@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../game/cuestionados/pregunta.dart';
 import '../theme/ocaland_theme.dart';
+import '../widgets/effects/destello_estrellas.dart';
+import '../widgets/effects/sacudida_destello.dart';
 
 /// Modal de Cuestionados: pregunta + timer + opciones (sección 4).
 /// Devuelve `true` si acertó, `false` si falló o se agotó el tiempo.
@@ -45,7 +47,9 @@ class _CuestionadosDialogState extends State<CuestionadosDialog> {
   late int _restante = widget.segundos;
   int? _seleccion;
   bool _resuelto = false;
+  bool _mostrarEstrellas = false;
   Timer? _timer;
+  final _sacudida = SacudidaDestelloController();
 
   @override
   void initState() {
@@ -72,6 +76,11 @@ class _CuestionadosDialogState extends State<CuestionadosDialog> {
     setState(() {
       _seleccion = indice;
       _resuelto = true;
+      if (acerto) {
+        _mostrarEstrellas = true;
+      } else {
+        _sacudida.disparar();
+      }
     });
     _timer?.cancel();
     Future.delayed(const Duration(milliseconds: 1200), () {
@@ -94,27 +103,41 @@ class _CuestionadosDialogState extends State<CuestionadosDialog> {
           ),
         ],
       ),
-      content: SizedBox(
-        width: 340,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.pregunta.texto,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            for (var i = 0; i < widget.pregunta.opciones.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _OpcionButton(
-                  texto: widget.pregunta.opciones[i],
-                  estado: _estadoDe(i),
-                  onTap: _resuelto ? null : () => _responder(i),
-                ),
+      content: SacudidaDestello(
+        controller: _sacudida,
+        child: SizedBox(
+          width: 340,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.pregunta.texto,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  for (var i = 0; i < widget.pregunta.opciones.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _OpcionButton(
+                        texto: widget.pregunta.opciones[i],
+                        estado: _estadoDe(i),
+                        onTap: _resuelto ? null : () => _responder(i),
+                      ),
+                    ),
+                ],
               ),
-          ],
+              if (_mostrarEstrellas)
+                DestelloEstrellas(
+                  onTerminado: () {
+                    if (mounted) setState(() => _mostrarEstrellas = false);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

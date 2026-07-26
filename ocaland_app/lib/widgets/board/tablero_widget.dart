@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../game/board_layout.dart';
 import '../../game/casilla.dart';
 import '../../theme/ocaland_theme.dart';
+import 'casilla_trampa_animada.dart';
 
 /// Tablero de 30 casillas en trazado de serpiente (boustrophedon: de
 /// izquierda a derecha y luego de derecha a izquierda, fila por fila).
@@ -86,7 +87,7 @@ class _CasillaCelda extends StatelessWidget {
       case TipoCasilla.normal:
         return posicion == 0
             ? OcalandColors.violeta.withValues(alpha: 0.25)
-            : Colors.white;
+            : Colors.white.withValues(alpha: 0.55);
     }
   }
 
@@ -94,6 +95,7 @@ class _CasillaCelda extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(2),
+      clipBehavior: Clip.none,
       decoration: BoxDecoration(
         color: _colorFondo,
         borderRadius: BorderRadius.circular(8),
@@ -101,13 +103,19 @@ class _CasillaCelda extends StatelessWidget {
       ),
       child: Stack(
         alignment: Alignment.center,
+        clipBehavior: Clip.none,
         children: [
           Positioned(
             top: 2,
             left: 4,
             child: Text('$posicion', style: const TextStyle(fontSize: 9, color: Colors.black45)),
           ),
-          if (tipo != TipoCasilla.normal)
+          if (tipo.esCasillaFlotante)
+            CasillaTrampaAnimada(
+              tipo: tipo,
+              child: Text(tipo.emoji, style: const TextStyle(fontSize: 26)),
+            )
+          else if (tipo == TipoCasilla.meta)
             Text(tipo.emoji, style: const TextStyle(fontSize: 16)),
           Positioned(
             bottom: 2,

@@ -9,7 +9,9 @@ import '../game/cuestionados/banco_preguntas.dart';
 import '../game/cuestionados/pregunta.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
+import '../theme/paleta_bloque.dart';
 import '../widgets/board/tablero_widget.dart';
+import '../widgets/effects/efectos_visuales.dart';
 import 'cuestionados_dialog.dart';
 import 'minijuego_reflejos_dialog.dart';
 
@@ -285,7 +287,11 @@ class _BoardScreenState extends State<BoardScreen> {
     }
     if (!mounted) return;
 
+    // El monto real de monedas lo calcula el servidor (sección 9); este
+    // número es solo una pista visual inmediata para el jugador.
+    EfectosVisuales.mostrarMonedasGanadas(context, ganoJugador ? 5 : 2);
     if (ganoJugador) {
+      EfectosVisuales.mostrarConfeti(context);
       await _mostrarDialogoVictoriaEtapa();
     } else {
       await _mostrarDialogoDerrotaEtapa();
@@ -396,29 +402,41 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     final esperandoJugador = _controller.turno == Turno.jugador && !_procesando;
+    final paleta = PaletaBloque.deEtapa(_controller.etapa);
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: paleta.colorAppBar,
         title: Text('Etapa ${_controller.etapa}: ${_etapaInfo.nombre}'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Expanded(child: TableroWidget(
-                layout: _controller.layout,
-                posJugador: _controller.posJugador,
-                posBot: _controller.posBot,
-              )),
-              const SizedBox(height: 12),
-              Text(_mensaje, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: esperandoJugador ? _tirarDadoJugador : null,
-                icon: const Icon(Icons.casino),
-                label: const Text('Tirar el dado'),
-              ),
-            ],
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: paleta.gradiente,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Expanded(child: TableroWidget(
+                  layout: _controller.layout,
+                  posJugador: _controller.posJugador,
+                  posBot: _controller.posBot,
+                )),
+                const SizedBox(height: 12),
+                Text(_mensaje, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: paleta.colorAcento),
+                  onPressed: esperandoJugador ? _tirarDadoJugador : null,
+                  icon: const Icon(Icons.casino),
+                  label: const Text('Tirar el dado'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
