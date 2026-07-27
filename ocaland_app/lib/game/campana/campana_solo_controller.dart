@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../board_layout.dart';
 import '../camino_tablero.dart';
 import '../game_engine.dart';
+import 'comodin_ruleta.dart';
 import 'config_etapa.dart';
 
 enum Turno { jugador, bot }
@@ -30,6 +31,11 @@ class CampanaSoloController {
   int reintentosEtapa = 0;
   Turno turno = Turno.jugador;
 
+  /// Comodín ganado en la ruleta de premio, pendiente de consumir
+  /// (sección 9). `ventaja3` se aplica y se limpia acá mismo al arrancar
+  /// la etapa; los demás quedan pendientes hasta que la jugada los use.
+  ComodinRuleta? comodinPendiente;
+
   void iniciarEtapa(int numero) {
     etapa = numero;
     layout = BoardLayout.generar();
@@ -41,6 +47,11 @@ class CampanaSoloController {
     jugadorSaltaTurno = false;
     botSaltaTurno = false;
     turno = Turno.jugador;
+
+    if (comodinPendiente == ComodinRuleta.ventaja3) {
+      posJugador = 3;
+      comodinPendiente = null;
+    }
   }
 
   void reintentarEtapa() => iniciarEtapa(etapa);

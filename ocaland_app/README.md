@@ -66,17 +66,39 @@ flutter run -d chrome  # en el navegador, para probar rápido
   paramétrica (no una grilla), tipo mapa de Candy Crush, con casillas de
   trampa más grandes que las normales y un camino pintado debajo
   conectándolas.
+- **Dado con arte real y sensación de movimiento** (`lib/widgets/board/dado_widget.dart`,
+  `lib/game/dado_iconos.dart`): al tirar, cicla por los frames de
+  motion-blur antes de asentarse en la cara final con el resultado real.
+- **Ruleta de premio entre etapas con comodines reales** (`lib/widgets/ruleta/ruleta_widget.dart`,
+  `lib/screens/ruleta_premio_dialog.dart`, `lib/game/campana/comodin_ruleta.dart`):
+  al ganar una etapa (salvo la última), gira una ruleta de 6 gajos con el
+  arte real del usuario antes de arrancar la etapa siguiente. Los premios
+  son `+3 casillas` (avanza de entrada en la nueva etapa), `inmunidad`
+  (perdona el próximo fallo en Cuestionados), `tirada extra` (vuelve a
+  tirar sin pasar el turno) y `doble tiempo` (duplica el timer de la
+  próxima pregunta), más 2 gajos "sin premio". El ángulo de cada gajo se
+  midió a mano sobre `assets/ruleta/disco.png` porque el arte no divide
+  el círculo en sextos parejos (ver comentario en `ruleta_widget.dart`).
+- **Minijuego de Memoria** (`lib/screens/minijuego_memoria_dialog.dart`)
+  con el arte real de gemas (`assets/minijuegos/gema_*.png`): el jugador
+  repite una secuencia de 3 gemas iluminadas. Al caer en una casilla de
+  minijuego, el juego elige al azar entre Memoria y Reflejos.
+- **Reflejos con arte real** (`lib/screens/minijuego_reflejos_dialog.dart`):
+  reskin con el orbe rojo (`assets/minijuegos/orbe_reflejos.png`) en vez
+  del círculo de color liso.
 
 ### Simplificaciones de este corte (a mejorar después)
 
 - El camino serpenteante es una curva paramétrica genérica (seno), no un
   trazado dibujado a mano — funciona para cualquier cantidad de casillas
-  pero no imita un mapa puntual.
+  pero no imita un mapa puntual. El usuario marcó que el estilo de este
+  tablero todavía no lo convence del todo; queda pendiente definir con
+  más detalle qué cambiar (¿la curva en sí, la decoración, la paleta de
+  fondo?).
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.
-- No están: pistas, reintentar-con-video-o-monedas, comodines (doble
-  tiempo / inmunidad), ruleta de premio entre etapas, ni sonido.
+- No están: pistas, reintentar-con-video-o-monedas, ni sonido.
 - Los accesorios (gorro, anteojos, bufanda, corona) todavía no tienen
   arte real — se muestran con un ícono de Material Design.
 - El bot no tiene personalización propia todavía: usa un color fijo

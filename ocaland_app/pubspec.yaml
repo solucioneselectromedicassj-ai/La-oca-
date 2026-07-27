@@ -80,6 +80,9 @@ flutter:
     - assets/avatars/androgino/
     - assets/avatars/femenino/
     - assets/casillas/
+    - assets/dado/
+    - assets/ruleta/
+    - assets/minijuegos/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../game/avatares/avatar_sprites.dart';
 import '../game/campana/campana_solo_controller.dart';
+import '../game/campana/comodin_ruleta.dart';
 import '../game/campana/etapa.dart';
 import '../game/casilla.dart';
 import '../game/cuestionados/banco_preguntas.dart';
@@ -12,10 +13,13 @@ import '../models/avatar_sprite_set.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
 import '../theme/paleta_bloque.dart';
+import '../widgets/board/dado_widget.dart';
 import '../widgets/board/tablero_widget.dart';
 import '../widgets/effects/efectos_visuales.dart';
 import 'cuestionados_dialog.dart';
+import 'minijuego_memoria_dialog.dart';
 import 'minijuego_reflejos_dialog.dart';
+import 'ruleta_premio_dialog.dart';
 
 /// Campaña Solo: 10 etapas contra un bot con dificultad creciente
 /// (sección 6.1). Primer corte jugable de la mecánica core del tablero.
@@ -37,6 +41,7 @@ class _BoardScreenState extends State<BoardScreen> {
   int _frameCaminataBot = 0;
   late final AvatarSpriteSet? _avatarJugador;
   late final AvatarSpriteSet? _avatarBot;
+  final _dadoController = DadoController();
 
   @override
   void initState() {
@@ -67,9 +72,19 @@ class _BoardScreenState extends State<BoardScreen> {
       await _turnoBot();
       return;
     }
+    await _ejecutarTiradaJugador();
+  }
 
+  /// Tirada del jugador sin el guard de `_procesando`: lo usa el botón
+  /// (a través de `_tirarDadoJugador`) y también las tiradas encadenadas
+  /// internas (oca acertada, comodín de tirada extra), que ocurren
+  /// mientras `_procesando` todavía está en `true` por la tirada en curso.
+  Future<void> _ejecutarTiradaJugador() async {
     setState(() => _procesando = true);
     final dado = _controller.engine.tirarDado();
+    setState(() => _mensaje = 'Tirando...');
+    await _dadoController.rodar(dado);
+    if (!mounted) return;
     setState(() => _mensaje = 'Sacaste $dado. Avanzando...');
     await _mover(esJugador: true, dado: dado);
     if (!mounted) return;
@@ -93,6 +108,8 @@ class _BoardScreenState extends State<BoardScreen> {
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
     final dado = _controller.engine.tirarDado();
+    await _dadoController.rodar(dado);
+    if (!mounted) return;
     setState(() => _mensaje = 'El bot sacó $dado.');
     await _mover(esJugador: false, dado: dado);
     if (!mounted) return;
@@ -151,7 +168,9 @@ class _BoardScreenState extends State<BoardScreen> {
 
       case TipoCasilla.minijuego:
         final gano = esJugador
-            ? await MinijuegoReflejosDialog.mostrar(context)
+            ? await (_rng.nextBool()
+                ? MinijuegoReflejosDialog.mostrar(context)
+                : MinijuegoMemoriaDialog.mostrar(context))
             : _rng.nextDouble() < _controller.config.probabilidadAciertoBot;
         if (gano) {
           setState(() => _mensaje =
@@ -186,12 +205,19 @@ class _BoardScreenState extends State<BoardScreen> {
       return _rng.nextDouble() < _controller.config.probabilidadAciertoBot;
     }
 
+    var segundos = _controller.config.segundosCuestionados;
+    if (_controller.comodinPendiente == ComodinRuleta.dobleTiempo) {
+      segundos *= 2;
+      _controller.comodinPendiente = null;
+      setState(() => _mensaje = '¡Doble tiempo activado!');
+    }
+
     if (!mounted) return false;
     return CuestionadosDialog.mostrar(
       context,
       pregunta: pregunta,
       tituloCasilla: '${tipo.emoji} ${_nombreCasilla(tipo)}',
-      segundos: _controller.config.segundosCuestionados,
+      segundos: segundos,
     );
   }
 
@@ -213,17 +239,27 @@ class _BoardScreenState extends State<BoardScreen> {
     required TipoCasilla tipo,
     required bool acerto,
   }) async {
+    var inmunidadUsada = false;
+    if (esJugador && !acerto && _controller.comodinPendiente == ComodinRuleta.inmunidad) {
+      acerto = true;
+      inmunidadUsada = true;
+      _controller.comodinPendiente = null;
+    }
     if (esJugador && !acerto) {
       EfectosVisuales.mostrarReaccion(context, _avatarJugador?.reaccion);
     }
     final quien = esJugador ? 'Vos' : 'El bot';
+    if (inmunidadUsada) {
+      setState(() => _mensaje = '¡Inmunidad activada! El fallo se convirtió en acierto.');
+      await Future.delayed(const Duration(milliseconds: 700));
+    }
     switch (tipo) {
       case TipoCasilla.oca:
         if (acerto) {
           setState(() => _mensaje = '$quien acertó la oca: ¡tirada de nuevo!');
           await Future.delayed(const Duration(milliseconds: 500));
           if (esJugador) {
-            await _tirarDadoJugador();
+            await _ejecutarTiradaJugador();
           } else {
             await _turnoBot();
           }
@@ -282,6 +318,13 @@ class _BoardScreenState extends State<BoardScreen> {
   Future<void> _pasarTurno({required bool esJugador}) async {
     if (!mounted) return;
     if (esJugador) {
+      if (_controller.comodinPendiente == ComodinRuleta.tiradaExtra) {
+        _controller.comodinPendiente = null;
+        setState(() => _mensaje = '¡Tirada extra! Tirá de nuevo.');
+        await Future.delayed(const Duration(milliseconds: 700));
+        await _ejecutarTiradaJugador();
+        return;
+      }
       setState(() => _controller.turno = Turno.bot);
       await Future.delayed(const Duration(milliseconds: 500));
       await _turnoBot();
@@ -350,6 +393,10 @@ class _BoardScreenState extends State<BoardScreen> {
       Navigator.of(context).pop();
       return;
     }
+
+    final premio = await RuletaPremioDialog.mostrar(context);
+    if (!mounted) return;
+    _controller.comodinPendiente = premio.comodin;
 
     setState(() {
       _controller.iniciarEtapa(_controller.etapa + 1);
@@ -451,7 +498,9 @@ class _BoardScreenState extends State<BoardScreen> {
                   spriteBot: _avatarBot?.caminata,
                   frameBot: _frameCaminataBot,
                 )),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
+                DadoWidget(controller: _dadoController, tamano: 56),
+                const SizedBox(height: 8),
                 Text(_mensaje, textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(

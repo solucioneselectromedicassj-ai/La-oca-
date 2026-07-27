@@ -101,6 +101,8 @@ Decisión sugerida: usar **Rive** para avatares y casillas de trampa (necesitan 
 - ✅ **Estilo confirmado por el usuario**: el look "cristal/gema brillante" de las casillas de trampa es intencional (es el estilo Candy Crush que se pidió), no un error — se mantiene tal cual. La calavera se reemplazó por una versión más amigable (ojos de gema celeste en vez de rojos, 3 frames de mandíbula moviéndose) que el usuario proveyó específicamente para resolver el choque con la sección 7 ("nunca oscuro/tétrico").
 - ✅ **Tablero como camino serpenteante**: a pedido explícito, el tablero dejó de ser una grilla y pasó a un camino curvo (`lib/game/camino_tablero.dart` + `tablero_widget.dart`), que además varía de forma en cada etapa (no siempre la misma curva), igual que el layout de trampas.
 - **Corrección acordada en el chat**: la sección 3 habla de "6 personajes base" fijos; se decidió en cambio un catálogo abierto y creciente de siluetas (no un número fijo), para que muchos jugadores puedan tener looks distintos. Ver sección 9.
+- ✅ **Dado, ruleta de premio y minijuegos con arte real**: el usuario proveyó arte de dado (caras estáticas + frames de motion-blur), disco de ruleta y gemas/orbe para minijuegos, generados "para Candy Crush" en el mismo estilo. Integrado en `lib/widgets/board/dado_widget.dart`, `lib/widgets/ruleta/ruleta_widget.dart` y los minijuegos de Memoria/Reflejos. La ruleta reparte comodines reales (ver sección 9.1) en vez de ser solo decorativa.
+- **Pendiente/abierto**: el usuario comentó que el estilo del tablero serpenteante todavía "no le convenció del todo" — falta precisar qué puntualmente cambiar (curva, decoración del camino, paleta de fondo). No se tomó ninguna decisión de diseño todavía sobre esto.
 
 ## 9. Personalización de avatar (acordado en el chat, no estaba en la v2 original)
 
@@ -111,6 +113,26 @@ Sistema de personalización combinable, pensado para que entre mucha gente y cad
 - **Accesorio**: capa adicional (gorro, anteojos, bufanda, corona), todavía sin arte real — se muestra con un ícono de Material Design como placeholder.
 - **Implementado**: tabla `la_vuelta.personalizacion_catalogo` (con `silueta_id` para los colores), columna `usuarios.personalizacion` (jsonb: equipado + desbloqueados), funciones `SECURITY DEFINER` `inicializar_personalizacion`, `comprar_item_personalizacion` y `equipar_personalizacion` (precio y pertenencia silueta↔color validados siempre del lado del servidor — nunca se confía en el cliente). Pantalla `lib/screens/mi_avatar_screen.dart` con grilla de compra/equipar, mostrando el arte real cuando existe. Todo probado en vivo contra la base real, incluidos los casos de error.
 - **Pendiente**: arte de accesorios, más siluetas/colores, y que el bot use su propia personalización (hoy usa un color fijo).
+
+## 9.1 Ruleta de premio entre etapas
+
+Al ganar una etapa (y no ser la última), antes de arrancar la siguiente se
+muestra una ruleta de 6 gajos (`assets/ruleta/disco.png`, arte real del
+usuario). El comodín se guarda en `CampanaSoloController.comodinPendiente`
+y se consume la próxima vez que corresponda:
+
+| Gajo | Comodín | Efecto |
+|---|---|---|
+| Rojo | `+3 casillas` | Se aplica de entrada al arrancar la nueva etapa (`iniciarEtapa`). |
+| Azul | Inmunidad | Perdona el próximo fallo en Cuestionados del jugador (una sola vez). |
+| Verde | Tirada extra | Al pasar el turno, si está pendiente, el jugador vuelve a tirar en vez de pasarle el turno al bot. |
+| Violeta | Doble tiempo | Duplica el timer de la próxima pregunta de Cuestionados. |
+| Amarillo / Rosa | Sin premio | No hace nada — son los 2 gajos "vacíos" de la ruleta. |
+
+El disco no divide el círculo en 6 partes exactamente iguales, así que el
+ángulo de parada de cada gajo se midió empíricamente (centro de color real
+en grados) en vez de asumir 60° parejos — ver el comentario en
+`RuletaWidget.centrosGrados`.
 
 ---
 

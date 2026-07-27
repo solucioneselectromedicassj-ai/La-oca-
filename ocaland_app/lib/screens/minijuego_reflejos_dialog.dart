@@ -74,7 +74,7 @@ class _MinijuegoReflejosDialogState extends State<MinijuegoReflejosDialog> {
     }
   }
 
-  Color get _color {
+  Color get _colorAro {
     switch (_estado) {
       case _Estado.esperando:
         return Colors.grey.shade400;
@@ -109,10 +109,31 @@ class _MinijuegoReflejosDialogState extends State<MinijuegoReflejosDialog> {
             const SizedBox(height: 24),
             GestureDetector(
               onTap: _onTap,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
                 width: 140,
                 height: 140,
-                decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _colorAro, width: 6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _colorAro.withValues(alpha: 0.6),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Transform.scale(
+                    scale: 1.12,
+                    child: Image.asset(
+                      'assets/minijuegos/orbe_reflejos.png',
+                      fit: BoxFit.cover,
+                      cacheHeight: 300,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
