@@ -81,11 +81,10 @@ flutter run -d chrome  # en el navegador, para probar rápido
   arte real — se muestran con un ícono de Material Design.
 - El bot no tiene personalización propia todavía: usa un color fijo
   para verse distinto del jugador.
-- **Inconsistencia de estilo pendiente de resolver**: los íconos de
-  casillas de trampa y el vuelo de la oca tienen un estilo "cristal/gema
-  brillante" bien distinto al cartoon plano de los avatares, y la
-  calavera en particular es más intensa (ojos rojos brillantes) de lo
-  que pide el tono "nunca oscuro/tétrico" del documento visual. Ver
+- El estilo "cristal/gema brillante" de las casillas de trampa está
+  confirmado como intencional por el usuario (no es una inconsistencia
+  a corregir). La calavera se reemplazó por una versión más amigable
+  (ojos celestes en vez de rojos, con animación de mandíbula). Ver
   sección 8 de `docs/SPEC_VISUAL_V2.md`.
 
 Todavía **no** están implementados: multijugador en tiempo real (sala,

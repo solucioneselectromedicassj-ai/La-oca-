@@ -5,7 +5,7 @@ import '../../game/casilla.dart';
 import '../../theme/ocaland_theme.dart';
 import 'casilla_iconos.dart';
 import 'casilla_trampa_animada.dart';
-import 'oca_vuelo_animado.dart';
+import 'ciclo_icono_animado.dart';
 
 /// Tablero de 30 casillas en camino serpenteante (tipo mapa de Candy
 /// Crush), no en grilla. La curva es paramétrica (`CaminoTablero`) — no
@@ -206,23 +206,32 @@ class _CasillaCirculo extends StatelessWidget {
       ),
       child: Center(
         child: tipo == TipoCasilla.oca
-            ? OcaVueloAnimado(alto: radio * 1.2)
+            ? CicloIconoAnimado(
+                frames: CasillaIconos.framesOca,
+                alto: radio * 1.2,
+              )
+            : tipo == TipoCasilla.calavera
+            ? CicloIconoAnimado(
+                frames: CasillaIconos.framesCalavera,
+                alto: radio * 1.3,
+                duracionFrame: const Duration(milliseconds: 380),
+              )
             : tipo.esCasillaFlotante
-                ? CasillaTrampaAnimada(
-                    tipo: tipo,
-                    child: CasillaIconos.iconoEstatico.containsKey(tipo)
-                        ? Image.asset(
-                            CasillaIconos.iconoEstatico[tipo]!,
-                            height: radio * 1.15,
-                            cacheHeight: 90,
-                          )
-                        : Text(tipo.emoji, style: TextStyle(fontSize: radio)),
-                  )
-                : tipo == TipoCasilla.meta
-                    ? Text(tipo.emoji, style: TextStyle(fontSize: radio))
-                    : posicion == 0
-                        ? const Icon(Icons.flag, color: Colors.white, size: 16)
-                        : null,
+            ? CasillaTrampaAnimada(
+                tipo: tipo,
+                child: CasillaIconos.iconoEstatico.containsKey(tipo)
+                    ? Image.asset(
+                        CasillaIconos.iconoEstatico[tipo]!,
+                        height: radio * 1.15,
+                        cacheHeight: 90,
+                      )
+                    : Text(tipo.emoji, style: TextStyle(fontSize: radio)),
+              )
+            : tipo == TipoCasilla.meta
+            ? Text(tipo.emoji, style: TextStyle(fontSize: radio))
+            : posicion == 0
+            ? const Icon(Icons.flag, color: Colors.white, size: 16)
+            : null,
       ),
     );
   }

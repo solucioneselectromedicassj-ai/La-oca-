@@ -11,15 +11,20 @@ class CasillaIconos {
   static const Map<TipoCasilla, String> iconoEstatico = {
     TipoCasilla.puente: '$_base/puente.png',
     TipoCasilla.carcel: '$_base/carcel.png',
-    TipoCasilla.calavera: '$_base/calavera.png',
     TipoCasilla.minijuego: '$_base/minijuego.png',
   };
 
-  /// La oca tiene animación de vuelo propia (3 frames) en vez de ícono
-  /// estático + transform.
+  /// La oca y la calavera tienen animación propia (varios frames) en vez
+  /// de ícono estático + transform genérico.
   static const List<String> framesOca = [
     '$_base/oca_vuelo_1.png',
     '$_base/oca_vuelo_2.png',
     '$_base/oca_vuelo_3.png',
+  ];
+
+  static const List<String> framesCalavera = [
+    '$_base/calavera_1.png',
+    '$_base/calavera_2.png',
+    '$_base/calavera_3.png',
   ];
 }
