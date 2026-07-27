@@ -2,11 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// Fondo del tablero como paisaje ilustrado (no un degradé vacío): cielo
-/// con nubes, y colinas en capas para dar sensación de profundidad
-/// (2.5D), todo en el mismo estilo plano tipo Candy Crush del resto del
-/// arte (nada fotorrealista). Los colores salen de la paleta del bloque
-/// de etapas actual, así el paisaje también cambia con la campaña.
+/// Fondo del tablero como paisaje ilustrado: cielo con sol y nubes,
+/// colinas en capas con un río en el medio, y árboles a los costados
+/// del camino — para que el camino se sienta "parado" sobre el terreno
+/// en vez de flotando sobre un degradé vacío. Todo con formas
+/// vectoriales en código (sin arte nuevo), en el mismo estilo plano
+/// tipo Candy Crush del resto del arte. Los colores salen de la
+/// paleta del bloque de etapas actual.
 class FondoCandy extends StatelessWidget {
   const FondoCandy({super.key, required this.gradiente, required this.acento});
 
@@ -18,11 +20,22 @@ class FondoCandy extends StatelessWidget {
     return hsl.withLightness((hsl.lightness - cantidad).clamp(0.0, 1.0)).toColor();
   }
 
+  Color _mezclar(Color a, Color b, double t) => Color.lerp(a, b, t)!;
+
   @override
   Widget build(BuildContext context) {
-    final colinaLejos = _oscurecer(gradiente.last, 0.06);
-    final colinaMedia = _oscurecer(gradiente.last, 0.16);
-    final colinaCerca = _oscurecer(gradiente.last, 0.26);
+    // Base de pasto verde (no del degradé del cielo): si tomáramos el
+    // color del cielo, en bloques con cielo celeste/violeta las colinas
+    // se confunden con el río y todo el fondo lee como "agua", no como
+    // tierra. El acento del bloque solo lo matiza un poco.
+    final verdeBase = _mezclar(const Color(0xFF9CCC65), acento, 0.25);
+    final colinaLejos = verdeBase;
+    final colinaMedia = _oscurecer(verdeBase, 0.1);
+    final colinaCerca = _oscurecer(verdeBase, 0.22);
+    const azulAgua = Color(0xFF4FC3F7);
+    final agua = _mezclar(azulAgua, acento, 0.15);
+    final verdeArbol = _mezclar(const Color(0xFF66BB6A), acento, 0.2);
+    final verdeArbolOscuro = _oscurecer(verdeArbol, 0.14);
 
     return Stack(
       fit: StackFit.expand,
@@ -37,49 +50,101 @@ class FondoCandy extends StatelessWidget {
             ),
           ),
         ),
-        // Nubes flotando en el cielo.
-        Positioned.fill(child: CustomPaint(painter: _NubesPainter(acento))),
-        // Manchas de color suaves (magia/luz ambiente) detrás de las colinas.
-        _mancha(top: -50, left: -60, diametro: 220, color: acento),
-        _mancha(top: 110, right: -70, diametro: 240, color: gradiente.first),
-        // Colinas en 3 capas para dar profundidad (más lejos = más clara).
+        // Sol arriba, con resplandor detrás.
+        Align(
+          alignment: const Alignment(0.78, -0.92),
+          child: _sol(),
+        ),
+        Positioned.fill(child: CustomPaint(painter: _NubesPainter())),
+        // Colinas lejanas: arrancan bien arriba para que el camino
+        // siempre esté "parado" sobre tierra, nunca flotando en el cielo.
         Positioned.fill(
           child: CustomPaint(
             painter: _ColinasPainter([
-              _Colina(colinaLejos, 0.62, 14, 1.3, 0.0),
-              _Colina(colinaMedia, 0.74, 18, 1.7, 1.4),
-              _Colina(colinaCerca, 0.87, 16, 1.4, 2.6),
+              _Colina(colinaLejos, 0.22, 16, 1.2, 0.0),
+              _Colina(colinaMedia, 0.4, 18, 1.5, 1.6),
             ]),
           ),
         ),
-        _brillito(-0.82, -0.86, tamano: 16),
-        _brillito(0.72, -0.62, tamano: 12),
-        _brillito(-0.6, -0.3, tamano: 14),
+        // Río entre las colinas lejanas y la cercana.
+        Positioned.fill(child: CustomPaint(painter: _RioPainter(agua, 0.55))),
+        // Colina cercana (primer plano), tapa la parte de abajo del río.
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _ColinasPainter([
+              _Colina(colinaCerca, 0.86, 16, 1.4, 2.6),
+            ]),
+          ),
+        ),
+        // Árboles a los costados, para que no se sienta vacío.
+        _arbol(const Alignment(-0.92, 0.05), 44, verdeArbol, verdeArbolOscuro),
+        _arbol(const Alignment(0.9, -0.15), 32, verdeArbol, verdeArbolOscuro),
+        _arbol(const Alignment(-0.85, 0.62), 52, verdeArbol, verdeArbolOscuro),
+        _arbol(const Alignment(0.88, 0.55), 40, verdeArbol, verdeArbolOscuro),
+        _arbol(const Alignment(-0.7, -0.55), 26, verdeArbol, verdeArbolOscuro),
+        _brillito(-0.82, -0.6, tamano: 14),
+        _brillito(0.6, 0.15, tamano: 12),
       ],
     );
   }
 
-  Widget _mancha({
-    double? top,
-    double? bottom,
-    double? left,
-    double? right,
-    required double diametro,
-    required Color color,
-  }) {
-    return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
-      child: Container(
-        width: diametro,
-        height: diametro,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0)],
+  Widget _sol() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 130,
+          height: 130,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [Color(0x66FFE082), Color(0x00FFE082)],
+            ),
           ),
+        ),
+        const Icon(Icons.wb_sunny_rounded, size: 56, color: Color(0xFFFFC94D)),
+      ],
+    );
+  }
+
+  Widget _arbol(Alignment alineacion, double alto, Color canopia, Color canopiaOscura) {
+    final anchoTronco = alto * 0.16;
+    final altoTronco = alto * 0.32;
+    return Align(
+      alignment: alineacion,
+      child: SizedBox(
+        width: alto,
+        height: alto + altoTronco * 0.6,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Positioned(
+              bottom: 0,
+              child: Container(
+                width: anchoTronco,
+                height: altoTronco,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8D5A3B),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: altoTronco * 0.5,
+              child: Container(
+                width: alto,
+                height: alto,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [canopia, canopiaOscura],
+                    center: const Alignment(-0.3, -0.4),
+                  ),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -136,11 +201,54 @@ class _ColinasPainter extends CustomPainter {
   bool shouldRepaint(covariant _ColinasPainter oldDelegate) => false;
 }
 
+/// Franja de río horizontal ondulada, con una segunda pasada más clara
+/// encima simulando el brillo del agua.
+class _RioPainter extends CustomPainter {
+  _RioPainter(this.color, this.baseY);
+
+  final Color color;
+  final double baseY;
+
+  Path _onda(Size size, double amplitud, double frecuencia, double fase) {
+    final path = Path();
+    const pasos = 24;
+    for (var i = 0; i <= pasos; i++) {
+      final x = size.width * i / pasos;
+      final y = baseY * size.height + amplitud * sin((i / pasos) * frecuencia * 2 * pi + fase);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      _onda(size, 10, 1.3, 0.4),
+      Paint()
+        ..color = color
+        ..strokeWidth = 34
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke,
+    );
+    canvas.drawPath(
+      _onda(size, 10, 1.3, 0.4),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.35)
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RioPainter oldDelegate) => false;
+}
+
 class _NubesPainter extends CustomPainter {
-  _NubesPainter(this.acento);
-
-  final Color acento;
-
   void _nube(Canvas canvas, Offset centro, double escala, Paint paint) {
     for (final off in const [
       Offset(-0.5, 0.05),
@@ -162,9 +270,9 @@ class _NubesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.55);
-    _nube(canvas, Offset(size.width * 0.28, size.height * 0.09), 0.7, paint);
-    _nube(canvas, Offset(size.width * 0.78, size.height * 0.16), 0.5, paint);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.6);
+    _nube(canvas, Offset(size.width * 0.24, size.height * 0.07), 0.65, paint);
+    _nube(canvas, Offset(size.width * 0.62, size.height * 0.05), 0.45, paint);
   }
 
   @override
