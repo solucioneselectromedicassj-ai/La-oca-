@@ -15,7 +15,6 @@ import '../services/supabase_service.dart';
 import '../theme/paleta_bloque.dart';
 import '../widgets/board/boton_candy.dart';
 import '../widgets/board/dado_widget.dart';
-import '../widgets/board/fondo_candy.dart';
 import '../widgets/board/tablero_widget.dart';
 import '../widgets/effects/efectos_visuales.dart';
 import 'cuestionados_dialog.dart';
@@ -477,42 +476,46 @@ class _BoardScreenState extends State<BoardScreen> {
         backgroundColor: paleta.colorAppBar,
         title: Text('Etapa ${_controller.etapa}: ${_etapaInfo.nombre}'),
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: FondoCandy(gradiente: paleta.gradiente, acento: paleta.colorAcento),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: paleta.gradiente,
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Expanded(child: TableroWidget(
-                    layout: _controller.layout,
-                    camino: _controller.camino,
-                    posJugador: _controller.posJugador,
-                    posBot: _controller.posBot,
-                    spriteJugador: _avatarJugador?.caminata,
-                    frameJugador: _frameCaminataJugador,
-                    spriteBot: _avatarBot?.caminata,
-                    frameBot: _frameCaminataBot,
-                  )),
-                  const SizedBox(height: 8),
-                  DadoWidget(controller: _dadoController, tamano: 56),
-                  const SizedBox(height: 8),
-                  Text(_mensaje, textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  BotonCandy(
-                    icono: Icons.casino,
-                    etiqueta: 'Tirar el dado',
-                    color: paleta.colorAcento,
-                    onPressed: esperandoJugador ? _tirarDadoJugador : null,
-                  ),
-                ],
-              ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Expanded(child: TableroWidget(
+                  layout: _controller.layout,
+                  camino: _controller.camino,
+                  posJugador: _controller.posJugador,
+                  posBot: _controller.posBot,
+                  gradiente: paleta.gradiente,
+                  acento: paleta.colorAcento,
+                  spriteJugador: _avatarJugador?.caminata,
+                  frameJugador: _frameCaminataJugador,
+                  spriteBot: _avatarBot?.caminata,
+                  frameBot: _frameCaminataBot,
+                )),
+                const SizedBox(height: 8),
+                DadoWidget(controller: _dadoController, tamano: 56),
+                const SizedBox(height: 8),
+                Text(_mensaje, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                BotonCandy(
+                  icono: Icons.casino,
+                  etiqueta: 'Tirar el dado',
+                  color: paleta.colorAcento,
+                  onPressed: esperandoJugador ? _tirarDadoJugador : null,
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../theme/ocaland_theme.dart';
 import 'casilla_iconos.dart';
 import 'casilla_trampa_animada.dart';
 import 'ciclo_icono_animado.dart';
+import 'fondo_candy.dart';
 
 /// Tablero de 30 casillas en camino serpenteante (tipo mapa de Candy
 /// Crush), no en grilla. La curva es paramétrica (`CaminoTablero`) — no
@@ -19,6 +20,8 @@ class TableroWidget extends StatelessWidget {
     required this.camino,
     required this.posJugador,
     required this.posBot,
+    required this.gradiente,
+    required this.acento,
     this.spriteJugador,
     this.frameJugador = 0,
     this.spriteBot,
@@ -26,6 +29,11 @@ class TableroWidget extends StatelessWidget {
   });
 
   final BoardLayout layout;
+
+  /// Paleta del bloque de etapas actual (sección 1 de la spec visual
+  /// v2), para pintar el paisaje de fondo (cielo/colinas) del tablero.
+  final List<Color> gradiente;
+  final Color acento;
 
   /// Forma del camino de esta etapa (varía por etapa, ver
   /// `CampanaSoloController.camino`).
@@ -49,6 +57,14 @@ class TableroWidget extends StatelessWidget {
     return 16;
   }
 
+  List<Offset> _puentesPx(Size size) {
+    return [
+      for (var i = 1; i < BoardLayout.meta; i++)
+        if (layout.tipoDe(i) == TipoCasilla.puente)
+          Offset(camino[i].dx * size.width, camino[i].dy * size.height),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -59,6 +75,13 @@ class TableroWidget extends StatelessWidget {
           return Stack(
             clipBehavior: Clip.none,
             children: [
+              Positioned.fill(
+                child: FondoCandy(
+                  gradiente: gradiente,
+                  acento: acento,
+                  puentesPx: _puentesPx(size),
+                ),
+              ),
               Positioned.fill(
                 child: CustomPaint(painter: _CaminoPainter(camino)),
               ),
@@ -270,7 +293,16 @@ class _CasillaCirculo extends StatelessWidget {
             ? Text(tipo.emoji, style: TextStyle(fontSize: radio))
             : posicion == 0
             ? const Icon(Icons.flag, color: Colors.white, size: 16)
-            : null,
+            // Casilla normal: número de posición, como en un tablero de
+            // mesa real (sin esto, las casillas normales quedaban vacías).
+            : Text(
+                '$posicion',
+                style: TextStyle(
+                  fontSize: radio * 0.85,
+                  fontWeight: FontWeight.w800,
+                  color: OcalandColors.violeta,
+                ),
+              ),
     );
   }
 }
