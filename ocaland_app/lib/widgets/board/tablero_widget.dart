@@ -133,13 +133,6 @@ class _CaminoPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.65)
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
     final path = Path();
     for (var i = 0; i < puntos.length; i++) {
       final p = Offset(puntos[i].dx * size.width, puntos[i].dy * size.height);
@@ -149,7 +142,24 @@ class _CaminoPainter extends CustomPainter {
         path.lineTo(p.dx, p.dy);
       }
     }
-    canvas.drawPath(path, paint);
+
+    // Camino en 3 capas (borde + cuerpo + brillo central) para que se
+    // vea como un sendero con relieve en vez de una línea plana.
+    void trazo(double ancho, double alpha) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Colors.white.withValues(alpha: alpha)
+          ..strokeWidth = ancho
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke,
+      );
+    }
+
+    trazo(17, 0.28);
+    trazo(11, 0.75);
+    trazo(3.5, 0.95);
   }
 
   @override
@@ -195,17 +205,46 @@ class _CasillaCirculo extends StatelessWidget {
           colors: [_colorFondo.withValues(alpha: 0.85), _colorFondo],
           center: const Alignment(-0.3, -0.3),
         ),
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: Colors.white, width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 3,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 4,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Center(
-        child: tipo == TipoCasilla.oca
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Brillo de "gomita" arriba a la izquierda, para que no se
+          // vea como un círculo de color liso.
+          Positioned(
+            top: radio * 0.14,
+            left: radio * 0.3,
+            child: Container(
+              width: radio * 0.85,
+              height: radio * 0.45,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.6),
+                    Colors.white.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _contenido(tipo, posicion, radio),
+        ],
+      ),
+    );
+  }
+
+  Widget _contenido(TipoCasilla tipo, int posicion, double radio) {
+    return Center(
+      child: tipo == TipoCasilla.oca
             ? CicloIconoAnimado(
                 frames: CasillaIconos.framesOca,
                 alto: radio * 1.2,
@@ -232,7 +271,6 @@ class _CasillaCirculo extends StatelessWidget {
             : posicion == 0
             ? const Icon(Icons.flag, color: Colors.white, size: 16)
             : null,
-      ),
     );
   }
 }
