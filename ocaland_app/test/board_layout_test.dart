@@ -14,7 +14,7 @@ void main() {
 
     expect(conteo[TipoCasilla.oca], 6);
     expect(conteo[TipoCasilla.minijuego], 6);
-    expect(conteo[TipoCasilla.puente], 3);
+    expect(conteo[TipoCasilla.trampolin], 3);
     expect(conteo[TipoCasilla.carcel], 3);
     expect(conteo[TipoCasilla.calavera], 2);
   });
@@ -25,9 +25,9 @@ void main() {
     expect(layout.tipoDe(29), TipoCasilla.meta);
   });
 
-  test('cada puente tiene un avance entre 2 y 4', () {
+  test('cada trampolín tiene un avance entre 2 y 4', () {
     final layout = BoardLayout.generar();
-    for (final info in layout.puentes.values) {
+    for (final info in layout.trampolines.values) {
       expect(info.avance, inInclusiveRange(2, 4));
     }
   });

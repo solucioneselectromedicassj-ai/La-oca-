@@ -148,10 +148,10 @@ class _BoardScreenState extends State<BoardScreen> {
     }
 
     switch (tipo) {
-      case TipoCasilla.puente:
-        final avance = _controller.layout.infoPuenteDe(pos)!.avance;
+      case TipoCasilla.trampolin:
+        final avance = _controller.layout.infoTrampolinDe(pos)!.avance;
         setState(() => _mensaje =
-            '${esJugador ? "Caíste" : "El bot cayó"} en un puente: +$avance casillas.');
+            '${esJugador ? "Caíste" : "El bot cayó"} en un trampolín: +$avance casillas.');
         await Future.delayed(const Duration(milliseconds: 500));
         await _mover(esJugador: esJugador, dado: avance);
         return;

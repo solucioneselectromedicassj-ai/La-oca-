@@ -7,7 +7,7 @@ import '../../game/casilla.dart';
 /// Animación de reposo (idle, en loop) de las casillas de trampa, para que
 /// el tablero se sienta vivo mientras nadie las toca (spec visual v2,
 /// sección 4). Cada tipo tiene su propio gesto sugerido por la spec:
-/// la oca aletea, el puente se balancea, la cárcel vibra, la calavera
+/// la oca aletea, el trampolín rebota, la cárcel vibra, la calavera
 /// flota y el minijuego pulsa con brillitos.
 class CasillaTrampaAnimada extends StatefulWidget {
   const CasillaTrampaAnimada({super.key, required this.tipo, required this.child});
@@ -56,8 +56,12 @@ class _CasillaTrampaAnimadaState extends State<CasillaTrampaAnimada>
           case TipoCasilla.oca:
             return Transform.rotate(angle: sin(t * 2 * pi) * 0.14, child: child);
 
-          case TipoCasilla.puente:
-            return Transform.rotate(angle: sin(t * 2 * pi) * 0.07, child: child);
+          case TipoCasilla.trampolin:
+            final rebote = (sin(t * 2 * pi).abs()) * 0.12;
+            return Transform.translate(
+              offset: Offset(0, -rebote * 10),
+              child: Transform.scale(scaleX: 1 + rebote * 0.15, scaleY: 1 - rebote * 0.15, child: child),
+            );
 
           case TipoCasilla.carcel:
             return Transform.translate(

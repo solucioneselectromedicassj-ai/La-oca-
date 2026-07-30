@@ -9,7 +9,9 @@ class CasillaIconos {
   static const String _base = 'assets/casillas';
 
   static const Map<TipoCasilla, String> iconoEstatico = {
-    TipoCasilla.puente: '$_base/puente.png',
+    // El archivo sigue llamándose puente.png (arte sin cambios); lo que
+    // se renombró fue el tipo de casilla, de "puente" a "trampolín".
+    TipoCasilla.trampolin: '$_base/puente.png',
     TipoCasilla.carcel: '$_base/carcel.png',
     TipoCasilla.minijuego: '$_base/minijuego.png',
   };

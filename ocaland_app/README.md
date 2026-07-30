@@ -35,12 +35,12 @@ flutter run -d chrome  # en el navegador, para probar rápido
   "Candy Crush" (`lib/theme/ocaland_theme.dart`).
 - **Campaña Solo jugable** (`lib/screens/board_screen.dart`, `lib/game/`):
   tablero de 30 casillas con layout aleatorio por etapa (`board_layout.dart`,
-  20/30 trampa repartidas 6 oca / 6 minijuego / 3 puente / 3 cárcel /
+  20/30 trampa repartidas 6 oca / 6 minijuego / 3 trampolín / 3 cárcel /
   2 calavera), motor de movimiento con la regla de rebote real
   (`game_engine.dart`), animación de caminata casilla por casilla,
   Cuestionados con timer y banco chico por franja de edad
-  (`game/cuestionados/`), minijuego de Reflejos, puentes con avance
-  automático, bot con dificultad creciente por etapa
+  (`game/cuestionados/`), minijuego de Reflejos, trampolines con avance
+  automático (2-4 casillas), bot con dificultad creciente por etapa
   (`game/campana/config_etapa.dart`), las 10 etapas con nombre y lore
   (`game/campana/etapa.dart`), y el flujo de "Reintentar" / "Responder 3
   Cuestionados para pasar igual" al perder una etapa.
@@ -59,7 +59,7 @@ flutter run -d chrome  # en el navegador, para probar rápido
   3 personajes jugables con ciclo de caminata, festejo y reacción al
   fallar (`lib/game/avatares/avatar_sprites.dart`), usados en la ficha del
   tablero y en los efectos de festejo/reacción. Íconos reales para
-  puente/cárcel/calavera/minijuego, y animación de vuelo real para la
+  trampolín/cárcel/calavera/minijuego, y animación de vuelo real para la
   oca. Ícono de la app actualizado en Android/iOS/web.
 - **Tablero como camino serpenteante** (`lib/widgets/board/camino_tablero.dart`,
   `tablero_widget.dart`): las 30 casillas se ubican sobre una curva
@@ -86,15 +86,32 @@ flutter run -d chrome  # en el navegador, para probar rápido
 - **Reflejos con arte real** (`lib/screens/minijuego_reflejos_dialog.dart`):
   reskin con el orbe rojo (`assets/minijuegos/orbe_reflejos.png`) en vez
   del círculo de color liso.
+- **Paisaje del tablero con arte real** (`lib/widgets/board/fondo_candy.dart`,
+  `assets/paisaje/`): árboles (2 tipos), arbustos, flores, rocas, nubes,
+  sol y un puente real que cruza un charco de agua en cada casilla de
+  trampolín (anclado a la posición real de esa casilla vía
+  `_trampolinesPx`), reemplazando el fondo dibujado en código.
+- **Tablero desplazable con casillas espaciadas** (`tablero_widget.dart`):
+  las 30 casillas quedaban pegadas/superpuestas entre sí — el tablero
+  ahora es bastante más alto que la pantalla (`SingleChildScrollView`
+  vertical, con auto-scroll a la ficha activa) para darles aire real,
+  y `camino_tablero.dart` reparte los 30 puntos por longitud de arco
+  en vez de por parámetro `t` parejo.
+- **Casillas de trampa sin disco de fondo**: antes eran un círculo de
+  color con el ícono de la trampa metido adentro; ahora la trampa se
+  muestra directamente a tamaño completo (sin círculo genérico atrás)
+  — la trampa ES la casilla. Las normales/salida/meta siguen siendo un
+  disco tipo ficha con número.
+- **"Puente" renombrado a "trampolín"**: la mecánica real de esa
+  casilla es lanzar al jugador +2/+4 casillas de entrada, no un cruce
+  — se renombró en todo el código (`TipoCasilla.trampolin`,
+  `InfoTrampolin`) para que el nombre no confunda con la mecánica.
 
 ### Simplificaciones de este corte (a mejorar después)
 
 - El camino serpenteante es una curva paramétrica genérica (seno), no un
   trazado dibujado a mano — funciona para cualquier cantidad de casillas
-  pero no imita un mapa puntual. El usuario marcó que el estilo de este
-  tablero todavía no lo convence del todo; queda pendiente definir con
-  más detalle qué cambiar (¿la curva en sí, la decoración, la paleta de
-  fondo?).
+  pero no imita un mapa puntual.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

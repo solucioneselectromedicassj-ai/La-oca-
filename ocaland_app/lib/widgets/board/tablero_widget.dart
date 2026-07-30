@@ -9,11 +9,16 @@ import 'ciclo_icono_animado.dart';
 import 'fondo_candy.dart';
 
 /// Tablero de 30 casillas en camino serpenteante (tipo mapa de Candy
-/// Crush), no en grilla. La curva es paramétrica (`CaminoTablero`) — no
-/// calca ningún mapa puntual, pero da esa sensación de camino sinuoso en
-/// vez de filas rectas. Las casillas de trampa se ven más grandes que
-/// las normales (sección 4 de la spec visual v2).
-class TableroWidget extends StatelessWidget {
+/// Crush), no en grilla. La curva es paramétrica (`CaminoTablero`,
+/// repartida por longitud de arco para que las casillas no se
+/// amonton en las curvas). El tablero es más alto que la pantalla y
+/// se desplaza verticalmente (con auto-scroll a la ficha activa) — es
+/// la única forma de darle a 30 casillas el aire que necesitan sin que
+/// se toquen entre sí, ya que un simple `AspectRatio` sigue estando
+/// acotado por el alto real disponible del padre. Las casillas de
+/// trampa se muestran con su propio arte a tamaño completo (sin un
+/// círculo de fondo genérico atrás) — la trampa ES la casilla.
+class TableroWidget extends StatefulWidget {
   const TableroWidget({
     super.key,
     required this.layout,
@@ -50,76 +55,135 @@ class TableroWidget extends StatelessWidget {
 
   static const int totalCasillas = 30;
 
-  double _radioDe(int posicion, TipoCasilla tipo) {
-    if (tipo.esCasillaFlotante || tipo == TipoCasilla.oca) return 24;
-    if (tipo == TipoCasilla.meta) return 22;
-    if (posicion == 0) return 20;
-    return 16;
+  @override
+  State<TableroWidget> createState() => _TableroWidgetState();
+}
+
+class _TableroWidgetState extends State<TableroWidget> {
+  final _scrollController = ScrollController();
+  double _anchoActual = 0;
+
+  /// Ancho/alto del contenido interno (no de la pantalla): bien angosto
+  /// para que las 30 casillas tengan espacio real entre sí. El usuario
+  /// hace scroll vertical para recorrerlo.
+  static const double _aspectRatioContenido = 0.22;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _centrarEnJugador(animar: false));
   }
 
-  List<Offset> _puentesPx(Size size) {
+  @override
+  void didUpdateWidget(covariant TableroWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.posJugador != widget.posJugador) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _centrarEnJugador(animar: true));
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _centrarEnJugador({required bool animar}) {
+    if (!_scrollController.hasClients || _anchoActual == 0) return;
+    final alto = _anchoActual / _aspectRatioContenido;
+    final centroY = widget.camino[widget.posJugador].dy * alto;
+    final viewport = _scrollController.position.viewportDimension;
+    final destino =
+        (centroY - viewport / 2).clamp(0.0, _scrollController.position.maxScrollExtent);
+    if (animar) {
+      _scrollController.animateTo(
+        destino,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _scrollController.jumpTo(destino);
+    }
+  }
+
+  double _tamanoDe(int posicion, TipoCasilla tipo) {
+    if (tipo.esCasillaFlotante) return 38;
+    if (tipo == TipoCasilla.meta) return 34;
+    if (posicion == 0) return 30;
+    return 22;
+  }
+
+  List<Offset> _trampolinesPx(Size size) {
     return [
       for (var i = 1; i < BoardLayout.meta; i++)
-        if (layout.tipoDe(i) == TipoCasilla.puente)
-          Offset(camino[i].dx * size.width, camino[i].dy * size.height),
+        if (widget.layout.tipoDe(i) == TipoCasilla.trampolin)
+          Offset(widget.camino[i].dx * size.width, widget.camino[i].dy * size.height),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 0.68,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final size = Size(constraints.maxWidth, constraints.maxHeight);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: FondoCandy(
-                  gradiente: gradiente,
-                  acento: acento,
-                  puentesPx: _puentesPx(size),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _anchoActual = constraints.maxWidth;
+        final size = Size(constraints.maxWidth, constraints.maxWidth / _aspectRatioContenido);
+        return Scrollbar(
+          controller: _scrollController,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: SizedBox(
+              width: size.width,
+              height: size.height,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: FondoCandy(
+                      gradiente: widget.gradiente,
+                      acento: widget.acento,
+                      trampolinesPx: _trampolinesPx(size),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: CustomPaint(painter: _CaminoPainter(widget.camino)),
+                  ),
+                  for (var i = 0; i < TableroWidget.totalCasillas; i++)
+                    _posicionarCasilla(i, size),
+                  _posicionarFichas(size),
+                ],
               ),
-              Positioned.fill(
-                child: CustomPaint(painter: _CaminoPainter(camino)),
-              ),
-              for (var i = 0; i < totalCasillas; i++)
-                _posicionarCasilla(i, size),
-              _posicionarFichas(size),
-            ],
-          );
-        },
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _posicionarCasilla(int posicion, Size size) {
-    final tipo = layout.tipoDe(posicion);
-    final radio = _radioDe(posicion, tipo);
+    final tipo = widget.layout.tipoDe(posicion);
+    final tamano = _tamanoDe(posicion, tipo);
     final centro = Offset(
-      camino[posicion].dx * size.width,
-      camino[posicion].dy * size.height,
+      widget.camino[posicion].dx * size.width,
+      widget.camino[posicion].dy * size.height,
     );
     return Positioned(
-      left: centro.dx - radio,
-      top: centro.dy - radio,
-      width: radio * 2,
-      height: radio * 2,
-      child: _CasillaCirculo(posicion: posicion, tipo: tipo, radio: radio),
+      left: centro.dx - tamano / 2,
+      top: centro.dy - tamano / 2,
+      width: tamano,
+      height: tamano,
+      child: _Casilla(posicion: posicion, tipo: tipo, tamano: tamano),
     );
   }
 
   Widget _posicionarFichas(Size size) {
-    final mismaCasilla = posJugador == posBot;
+    final mismaCasilla = widget.posJugador == widget.posBot;
     final centroJugador = Offset(
-      camino[posJugador].dx * size.width,
-      camino[posJugador].dy * size.height,
+      widget.camino[widget.posJugador].dx * size.width,
+      widget.camino[widget.posJugador].dy * size.height,
     );
     final centroBot = Offset(
-      camino[posBot].dx * size.width,
-      camino[posBot].dy * size.height,
+      widget.camino[widget.posBot].dx * size.width,
+      widget.camino[widget.posBot].dy * size.height,
     );
     const fichaTamano = 30.0;
     return Stack(
@@ -130,8 +194,8 @@ class TableroWidget extends StatelessWidget {
           top: centroJugador.dy - fichaTamano - 6,
           width: fichaTamano,
           height: fichaTamano,
-          child: spriteJugador != null
-              ? _FichaSprite(frames: spriteJugador!, indice: frameJugador)
+          child: widget.spriteJugador != null
+              ? _FichaSprite(frames: widget.spriteJugador!, indice: widget.frameJugador)
               : const _Ficha(color: OcalandColors.violeta, letra: 'J'),
         ),
         Positioned(
@@ -139,8 +203,8 @@ class TableroWidget extends StatelessWidget {
           top: centroBot.dy - fichaTamano - 6,
           width: fichaTamano,
           height: fichaTamano,
-          child: spriteBot != null
-              ? _FichaSprite(frames: spriteBot!, indice: frameBot)
+          child: widget.spriteBot != null
+              ? _FichaSprite(frames: widget.spriteBot!, indice: widget.frameBot)
               : const _Ficha(color: OcalandColors.fucsia, letra: 'B'),
         ),
       ],
@@ -180,41 +244,82 @@ class _CaminoPainter extends CustomPainter {
       );
     }
 
-    trazo(17, 0.28);
-    trazo(11, 0.75);
-    trazo(3.5, 0.95);
+    trazo(15, 0.28);
+    trazo(9, 0.75);
+    trazo(3, 0.95);
   }
 
   @override
   bool shouldRepaint(covariant _CaminoPainter oldDelegate) => false;
 }
 
-class _CasillaCirculo extends StatelessWidget {
-  const _CasillaCirculo({
+/// Una casilla del tablero. Las normales (y salida/meta) son un disco
+/// tipo "ficha" con número; las de trampa son directamente su propio
+/// arte (más grande, sin disco de fondo) — la trampa es la casilla.
+class _Casilla extends StatelessWidget {
+  const _Casilla({
     required this.posicion,
     required this.tipo,
-    required this.radio,
+    required this.tamano,
   });
 
   final int posicion;
   final TipoCasilla tipo;
-  final double radio;
+  final double tamano;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tipo.esCasillaFlotante) {
+      return CasillaTrampaAnimada(
+        tipo: tipo,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 5,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(child: _arteTrampa()),
+        ),
+      );
+    }
+    return _Disco(posicion: posicion, tipo: tipo, tamano: tamano);
+  }
+
+  Widget _arteTrampa() {
+    switch (tipo) {
+      case TipoCasilla.oca:
+        return CicloIconoAnimado(frames: CasillaIconos.framesOca, alto: tamano);
+      case TipoCasilla.calavera:
+        return CicloIconoAnimado(
+          frames: CasillaIconos.framesCalavera,
+          alto: tamano * 1.05,
+          duracionFrame: const Duration(milliseconds: 380),
+        );
+      default:
+        final ruta = CasillaIconos.iconoEstatico[tipo];
+        if (ruta == null) return Text(tipo.emoji, style: TextStyle(fontSize: tamano * 0.7));
+        return Image.asset(ruta, height: tamano, cacheHeight: (tamano * 2).round());
+    }
+  }
+}
+
+/// Disco tipo "ficha de tablero" para casillas normales, salida y meta.
+class _Disco extends StatelessWidget {
+  const _Disco({required this.posicion, required this.tipo, required this.tamano});
+
+  final int posicion;
+  final TipoCasilla tipo;
+  final double tamano;
 
   Color get _colorFondo {
     switch (tipo) {
-      case TipoCasilla.oca:
-        return OcalandColors.amarillo;
-      case TipoCasilla.puente:
-        return OcalandColors.turquesa;
-      case TipoCasilla.carcel:
-        return Colors.blueGrey.shade300;
-      case TipoCasilla.calavera:
-        return OcalandColors.fucsia;
-      case TipoCasilla.minijuego:
-        return OcalandColors.celeste;
       case TipoCasilla.meta:
         return OcalandColors.verde;
-      case TipoCasilla.normal:
+      default:
         return posicion == 0 ? OcalandColors.violeta : Colors.white;
     }
   }
@@ -240,14 +345,12 @@ class _CasillaCirculo extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Brillo de "gomita" arriba a la izquierda, para que no se
-          // vea como un círculo de color liso.
           Positioned(
-            top: radio * 0.14,
-            left: radio * 0.3,
+            top: tamano * 0.14,
+            left: tamano * 0.3,
             child: Container(
-              width: radio * 0.85,
-              height: radio * 0.45,
+              width: tamano * 0.42,
+              height: tamano * 0.22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
@@ -259,50 +362,22 @@ class _CasillaCirculo extends StatelessWidget {
               ),
             ),
           ),
-          _contenido(tipo, posicion, radio),
+          Center(
+            child: tipo == TipoCasilla.meta
+                ? Text(tipo.emoji, style: TextStyle(fontSize: tamano * 0.5))
+                : posicion == 0
+                ? const Icon(Icons.flag, color: Colors.white, size: 16)
+                : Text(
+                    '$posicion',
+                    style: TextStyle(
+                      fontSize: tamano * 0.42,
+                      fontWeight: FontWeight.w800,
+                      color: OcalandColors.violeta,
+                    ),
+                  ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _contenido(TipoCasilla tipo, int posicion, double radio) {
-    return Center(
-      child: tipo == TipoCasilla.oca
-            ? CicloIconoAnimado(
-                frames: CasillaIconos.framesOca,
-                alto: radio * 1.2,
-              )
-            : tipo == TipoCasilla.calavera
-            ? CicloIconoAnimado(
-                frames: CasillaIconos.framesCalavera,
-                alto: radio * 1.3,
-                duracionFrame: const Duration(milliseconds: 380),
-              )
-            : tipo.esCasillaFlotante
-            ? CasillaTrampaAnimada(
-                tipo: tipo,
-                child: CasillaIconos.iconoEstatico.containsKey(tipo)
-                    ? Image.asset(
-                        CasillaIconos.iconoEstatico[tipo]!,
-                        height: radio * 1.15,
-                        cacheHeight: 90,
-                      )
-                    : Text(tipo.emoji, style: TextStyle(fontSize: radio)),
-              )
-            : tipo == TipoCasilla.meta
-            ? Text(tipo.emoji, style: TextStyle(fontSize: radio))
-            : posicion == 0
-            ? const Icon(Icons.flag, color: Colors.white, size: 16)
-            // Casilla normal: número de posición, como en un tablero de
-            // mesa real (sin esto, las casillas normales quedaban vacías).
-            : Text(
-                '$posicion',
-                style: TextStyle(
-                  fontSize: radio * 0.85,
-                  fontWeight: FontWeight.w800,
-                  color: OcalandColors.violeta,
-                ),
-              ),
     );
   }
 }

@@ -11,21 +11,21 @@ import '../../game/paisaje_iconos.dart';
 /// de etapas (no hay textura de pasto real todavía), pero la
 /// decoración ya es arte de verdad.
 ///
-/// [puentesPx] son las posiciones (en píxeles, en el mismo sistema de
-/// coordenadas que el `size` de este widget) de las casillas de puente
-/// del layout actual — así el agua y el puente real aparecen justo
-/// donde hay una casilla de puente, no en un lugar arbitrario.
+/// [trampolinesPx] son las posiciones (en píxeles, en el mismo sistema
+/// de coordenadas que el `size` de este widget) de las casillas de
+/// trampolín del layout actual — así el agua y el puente real aparecen
+/// justo donde hay una casilla de trampolín, no en un lugar arbitrario.
 class FondoCandy extends StatelessWidget {
   const FondoCandy({
     super.key,
     required this.gradiente,
     required this.acento,
-    required this.puentesPx,
+    required this.trampolinesPx,
   });
 
   final List<Color> gradiente;
   final Color acento;
-  final List<Offset> puentesPx;
+  final List<Offset> trampolinesPx;
 
   Color _oscurecer(Color color, double cantidad) {
     final hsl = HSLColor.fromColor(color);
@@ -83,8 +83,8 @@ class FondoCandy extends StatelessWidget {
         _decoracion(const Alignment(0.88, 0.62), PaisajeIconos.arbolFrondoso, 56),
         _decoracion(const Alignment(-0.7, 0.85), PaisajeIconos.arbusto, 38),
         _decoracion(const Alignment(0.7, 0.9), PaisajeIconos.arbolPino, 42),
-        // Agua real + puente real, anclados a cada casilla de puente.
-        for (final p in puentesPx) ..._puenteEnPunto(p),
+        // Agua real + puente real, anclados a cada casilla de trampolín.
+        for (final p in trampolinesPx) ..._puenteEnPunto(p),
         // Colina cercana (primer plano), tapa la base del río lejano.
         Positioned.fill(
           child: CustomPaint(

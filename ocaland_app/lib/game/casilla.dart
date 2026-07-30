@@ -1,8 +1,12 @@
 /// Tipos de casilla del tablero (sección 3 de la especificación).
+///
+/// `trampolin` (antes "puente"): lanza al jugador +2/+4 casillas de
+/// entrada, como un trampolín, no como un cruce — se renombró para que
+/// el nombre no confunda con la mecánica real.
 enum TipoCasilla {
   normal,
   oca,
-  puente,
+  trampolin,
   carcel,
   calavera,
   minijuego,
@@ -14,8 +18,8 @@ extension TipoCasillaEmoji on TipoCasilla {
     switch (this) {
       case TipoCasilla.oca:
         return '🪿';
-      case TipoCasilla.puente:
-        return '🌉';
+      case TipoCasilla.trampolin:
+        return '🛝';
       case TipoCasilla.carcel:
         return '⛓️';
       case TipoCasilla.calavera:
@@ -39,14 +43,14 @@ extension TipoCasillaEmoji on TipoCasilla {
   /// animación de reposo en loop (spec visual v2, sección 4).
   bool get esCasillaFlotante =>
       this == TipoCasilla.oca ||
-      this == TipoCasilla.puente ||
+      this == TipoCasilla.trampolin ||
       this == TipoCasilla.carcel ||
       this == TipoCasilla.calavera ||
       this == TipoCasilla.minijuego;
 }
 
-class InfoPuente {
-  const InfoPuente({required this.avance});
+class InfoTrampolin {
+  const InfoTrampolin({required this.avance});
 
   /// Avance directo garantizado: entre +2 y +4 casillas (sección 3).
   final int avance;
