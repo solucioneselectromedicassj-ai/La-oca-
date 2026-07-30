@@ -86,22 +86,38 @@ flutter run -d chrome  # en el navegador, para probar rápido
 - **Reflejos con arte real** (`lib/screens/minijuego_reflejos_dialog.dart`):
   reskin con el orbe rojo (`assets/minijuegos/orbe_reflejos.png`) en vez
   del círculo de color liso.
-- **Paisaje del tablero con arte real** (`lib/widgets/board/fondo_candy.dart`,
-  `assets/paisaje/`): árboles (2 tipos), arbustos, flores, rocas, nubes,
-  sol y un puente real que cruza un charco de agua en cada casilla de
-  trampolín (anclado a la posición real de esa casilla vía
-  `_trampolinesPx`), reemplazando el fondo dibujado en código.
-- **Tablero desplazable con casillas espaciadas** (`tablero_widget.dart`):
-  las 30 casillas quedaban pegadas/superpuestas entre sí — el tablero
-  ahora es bastante más alto que la pantalla (`SingleChildScrollView`
-  vertical, con auto-scroll a la ficha activa) para darles aire real,
-  y `camino_tablero.dart` reparte los 30 puntos por longitud de arco
-  en vez de por parámetro `t` parejo.
-- **Casillas de trampa sin disco de fondo**: antes eran un círculo de
-  color con el ícono de la trampa metido adentro; ahora la trampa se
-  muestra directamente a tamaño completo (sin círculo genérico atrás)
-  — la trampa ES la casilla. Las normales/salida/meta siguen siendo un
-  disco tipo ficha con número.
+- **Rediseño completo del tablero como paisaje continuo** (`lib/widgets/board/tablero_widget.dart`,
+  `fondo_candy.dart`): el usuario marcó que la versión anterior no
+  servía — casillas flotando como discos separados, íconos sueltos
+  sobre color plano, sin marca de inicio/meta. Se rehizo de punta a
+  punta:
+  - **Sendero real**: el camino pasó de una línea fina pintada a un
+    camino de tierra ancho (borde oscuro + cuerpo claro + centro
+    pisado + piedritas de textura a los costados).
+  - **Casillas incrustadas**: las normales son piedras redondas con
+    el número, del mismo ancho que el camino, no discos flotando
+    encima — se ven parte del sendero. Las de trampa siguen siendo su
+    propio arte a tamaño completo (más grandes, sin disco de fondo).
+  - **Paisaje continuo**: colina única con textura de pasto real
+    (matitas dibujadas, no color liso) y árboles/arbustos/rocas/flores
+    repartidos a intervalos regulares en TODA la altura del tablero
+    (antes eran ~8 íconos sueltos en puntos fijos, se veían pegados;
+    ahora la densidad escala con el alto real del tablero).
+  - **Marcas de INICIO y META**: banderín + bandera al principio,
+    banderín + trofeo + medallón dorado al final — antes solo eran
+    íconos chicos genéricos.
+  - **Avatar caminando de verdad**: la ficha se desliza animada
+    (`AnimatedPositioned`) entre casilla y casilla en vez de saltar de
+    golpe, sincronizado con el ciclo de caminata del sprite.
+  - **Tablero desplazable con casillas espaciadas**: las 30 casillas
+    quedaban pegadas/superpuestas entre sí — el tablero ahora es
+    bastante más alto que la pantalla (`SingleChildScrollView` vertical,
+    con auto-scroll a la ficha activa) para darles aire real, y
+    `camino_tablero.dart` reparte los 30 puntos por longitud de arco en
+    vez de por parámetro `t` parejo.
+- **Agua y puente real, anclados al trampolín**: el charco de agua y el
+  puente real aparecen justo donde hay una casilla de trampolín
+  (`_trampolinesPx`), no en un lugar arbitrario del camino.
 - **"Puente" renombrado a "trampolín"**: la mecánica real de esa
   casilla es lanzar al jugador +2/+4 casillas de entrada, no un cruce
   — se renombró en todo el código (`TipoCasilla.trampolin`,
@@ -112,6 +128,11 @@ flutter run -d chrome  # en el navegador, para probar rápido
 - El camino serpenteante es una curva paramétrica genérica (seno), no un
   trazado dibujado a mano — funciona para cualquier cantidad de casillas
   pero no imita un mapa puntual.
+- El paisaje sigue siendo composición de sprites sueltos (árboles, pasto
+  dibujado, colina de color plano) sobre una franja angosta, no una
+  ilustración continua de una sola pieza — para un fondo 100%
+  "escenario pintado" sin costuras haría falta arte de fondo ilustrado
+  específico (por bloque de etapas), que no existe todavía.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

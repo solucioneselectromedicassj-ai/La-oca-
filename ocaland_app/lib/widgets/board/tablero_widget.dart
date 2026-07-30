@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../game/board_layout.dart';
@@ -8,16 +10,12 @@ import 'casilla_trampa_animada.dart';
 import 'ciclo_icono_animado.dart';
 import 'fondo_candy.dart';
 
-/// Tablero de 30 casillas en camino serpenteante (tipo mapa de Candy
-/// Crush), no en grilla. La curva es paramétrica (`CaminoTablero`,
-/// repartida por longitud de arco para que las casillas no se
-/// amonton en las curvas). El tablero es más alto que la pantalla y
-/// se desplaza verticalmente (con auto-scroll a la ficha activa) — es
-/// la única forma de darle a 30 casillas el aire que necesitan sin que
-/// se toquen entre sí, ya que un simple `AspectRatio` sigue estando
-/// acotado por el alto real disponible del padre. Las casillas de
-/// trampa se muestran con su propio arte a tamaño completo (sin un
-/// círculo de fondo genérico atrás) — la trampa ES la casilla.
+/// Tablero de 30 casillas sobre un sendero de tierra/piedra serpenteante
+/// (no una grilla, no una línea fina): las casillas normales van
+/// incrustadas en el camino mismo, como piedras, y las de trampa se ven
+/// más grandes, con su propio arte a tamaño completo. El tablero es más
+/// alto que la pantalla y se desplaza verticalmente (con auto-scroll a
+/// la ficha activa) para darle a 30 casillas el aire real que necesitan.
 class TableroWidget extends StatefulWidget {
   const TableroWidget({
     super.key,
@@ -106,12 +104,7 @@ class _TableroWidgetState extends State<TableroWidget> {
     }
   }
 
-  double _tamanoDe(int posicion, TipoCasilla tipo) {
-    if (tipo.esCasillaFlotante) return 38;
-    if (tipo == TipoCasilla.meta) return 34;
-    if (posicion == 0) return 30;
-    return 22;
-  }
+  double _tamanoDe(TipoCasilla tipo) => tipo.esCasillaFlotante ? 38 : 30;
 
   List<Offset> _trampolinesPx(Size size) {
     return [
@@ -161,11 +154,33 @@ class _TableroWidgetState extends State<TableroWidget> {
 
   Widget _posicionarCasilla(int posicion, Size size) {
     final tipo = widget.layout.tipoDe(posicion);
-    final tamano = _tamanoDe(posicion, tipo);
     final centro = Offset(
       widget.camino[posicion].dx * size.width,
       widget.camino[posicion].dy * size.height,
     );
+
+    if (posicion == 0) {
+      const w = 74.0, h = 96.0;
+      return Positioned(
+        left: centro.dx - w / 2,
+        top: centro.dy - h + 15,
+        width: w,
+        height: h,
+        child: const _MarcadorInicio(),
+      );
+    }
+    if (tipo == TipoCasilla.meta) {
+      const w = 84.0, h = 100.0;
+      return Positioned(
+        left: centro.dx - w / 2,
+        top: centro.dy - h + 17,
+        width: w,
+        height: h,
+        child: const _MarcadorMeta(),
+      );
+    }
+
+    final tamano = _tamanoDe(tipo);
     return Positioned(
       left: centro.dx - tamano / 2,
       top: centro.dy - tamano / 2,
@@ -186,10 +201,13 @@ class _TableroWidgetState extends State<TableroWidget> {
       widget.camino[widget.posBot].dy * size.height,
     );
     const fichaTamano = 30.0;
+    const duracion = Duration(milliseconds: 210);
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Positioned(
+        AnimatedPositioned(
+          duration: duracion,
+          curve: Curves.easeInOut,
           left: centroJugador.dx - fichaTamano / 2 - (mismaCasilla ? 10 : 0),
           top: centroJugador.dy - fichaTamano - 6,
           width: fichaTamano,
@@ -198,7 +216,9 @@ class _TableroWidgetState extends State<TableroWidget> {
               ? _FichaSprite(frames: widget.spriteJugador!, indice: widget.frameJugador)
               : const _Ficha(color: OcalandColors.violeta, letra: 'J'),
         ),
-        Positioned(
+        AnimatedPositioned(
+          duration: duracion,
+          curve: Curves.easeInOut,
           left: centroBot.dx - fichaTamano / 2 + (mismaCasilla ? 10 : 0),
           top: centroBot.dy - fichaTamano - 6,
           width: fichaTamano,
@@ -212,7 +232,10 @@ class _TableroWidgetState extends State<TableroWidget> {
   }
 }
 
-/// Línea de camino que conecta las 30 casillas, pintada debajo de ellas.
+/// Sendero de tierra/piedra que conecta las 30 casillas: borde oscuro,
+/// cuerpo de tierra clara, resalte pisado al centro, y piedritas
+/// sueltas a los costados como textura — no una línea fina pintada
+/// encima del paisaje, sino un camino real.
 class _CaminoPainter extends CustomPainter {
   _CaminoPainter(this.puntos);
 
@@ -221,8 +244,10 @@ class _CaminoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = Path();
+    final pxPuntos = <Offset>[];
     for (var i = 0; i < puntos.length; i++) {
       final p = Offset(puntos[i].dx * size.width, puntos[i].dy * size.height);
+      pxPuntos.add(p);
       if (i == 0) {
         path.moveTo(p.dx, p.dy);
       } else {
@@ -230,13 +255,11 @@ class _CaminoPainter extends CustomPainter {
       }
     }
 
-    // Camino en 3 capas (borde + cuerpo + brillo central) para que se
-    // vea como un sendero con relieve en vez de una línea plana.
-    void trazo(double ancho, double alpha) {
+    void trazo(double ancho, Color color) {
       canvas.drawPath(
         path,
         Paint()
-          ..color = Colors.white.withValues(alpha: alpha)
+          ..color = color
           ..strokeWidth = ancho
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round
@@ -244,18 +267,36 @@ class _CaminoPainter extends CustomPainter {
       );
     }
 
-    trazo(15, 0.28);
-    trazo(9, 0.75);
-    trazo(3, 0.95);
+    trazo(42, const Color(0xFF8A6A4A));
+    trazo(34, const Color(0xFFD9B77E));
+    trazo(14, const Color(0xFFECD8AE));
+
+    final rng = Random(7);
+    final piedrita = Paint()..color = const Color(0xFF8A6A4A).withValues(alpha: 0.55);
+    for (var i = 0; i < pxPuntos.length - 1; i++) {
+      final a = pxPuntos[i];
+      final b = pxPuntos[i + 1];
+      final distancia = (b - a).distance;
+      final segmentos = (distancia / 16).round().clamp(1, 20);
+      final d = b - a;
+      final largo = d.distance == 0 ? 1 : d.distance;
+      final perpendicular = Offset(-d.dy / largo, d.dx / largo);
+      for (var s = 0; s < segmentos; s++) {
+        final t = s / segmentos;
+        final centro = Offset.lerp(a, b, t)!;
+        final lado = rng.nextBool() ? 1 : -1;
+        final offset = centro + perpendicular * (lado * (16 + rng.nextDouble() * 5));
+        canvas.drawCircle(offset, 1.6 + rng.nextDouble() * 1.6, piedrita);
+      }
+    }
   }
 
   @override
   bool shouldRepaint(covariant _CaminoPainter oldDelegate) => false;
 }
 
-/// Una casilla del tablero. Las normales (y salida/meta) son un disco
-/// tipo "ficha" con número; las de trampa son directamente su propio
-/// arte (más grande, sin disco de fondo) — la trampa es la casilla.
+/// Una casilla de trampa: su propio arte a tamaño completo (sin disco
+/// de fondo genérico) — la trampa es la casilla.
 class _Casilla extends StatelessWidget {
   const _Casilla({
     required this.posicion,
@@ -286,7 +327,7 @@ class _Casilla extends StatelessWidget {
         ),
       );
     }
-    return _Disco(posicion: posicion, tipo: tipo, tamano: tamano);
+    return _Piedra(posicion: posicion, tamano: tamano);
   }
 
   Widget _arteTrampa() {
@@ -307,77 +348,137 @@ class _Casilla extends StatelessWidget {
   }
 }
 
-/// Disco tipo "ficha de tablero" para casillas normales, salida y meta.
-class _Disco extends StatelessWidget {
-  const _Disco({required this.posicion, required this.tipo, required this.tamano});
+/// Piedra numerada incrustada en el camino (casillas normales): no un
+/// disco flotando encima, sino algo que se ve parte del sendero.
+class _Piedra extends StatelessWidget {
+  const _Piedra({required this.posicion, required this.tamano});
 
   final int posicion;
-  final TipoCasilla tipo;
   final double tamano;
-
-  Color get _colorFondo {
-    switch (tipo) {
-      case TipoCasilla.meta:
-        return OcalandColors.verde;
-      default:
-        return posicion == 0 ? OcalandColors.violeta : Colors.white;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [_colorFondo.withValues(alpha: 0.85), _colorFondo],
-          center: const Alignment(-0.3, -0.3),
+        gradient: const RadialGradient(
+          colors: [Color(0xFFEDDFC4), Color(0xFFBCA47F)],
+          center: Alignment(-0.3, -0.3),
         ),
-        border: Border.all(color: Colors.white, width: 2.5),
+        border: Border.all(color: const Color(0xFF8A6A4A), width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: 0.32),
+            blurRadius: 3,
             offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            top: tamano * 0.14,
-            left: tamano * 0.3,
-            child: Container(
-              width: tamano * 0.42,
-              height: tamano * 0.22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.6),
-                    Colors.white.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Center(
-            child: tipo == TipoCasilla.meta
-                ? Text(tipo.emoji, style: TextStyle(fontSize: tamano * 0.5))
-                : posicion == 0
-                ? const Icon(Icons.flag, color: Colors.white, size: 16)
-                : Text(
-                    '$posicion',
-                    style: TextStyle(
-                      fontSize: tamano * 0.42,
-                      fontWeight: FontWeight.w800,
-                      color: OcalandColors.violeta,
-                    ),
-                  ),
-          ),
-        ],
+      alignment: Alignment.center,
+      child: Text(
+        '$posicion',
+        style: TextStyle(
+          fontSize: tamano * 0.42,
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF6B4F35),
+        ),
       ),
+    );
+  }
+}
+
+/// Marca de INICIO: banderín con etiqueta + la piedra de la casilla 0.
+class _MarcadorInicio extends StatelessWidget {
+  const _MarcadorInicio();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: OcalandColors.verde,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 3, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: const Text(
+            'INICIO',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.4),
+          ),
+        ),
+        const SizedBox(height: 2),
+        const Icon(Icons.flag_rounded, color: Color(0xFF43D67D), size: 26),
+        const SizedBox(height: 2),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFFEDDFC4), Color(0xFFBCA47F)],
+              center: Alignment(-0.3, -0.3),
+            ),
+            border: Border.all(color: const Color(0xFF8A6A4A), width: 2.5),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 3, offset: const Offset(0, 3)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Marca de META: banderín con etiqueta + trofeo + medallón dorado.
+class _MarcadorMeta extends StatelessWidget {
+  const _MarcadorMeta();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0A800),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 3, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: const Text(
+            'META',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.4),
+          ),
+        ),
+        const SizedBox(height: 2),
+        const Text('🏆', style: TextStyle(fontSize: 28)),
+        const SizedBox(height: 2),
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFFFFE8B0), Color(0xFFE0A800)],
+              center: Alignment(-0.3, -0.3),
+            ),
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 4, offset: const Offset(0, 3)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

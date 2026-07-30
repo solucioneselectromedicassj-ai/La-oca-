@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../game/paisaje_iconos.dart';
 
-/// Fondo del tablero como paisaje ilustrado, con el arte real que
-/// proveyó el usuario (árboles, arbustos, flores, rocas, puente, agua,
-/// nubes, sol — estilo Candy Crush plano) en vez de formas vectoriales
-/// genéricas. El terreno (colinas) sigue siendo color plano por bloque
-/// de etapas (no hay textura de pasto real todavía), pero la
-/// decoración ya es arte de verdad.
+/// Fondo del tablero como paisaje continuo: cielo con sol y nubes, una
+/// sola colina con textura de pasto (no color plano) y decoración real
+/// (árboles, arbustos, rocas, flores) repartida en toda la altura del
+/// tablero — no unos pocos íconos sueltos en puntos fijos, sino una
+/// franja de vegetación que acompaña TODO el camino, para que se sienta
+/// un escenario continuo y no piezas pegadas. Los colores de la colina
+/// salen de la paleta del bloque de etapas actual.
 ///
 /// [trampolinesPx] son las posiciones (en píxeles, en el mismo sistema
 /// de coordenadas que el `size` de este widget) de las casillas de
@@ -37,66 +38,69 @@ class FondoCandy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final verdeBase = _mezclar(const Color(0xFF9CCC65), acento, 0.25);
-    final colinaLejos = verdeBase;
-    final colinaCerca = _oscurecer(verdeBase, 0.16);
+    final verdeOscuro = _oscurecer(verdeBase, 0.18);
+    const azulAgua = Color(0xFF4FC3F7);
+    final agua = _mezclar(azulAgua, acento, 0.15);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Cielo.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: gradiente,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Cielo.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: gradiente,
+                ),
+              ),
             ),
+            Align(alignment: const Alignment(0.75, -0.94), child: _sol()),
+            Align(
+              alignment: const Alignment(-0.55, -0.92),
+              child: Image.asset(PaisajeIconos.nube1, width: 92, cacheWidth: 184),
+            ),
+            Align(
+              alignment: const Alignment(0.5, -0.86),
+              child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
+            ),
+            // Una sola colina, arranca bien arriba para que el camino
+            // nunca quede flotando sobre el cielo vacío.
+            Positioned.fill(child: CustomPaint(painter: _ColinaPainter(verdeBase))),
+            // Textura de pasto sobre TODA la colina (no color liso).
+            Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
+            // Decoración real repartida en toda la altura del tablero,
+            // a los costados del camino — no unos pocos íconos sueltos.
+            ..._decoracionesDelCamino(size),
+            // Agua real + puente real, anclados a cada casilla de trampolín.
+            for (final p in trampolinesPx) ..._puenteEnPunto(p, agua),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _sol() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 130,
+          height: 130,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [Color(0x66FFE082), Color(0x00FFE082)]),
           ),
         ),
-        // Sol y nubes con el arte real.
-        Align(
-          alignment: const Alignment(0.75, -0.92),
-          child: Image.asset(PaisajeIconos.sol, width: 62, cacheWidth: 124),
-        ),
-        Align(
-          alignment: const Alignment(-0.55, -0.9),
-          child: Image.asset(PaisajeIconos.nube1, width: 92, cacheWidth: 184),
-        ),
-        Align(
-          alignment: const Alignment(0.5, -0.7),
-          child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
-        ),
-        // Colina lejana: arranca bien arriba para que el camino nunca
-        // quede flotando sobre el cielo vacío.
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _ColinasPainter([_Colina(colinaLejos, 0.18, 16, 1.2, 0.0)]),
-          ),
-        ),
-        // Decoración dispersa a los costados del camino (no en el
-        // centro, para no tapar las casillas).
-        _decoracion(const Alignment(-0.92, -0.4), PaisajeIconos.arbolPino, 46),
-        _decoracion(const Alignment(0.9, -0.55), PaisajeIconos.arbolFrondoso, 50),
-        _decoracion(const Alignment(-0.88, 0.05), PaisajeIconos.rocas, 44),
-        _decoracion(const Alignment(0.85, 0.15), PaisajeIconos.arbusto, 34),
-        _decoracion(const Alignment(-0.75, 0.5), PaisajeIconos.flores, 40),
-        _decoracion(const Alignment(0.88, 0.62), PaisajeIconos.arbolFrondoso, 56),
-        _decoracion(const Alignment(-0.7, 0.85), PaisajeIconos.arbusto, 38),
-        _decoracion(const Alignment(0.7, 0.9), PaisajeIconos.arbolPino, 42),
-        // Agua real + puente real, anclados a cada casilla de trampolín.
-        for (final p in trampolinesPx) ..._puenteEnPunto(p),
-        // Colina cercana (primer plano), tapa la base del río lejano.
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _ColinasPainter([_Colina(colinaCerca, 0.62, 18, 1.4, 2.2)]),
-          ),
-        ),
-        _decoracion(const Alignment(-0.85, -0.75), PaisajeIconos.rocas, 30),
+        Image.asset(PaisajeIconos.sol, width: 62, cacheWidth: 124),
       ],
     );
   }
 
-  List<Widget> _puenteEnPunto(Offset p) {
+  List<Widget> _puenteEnPunto(Offset p, Color agua) {
     return [
       Positioned(
         left: p.dx - 70,
@@ -111,49 +115,91 @@ class FondoCandy extends StatelessWidget {
     ];
   }
 
-  Widget _decoracion(Alignment alineacion, String asset, double ancho) {
-    return Align(
-      alignment: alineacion,
-      child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
-    );
+  /// Genera decoración (árboles/arbustos/rocas/flores) a intervalos
+  /// regulares en TODA la altura del canvas, alternando de lado, con
+  /// semilla fija para que no cambie en cada rebuild (parpadeo).
+  List<Widget> _decoracionesDelCamino(Size size) {
+    final rng = Random(23);
+    const assets = [
+      PaisajeIconos.arbolFrondoso,
+      PaisajeIconos.arbolPino,
+      PaisajeIconos.arbusto,
+      PaisajeIconos.rocas,
+      PaisajeIconos.flores,
+    ];
+    final widgets = <Widget>[];
+    var y = size.height * 0.13;
+    var lado = rng.nextBool();
+    while (y < size.height * 0.98) {
+      final asset = assets[rng.nextInt(assets.length)];
+      final ancho = 34.0 + rng.nextDouble() * 28;
+      final xFrac = lado ? (0.05 + rng.nextDouble() * 0.09) : (0.95 - rng.nextDouble() * 0.09);
+      widgets.add(
+        Positioned(
+          left: size.width * xFrac - ancho / 2,
+          top: y,
+          child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
+        ),
+      );
+      y += 95 + rng.nextDouble() * 70;
+      lado = !lado;
+    }
+    return widgets;
   }
 }
 
-class _Colina {
-  const _Colina(this.color, this.baseY, this.amplitud, this.frecuencia, this.fase);
+/// Silueta de colina única (no dos capas): cubre casi todo el canvas
+/// desde arriba, con un borde ondulado suave (no una línea horizontal
+/// recta) para que se sienta terreno, no un bloque de color.
+class _ColinaPainter extends CustomPainter {
+  _ColinaPainter(this.color);
 
   final Color color;
 
-  /// Altura base de la colina, como fracción de la altura del canvas.
-  final double baseY;
-  final double amplitud;
-  final double frecuencia;
-  final double fase;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()..moveTo(0, size.height);
+    path.lineTo(0, size.height * 0.1);
+    const pasos = 40;
+    for (var i = 0; i <= pasos; i++) {
+      final x = size.width * i / pasos;
+      final y = size.height * 0.1 + sin(i / pasos * 3.2 * pi) * size.height * 0.012;
+      path.lineTo(x, y);
+    }
+    path.lineTo(size.width, size.height);
+    path.close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ColinaPainter oldDelegate) => oldDelegate.color != color;
 }
 
-class _ColinasPainter extends CustomPainter {
-  _ColinasPainter(this.colinas);
+/// Textura de pasto: matitas sueltas repartidas por toda la colina
+/// (semilla fija, no cambia en cada rebuild) para que el terreno no se
+/// vea como un color plano liso.
+class _PastoPainter extends CustomPainter {
+  _PastoPainter(this.color);
 
-  final List<_Colina> colinas;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final colina in colinas) {
-      final path = Path()..moveTo(0, size.height);
-      path.lineTo(0, colina.baseY * size.height);
-      const pasos = 24;
-      for (var i = 0; i <= pasos; i++) {
-        final x = size.width * i / pasos;
-        final y = colina.baseY * size.height +
-            colina.amplitud * sin((i / pasos) * colina.frecuencia * 2 * pi + colina.fase);
-        path.lineTo(x, y);
-      }
-      path.lineTo(size.width, size.height);
-      path.close();
-      canvas.drawPath(path, Paint()..color = colina.color);
+    final rng = Random(11);
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.4)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    final cantidad = (size.height / 9).round().clamp(100, 1400);
+    for (var i = 0; i < cantidad; i++) {
+      final x = rng.nextDouble() * size.width;
+      final y = size.height * 0.1 + rng.nextDouble() * size.height * 0.9;
+      final alto = 5 + rng.nextDouble() * 6;
+      final inclinacion = (rng.nextDouble() - 0.5) * 4;
+      canvas.drawLine(Offset(x, y), Offset(x + inclinacion, y - alto), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ColinasPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PastoPainter oldDelegate) => false;
 }
