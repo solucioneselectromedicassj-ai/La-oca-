@@ -2,18 +2,19 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// Fondo del tablero como paisaje ilustrado: cielo con sol y nubes,
-/// colinas en capas con charcos de río bajo cada casilla de puente
-/// (para que el puente real quede "cruzando" el agua en vez de flotar
-/// sobre nada), y árboles a los costados del camino. Todo con formas
-/// vectoriales en código (sin arte nuevo), en el mismo estilo plano
-/// tipo Candy Crush del resto del arte. Los colores salen de la
-/// paleta del bloque de etapas actual.
+import '../../game/paisaje_iconos.dart';
+
+/// Fondo del tablero como paisaje ilustrado, con el arte real que
+/// proveyó el usuario (árboles, arbustos, flores, rocas, puente, agua,
+/// nubes, sol — estilo Candy Crush plano) en vez de formas vectoriales
+/// genéricas. El terreno (colinas) sigue siendo color plano por bloque
+/// de etapas (no hay textura de pasto real todavía), pero la
+/// decoración ya es arte de verdad.
 ///
 /// [puentesPx] son las posiciones (en píxeles, en el mismo sistema de
 /// coordenadas que el `size` de este widget) de las casillas de puente
-/// del layout actual — así el agua aparece justo donde hay un puente
-/// real dibujado encima, no en un lugar arbitrario del camino.
+/// del layout actual — así el agua y el puente real aparecen justo
+/// donde hay una casilla de puente, no en un lugar arbitrario.
 class FondoCandy extends StatelessWidget {
   const FondoCandy({
     super.key,
@@ -35,22 +36,14 @@ class FondoCandy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Base de pasto verde (no del degradé del cielo): si tomáramos el
-    // color del cielo, en bloques con cielo celeste/violeta las colinas
-    // se confunden con el agua y todo el fondo lee como "mar", no tierra.
     final verdeBase = _mezclar(const Color(0xFF9CCC65), acento, 0.25);
     final colinaLejos = verdeBase;
     final colinaCerca = _oscurecer(verdeBase, 0.16);
-    const azulAgua = Color(0xFF4FC3F7);
-    final agua = _mezclar(azulAgua, acento, 0.15);
-    final verdeArbol = _mezclar(const Color(0xFF66BB6A), acento, 0.2);
-    final verdeArbolOscuro = _oscurecer(verdeArbol, 0.14);
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Cielo (solo se asoma una franja arriba del todo: el resto es
-        // tierra, para que ninguna casilla quede flotando en el cielo).
+        // Cielo.
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -60,129 +53,68 @@ class FondoCandy extends StatelessWidget {
             ),
           ),
         ),
+        // Sol y nubes con el arte real.
         Align(
-          alignment: const Alignment(0.78, -0.92),
-          child: _sol(),
+          alignment: const Alignment(0.75, -0.92),
+          child: Image.asset(PaisajeIconos.sol, width: 62, cacheWidth: 124),
         ),
-        Positioned.fill(child: CustomPaint(painter: _NubesPainter())),
-        // Colina lejana, arranca bien arriba.
+        Align(
+          alignment: const Alignment(-0.55, -0.9),
+          child: Image.asset(PaisajeIconos.nube1, width: 92, cacheWidth: 184),
+        ),
+        Align(
+          alignment: const Alignment(0.5, -0.7),
+          child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
+        ),
+        // Colina lejana: arranca bien arriba para que el camino nunca
+        // quede flotando sobre el cielo vacío.
         Positioned.fill(
           child: CustomPaint(
-            painter: _ColinasPainter([_Colina(colinaLejos, 0.1, 16, 1.2, 0.0)]),
+            painter: _ColinasPainter([_Colina(colinaLejos, 0.18, 16, 1.2, 0.0)]),
           ),
         ),
-        // Charcos de río bajo cada casilla de puente real.
-        if (puentesPx.isNotEmpty)
-          Positioned.fill(child: CustomPaint(painter: _RioPainter(agua, puentesPx))),
-        // Colina cercana (primer plano).
+        // Decoración dispersa a los costados del camino (no en el
+        // centro, para no tapar las casillas).
+        _decoracion(const Alignment(-0.92, -0.4), PaisajeIconos.arbolPino, 46),
+        _decoracion(const Alignment(0.9, -0.55), PaisajeIconos.arbolFrondoso, 50),
+        _decoracion(const Alignment(-0.88, 0.05), PaisajeIconos.rocas, 44),
+        _decoracion(const Alignment(0.85, 0.15), PaisajeIconos.arbusto, 34),
+        _decoracion(const Alignment(-0.75, 0.5), PaisajeIconos.flores, 40),
+        _decoracion(const Alignment(0.88, 0.62), PaisajeIconos.arbolFrondoso, 56),
+        _decoracion(const Alignment(-0.7, 0.85), PaisajeIconos.arbusto, 38),
+        _decoracion(const Alignment(0.7, 0.9), PaisajeIconos.arbolPino, 42),
+        // Agua real + puente real, anclados a cada casilla de puente.
+        for (final p in puentesPx) ..._puenteEnPunto(p),
+        // Colina cercana (primer plano), tapa la base del río lejano.
         Positioned.fill(
           child: CustomPaint(
-            painter: _ColinasPainter([_Colina(colinaCerca, 0.5, 18, 1.4, 2.2)]),
+            painter: _ColinasPainter([_Colina(colinaCerca, 0.62, 18, 1.4, 2.2)]),
           ),
         ),
-        // Árboles a los costados, para que no se sienta vacío.
-        _arbol(const Alignment(-0.92, -0.55), 30, verdeArbol, verdeArbolOscuro),
-        _arbol(const Alignment(0.9, -0.7), 24, verdeArbol, verdeArbolOscuro),
-        _arbol(const Alignment(-0.85, 0.15), 42, verdeArbol, verdeArbolOscuro),
-        _arbol(const Alignment(0.88, 0.05), 34, verdeArbol, verdeArbolOscuro),
-        _arbol(const Alignment(-0.7, 0.75), 46, verdeArbol, verdeArbolOscuro),
-        _arbol(const Alignment(0.75, 0.82), 36, verdeArbol, verdeArbolOscuro),
-        _brillito(-0.82, -0.35, tamano: 14),
-        _brillito(0.6, 0.4, tamano: 12),
+        _decoracion(const Alignment(-0.85, -0.75), PaisajeIconos.rocas, 30),
       ],
     );
   }
 
-  Widget _sol() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 130,
-          height: 130,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [Color(0x66FFE082), Color(0x00FFE082)],
-            ),
-          ),
-        ),
-        const Icon(Icons.wb_sunny_rounded, size: 56, color: Color(0xFFFFC94D)),
-      ],
-    );
+  List<Widget> _puenteEnPunto(Offset p) {
+    return [
+      Positioned(
+        left: p.dx - 70,
+        top: p.dy - 18,
+        child: Image.asset(PaisajeIconos.agua, width: 140, cacheWidth: 220),
+      ),
+      Positioned(
+        left: p.dx - 55,
+        top: p.dy - 62,
+        child: Image.asset(PaisajeIconos.puente, width: 110, cacheWidth: 220),
+      ),
+    ];
   }
 
-  Widget _arbol(Alignment alineacion, double alto, Color canopia, Color canopiaOscura) {
-    final anchoTronco = alto * 0.16;
-    final altoTronco = alto * 0.32;
-    // Copa con 3 lóbulos superpuestos (en vez de un solo círculo) y una
-    // sombra ovalada en la base, para que no se vea como un simple
-    // palito con una bolita.
+  Widget _decoracion(Alignment alineacion, String asset, double ancho) {
     return Align(
       alignment: alineacion,
-      child: SizedBox(
-        width: alto * 1.3,
-        height: alto + altoTronco * 0.7,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Positioned(
-              bottom: 0,
-              child: Container(
-                width: alto * 0.7,
-                height: alto * 0.16,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: altoTronco * 0.15,
-              child: Container(
-                width: anchoTronco,
-                height: altoTronco,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8D5A3B),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            for (final lobulo in const [
-              Offset(-0.32, 0.08),
-              Offset(0.32, 0.1),
-              Offset(0.0, -0.18),
-            ])
-              Positioned(
-                bottom: altoTronco * 0.55 - lobulo.dy * alto,
-                left: alto * 0.15 + lobulo.dx * alto,
-                child: Container(
-                  width: alto * 0.72,
-                  height: alto * 0.72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [canopia, canopiaOscura],
-                      center: const Alignment(-0.3, -0.4),
-                    ),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.2),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _brillito(double fx, double fy, {double tamano = 16, double opacidad = 0.55}) {
-    return Align(
-      alignment: Alignment(fx, fy),
-      child: Icon(
-        Icons.star_rounded,
-        size: tamano,
-        color: Colors.white.withValues(alpha: opacidad),
-      ),
+      child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
     );
   }
 }
@@ -224,65 +156,4 @@ class _ColinasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ColinasPainter oldDelegate) => false;
-}
-
-/// Charco/tramo de río bajo cada casilla de puente real, para que el
-/// puente se vea "cruzando" agua en vez de flotar sobre pasto vacío.
-class _RioPainter extends CustomPainter {
-  _RioPainter(this.color, this.puntos);
-
-  final Color color;
-  final List<Offset> puntos;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Charco angosto (no una franja que cruce toda la pantalla): solo
-    // un poco más ancho que la propia casilla de puente, para que se
-    // vea como un tramo corto de arroyo bajo el puente, no un río que
-    // corta el tablero sin conexión visual con la casilla.
-    for (final p in puntos) {
-      canvas.drawOval(
-        Rect.fromCenter(center: p, width: 96, height: 30),
-        Paint()..color = color,
-      );
-      canvas.drawOval(
-        Rect.fromCenter(center: p, width: 64, height: 10),
-        Paint()..color = Colors.white.withValues(alpha: 0.35),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RioPainter oldDelegate) => oldDelegate.puntos != puntos;
-}
-
-class _NubesPainter extends CustomPainter {
-  void _nube(Canvas canvas, Offset centro, double escala, Paint paint) {
-    for (final off in const [
-      Offset(-0.5, 0.05),
-      Offset(-0.15, -0.12),
-      Offset(0.2, -0.08),
-      Offset(0.5, 0.05),
-      Offset(0, 0.12),
-    ]) {
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: centro + Offset(off.dx * 90 * escala, off.dy * 60 * escala),
-          width: 70 * escala,
-          height: 42 * escala,
-        ),
-        paint,
-      );
-    }
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.6);
-    _nube(canvas, Offset(size.width * 0.24, size.height * 0.055), 0.6, paint);
-    _nube(canvas, Offset(size.width * 0.62, size.height * 0.035), 0.42, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _NubesPainter oldDelegate) => false;
 }

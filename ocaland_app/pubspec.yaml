@@ -83,6 +83,7 @@ flutter:
     - assets/dado/
     - assets/ruleta/
     - assets/minijuegos/
+    - assets/paisaje/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
