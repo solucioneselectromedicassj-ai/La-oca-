@@ -137,6 +137,7 @@ class _TableroWidgetState extends State<TableroWidget> {
                     child: FondoCandy(
                       gradiente: widget.gradiente,
                       acento: widget.acento,
+                      camino: widget.camino,
                       fondoAsset: widget.fondoAsset,
                       fondoAspectRatio: widget.fondoAspectRatio,
                       fondoColorPie: widget.fondoColorPie,

@@ -9,11 +9,12 @@ class CasillaIconos {
   static const String _base = 'assets/casillas';
 
   static const Map<TipoCasilla, String> iconoEstatico = {
-    // El archivo sigue llamándose puente.png (arte sin cambios); lo que
-    // se renombró fue el tipo de casilla, de "puente" a "trampolín".
-    TipoCasilla.trampolin: '$_base/puente.png',
-    // Reemplazadas por el arte que mandó el usuario (torre de piedra
-    // con celda, no la gema brillante genérica de antes).
+    // Ahora es un trampolín de verdad (antes era la gema "puente"
+    // genérica reusada bajo el nombre nuevo).
+    TipoCasilla.trampolin: '$_base/trampolin.png',
+    // Torre de cárcel a color (versión más "candy" de la misma torre
+    // que ya se había integrado, pedida por el usuario para que tenga
+    // mejor presencia junto al resto de las casillas coloridas).
     TipoCasilla.carcel: '$_base/carcel.png',
     // La estrella con cara reemplaza el ícono de gema genérico.
     TipoCasilla.minijuego: '$_base/minijuego.png',

@@ -31,4 +31,16 @@ void main() {
       expect(info.avance, inInclusiveRange(2, 4));
     }
   });
+
+  test('los trampolines nunca quedan lo bastante cerca como para encadenarse', () {
+    for (var i = 0; i < 50; i++) {
+      final layout = BoardLayout.generar();
+      final posiciones = layout.trampolines.keys.toList();
+      for (var a = 0; a < posiciones.length; a++) {
+        for (var b = a + 1; b < posiciones.length; b++) {
+          expect((posiciones[a] - posiciones[b]).abs(), greaterThanOrEqualTo(5));
+        }
+      }
+    }
+  });
 }

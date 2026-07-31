@@ -229,6 +229,37 @@ flutter run -d chrome  # en el navegador, para probar rápido
   mismo camino que cárcel/minijuego/trampolín (`iconoEstatico`). El
   puente/trampolín sigue con el arte anterior (no llegó reemplazo
   todavía).
+- **Trampolín real + cárcel más colorida**: llegó el reemplazo del
+  trampolín (un trampolín de juegos de verdad, con red y colchoneta
+  estampada) — se recortó la parte de arriba (red/postes) porque
+  quedaba un patrón de casillero sin limpiar entre los hilos de la red
+  y a esta escala de casilla no se distingue de todos modos; con el
+  colchón+patas alcanza para reconocerlo. La cárcel se reemplazó por
+  una versión a color de la misma torre (más "presencia" junto al
+  resto de casillas coloridas, como pidió el usuario) en vez de la
+  versión gris/oscura de antes.
+- **Los trampolines nunca se encadenan**: el usuario marcó que, como el
+  trampolín adelanta 2-4 casillas de entrada, dos trampolines nunca
+  deberían quedar tan cerca como para que caer en uno te mande derecho
+  a otro — no tendría lógica de juego. `board_layout.dart` ahora
+  reintenta el sorteo del layout (hasta 300 veces, casi siempre alcanza
+  con 1-2) hasta que los 3 trampolines queden a 5 casillas de distancia
+  como mínimo entre sí.
+- **Sol contenido en su franja (de verdad esta vez)**: la causa real de
+  que "el sol siga en el pasto" no era su posición X/Y sino su tamaño:
+  el halo brilloso medía 130px fijos, pensado para cuando la franja de
+  imagen real medía ~213-355px; al recortar los fondos esa franja bajó
+  a 44-78px y el halo se desbordaba ~90px hacia el pasto de abajo sin
+  que la posición del ícono se moviera. Ahora el sol (ícono + halo) se
+  calcula en proporción a `altoImagen` (o al 10% de alto del cielo
+  genérico cuando no hay imagen real), así que siempre queda contenido
+  adentro sin importar cuán baja sea esa franja.
+- **El doble de decoración, en los codos del sendero**: además de la
+  decoración pegada a los bordes del canvas, ahora `fondo_candy.dart`
+  recibe el camino real y detecta cada "codo" (donde el sendero cambia
+  de dirección) para poner 2 elementos ahí — arbusto/flor/roca +
+  una oca de adorno — del lado de afuera de la curva (el espacio verde
+  que deja el giro), no solo en los bordes.
 
 ### Simplificaciones de este corte (a mejorar después)
 

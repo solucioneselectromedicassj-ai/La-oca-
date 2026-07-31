@@ -18,6 +18,7 @@ class FondoCandy extends StatelessWidget {
     super.key,
     required this.gradiente,
     required this.acento,
+    required this.camino,
     this.fondoAsset,
     this.fondoAspectRatio,
     this.fondoColorPie,
@@ -25,6 +26,11 @@ class FondoCandy extends StatelessWidget {
 
   final List<Color> gradiente;
   final Color acento;
+
+  /// Posiciones (fraccionales 0..1) del camino, para poder decorar
+  /// justo en los "codos" del sendero (donde tuerce) en vez de solo en
+  /// los bordes del canvas.
+  final List<Offset> camino;
 
   /// Fondo de escena real (arte del usuario): se muestra UNA sola vez,
   /// a su tamaño natural, arriba del todo del tablero (ahí van el
@@ -92,20 +98,36 @@ class FondoCandy extends StatelessWidget {
               // Textura de pasto sobre TODA la colina (no color liso).
               Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
             ],
-            // El sol va pegado al borde de arriba (no más abajo, como
-            // el cartel de INICIO): el camino arranca en un x
-            // aleatorio (puede ser cualquier lado), así que cualquier
-            // posición más baja corre el riesgo real de quedar tapada
-            // por el cartel/avatares de salida.
+            // El sol va arriba de todo, dentro de la franja de imagen
+            // real (o de cielo genérico si no hay imagen) — nunca
+            // centrado por fracción sobre el canvas COMPLETO, que es
+            // mucho más alto que esa franja: con el tablero compactado
+            // y los fondos recortados, un sol de tamaño fijo centrado
+            // así se salía de la franja real y su halo terminaba
+            // pisando el pasto de abajo. El tamaño y la posición salen
+            // de `altoImagen` (o del 10% de alto que usa el cielo
+            // genérico) para que siempre quede contenido ahí.
             //
             // Las nubes sueltas (`nube1`/`nube2`) se sacaron: el
             // usuario las pidió afuera directamente (no eran parte del
             // paisaje real que subió y se seguían viendo pegadas al
             // cartel de INICIO).
-            Align(alignment: const Alignment(0.7, -0.985), child: _sol()),
+            Builder(builder: (context) {
+              final cieloAlto = fondoAsset != null ? altoImagen : size.height * 0.1;
+              final tamanoIcono = (cieloAlto * 0.42).clamp(18.0, 36.0);
+              return Positioned(
+                right: size.width * 0.1,
+                top: cieloAlto * 0.05,
+                child: _sol(tamanoIcono),
+              );
+            }),
             // Decoración real repartida en toda la altura del tablero,
             // a los costados del camino — no unos pocos íconos sueltos.
             ..._decoracionesDelCamino(size),
+            // El doble de decoración, esta vez puntual en los "codos"
+            // del sendero (donde tuerce), en el espacio verde que deja
+            // la curva — no solo pegada a los bordes del canvas.
+            ..._decoracionesEnCodos(size),
             // Unas pocas ocas volando de fondo, puramente decorativas
             // (no son casillas), para darle vida a la escena.
             ..._gansosVolando(size),
@@ -115,19 +137,24 @@ class FondoCandy extends StatelessWidget {
     );
   }
 
-  Widget _sol() {
+  Widget _sol(double tamanoIcono) {
+    final tamanoHalo = tamanoIcono * 1.8;
     return Stack(
       alignment: Alignment.center,
       children: [
         Container(
-          width: 130,
-          height: 130,
+          width: tamanoHalo,
+          height: tamanoHalo,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [Color(0x66FFE082), Color(0x00FFE082)]),
           ),
         ),
-        Image.asset(PaisajeIconos.sol, width: 62, cacheWidth: 124),
+        Image.asset(
+          PaisajeIconos.sol,
+          width: tamanoIcono,
+          cacheWidth: (tamanoIcono * 2).round(),
+        ),
       ],
     );
   }
@@ -170,6 +197,59 @@ class FondoCandy extends StatelessWidget {
       // más densidad todavía en la franja de pasto de relleno.
       y += 40 + rng.nextDouble() * 30;
       lado = !lado;
+    }
+    return widgets;
+  }
+
+  /// Decoración puntual en cada "codo" del sendero (donde el camino
+  /// cambia de dirección): el usuario pidió el doble de arbustos,
+  /// flores, ocas y rocas, ubicadas en el espacio verde que deja la
+  /// curva, no solo pegadas a los bordes del canvas como
+  /// `_decoracionesDelCamino`. Un codo es un punto donde `dx` es un
+  /// máximo o mínimo local sobre los puntos consecutivos del camino;
+  /// el "afuera" de la curva (donde hay espacio verde libre) es hacia
+  /// donde apunta ese pico.
+  List<Widget> _decoracionesEnCodos(Size size) {
+    if (camino.length < 3) return [];
+    final rng = Random(31);
+    const assets = [
+      PaisajeIconos.arbusto,
+      PaisajeIconos.flores,
+      PaisajeIconos.rocas,
+    ];
+    final widgets = <Widget>[];
+    for (var i = 1; i < camino.length - 1; i++) {
+      final prev = camino[i - 1].dx;
+      final cur = camino[i].dx;
+      final next = camino[i + 1].dx;
+      final int lado;
+      if (cur > prev && cur > next) {
+        lado = 1; // pico hacia la derecha: afuera de la curva = derecha
+      } else if (cur < prev && cur < next) {
+        lado = -1; // pico hacia la izquierda: afuera de la curva = izquierda
+      } else {
+        continue;
+      }
+      final centro = Offset(camino[i].dx * size.width, camino[i].dy * size.height);
+      // Dos ítems por codo (el "doble" que pidió el usuario), más
+      // separados del camino que el ancho del sendero pintado.
+      for (var n = 0; n < 2; n++) {
+        final asset = n == 0
+            ? CasillaIconos.framesOca[0]
+            : assets[rng.nextInt(assets.length)];
+        final ancho = asset == CasillaIconos.framesOca[0]
+            ? 22.0 + rng.nextDouble() * 8
+            : 30.0 + rng.nextDouble() * 24;
+        final offsetX = (46 + rng.nextDouble() * 22) * lado;
+        final offsetY = (rng.nextDouble() - 0.5) * 50 + n * 26 * lado.sign;
+        widgets.add(
+          Positioned(
+            left: (centro.dx + offsetX - ancho / 2).clamp(0.0, size.width - ancho),
+            top: centro.dy + offsetY,
+            child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
+          ),
+        );
+      }
     }
     return widgets;
   }
