@@ -284,11 +284,11 @@ flutter run -d chrome  # en el navegador, para probar rápido
   arte real — se muestran con un ícono de Material Design.
 - El bot no tiene personalización propia todavía: usa un color fijo
   para verse distinto del jugador.
-- El estilo "cristal/gema brillante" quedó solo en la casilla de
-  trampolín — calavera, minijuego y cárcel ya se reemplazaron por el
-  arte que mandó el usuario (ver más arriba). Falta reemplazo para
-  trampolín. Ver sección 8 de `docs/SPEC_VISUAL_V2.md` (desactualizada
-  en este punto).
+- El estilo "cristal/gema brillante" original ya no queda en ninguna
+  casilla de trampa: calavera, minijuego, cárcel y trampolín se
+  reemplazaron todas por arte real que mandó el usuario (ver más
+  arriba). Ver sección 8 de `docs/SPEC_VISUAL_V2.md` (desactualizada en
+  este punto, todavía describe el estilo gema).
 
 Todavía **no** están implementados: multijugador en tiempo real (sala,
 campaña grupal, desafío grupal), economía de monedas visible en pantalla,
