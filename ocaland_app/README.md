@@ -184,12 +184,41 @@ flutter run -d chrome  # en el navegador, para probar rápido
   después se abre la trivia o el minijuego. El trampolín también
   muestra a qué casilla exacta salta ("¡Caíste en el trampolín!
   Saltás a la casilla 18.") en vez de solo el avance en casillas.
+- **Fondos recortados: sin "nubes" falsas en el pasto**: la compactación
+  de arriba no alcanzaba — el usuario seguía viendo manchas con forma de
+  nube en la parte verde. La causa real: los 3 fondos (`fondo_bosque`,
+  `fondo_jardin`, `fondo_castillo`) son ilustraciones completas de una
+  escena (árboles/castillo/isla flotante) seguidas de una franja de
+  "relleno" plano con manchones claros pintados a mano (parecen nubes)
+  y, en dos de los tres, niebla/nubes recortadas justo en el borde
+  inferior — se notaba apenas se mostraba más que la franja superior.
+  Se recortaron los 3 PNG (`assets/paisaje/fondos/`) para quedarse solo
+  con la franja de escena real (detectando dónde el detalle de la
+  ilustración cae a una zona plana, por varianza de color por fila) y
+  se actualizó `fondoAspectRatio`/`fondoColorPie` en `paleta_bloque.dart`
+  acorde al nuevo recorte. Ahora esa franja real es angosta y el resto
+  del tablero (pasto + decoración procedural) no tiene ninguna mancha
+  rara.
+- **INICIO y META ya no se cortan**: con el tablero compactado, el
+  cartel de INICIO (96px de alto) se posicionaba con la punta arriba
+  del borde superior del área scrolleable (fuera de rango, invisible)
+  y el marcador de META quedaba pegado al borde inferior sin aire para
+  distinguirse. `camino_tablero.dart` le da más margen arriba y abajo
+  (`y = 0.14 + 0.76*t`, antes `0.11 + 0.85*t`) para que ambos entren
+  completos.
+- **Más densidad de flores y rocas**: el usuario pidió más variedad en
+  la franja de pasto de relleno — la lista de decoración pondera más
+  rocas/flores (antes un ítem cada una, ahora dos) y el intervalo entre
+  decoraciones bajó (95-165px → 60-105px) para que no se sienta vacía.
 
 ### Simplificaciones de este corte (a mejorar después)
 
 - El camino serpenteante es una curva paramétrica genérica (seno), no un
   trazado dibujado a mano — funciona para cualquier cantidad de casillas
-  pero no imita un mapa puntual.
+  pero no imita un mapa puntual. El usuario confirmó que este estilo le
+  gusta y pidió, como exploración futura (no urgente), probar otras
+  formas de camino con la misma lógica de generación (circular, espiral)
+  para comparar.
 - El bloque "Tensión" (etapas 7-9) todavía no tiene fondo de escena real
   (usa colina + pasto dibujado) — falta conseguir/generar una escena
   volcánica completa como las otras 3, o adaptar el arte de roca/lava

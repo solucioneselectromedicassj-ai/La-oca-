@@ -53,8 +53,8 @@ class PaletaBloque {
       colorAppBar: Color(0xFF43D67D),
       colorAcento: Color(0xFFFFC93C),
       fondoAsset: 'assets/paisaje/fondos/fondo_bosque.png',
-      fondoAspectRatio: 1800 / 913,
-      fondoColorPie: Color(0xFF394736),
+      fondoAspectRatio: 1800 / 188,
+      fondoColorPie: Color(0xFF49783B),
     ),
     // 4-6 · Desafío: misterioso, aire fresco — atardecer/viento.
     BloqueEtapas.desafio: PaletaBloque(
@@ -63,8 +63,8 @@ class PaletaBloque {
       colorAppBar: Color(0xFF7C4DFF),
       colorAcento: Color(0xFF4FD8E0),
       fondoAsset: 'assets/paisaje/fondos/fondo_jardin.png',
-      fondoAspectRatio: 1800 / 1014,
-      fondoColorPie: Color(0xFF7B6C63),
+      fondoAspectRatio: 1800 / 335,
+      fondoColorPie: Color(0xFF49741E),
     ),
     // 7-9 · Tensión: intenso pero nunca oscuro — peligro controlado.
     BloqueEtapas.tension: PaletaBloque(
@@ -87,7 +87,7 @@ class PaletaBloque {
       colorAppBar: Color(0xFFE0A800),
       colorAcento: Color(0xFF7C4DFF),
       fondoAsset: 'assets/paisaje/fondos/fondo_castillo.png',
-      fondoAspectRatio: 1800 / 1014,
+      fondoAspectRatio: 1800 / 335,
       fondoColorPie: Color(0xFF603C2D),
     ),
   };

@@ -26,9 +26,16 @@ class CaminoTablero {
 
     Offset punto(double t) {
       final x = 0.5 + direccion * amplitud * sin((t + faseInicial) * frecuencia * pi);
-      // Arranca un poco más abajo (0.11 en vez de 0.06) para dejarle
-      // aire al cartel de INICIO y al cielo/sol/nubes sin que se pisen.
-      final y = 0.11 + 0.85 * t;
+      // El cartel de INICIO mide 96px de alto y se ancla por arriba de
+      // su punto del camino (ver `_posicionarCasilla`); con el tablero
+      // compactado, 0.11 se quedaba corto y el cartel quedaba con la
+      // punta cortada arriba de la pantalla (fuera del área
+      // scrolleable). 0.14 le da margen real. Del mismo modo, el
+      // marcador de META (100px) necesita margen ABAJO: con 0.85 de
+      // rango terminaba pegado al borde inferior del canvas y la
+      // casilla de llegada no se alcanzaba a distinguir — 0.76 deja
+      // ~10% de aire debajo del último punto.
+      final y = 0.14 + 0.76 * t;
       return Offset(x, y);
     }
 

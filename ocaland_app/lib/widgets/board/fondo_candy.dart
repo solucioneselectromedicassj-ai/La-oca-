@@ -140,11 +140,17 @@ class FondoCandy extends StatelessWidget {
   /// semilla fija para que no cambie en cada rebuild (parpadeo).
   List<Widget> _decoracionesDelCamino(Size size) {
     final rng = Random(23);
+    // Rocas y flores repetidas a propósito: el usuario pidió más
+    // densidad de esas dos justamente (no más árboles/arbustos, que ya
+    // abundaban) en la franja de pasto de relleno debajo de la imagen
+    // real.
     const assets = [
       PaisajeIconos.arbolFrondoso,
       PaisajeIconos.arbolPino,
       PaisajeIconos.arbusto,
       PaisajeIconos.rocas,
+      PaisajeIconos.rocas,
+      PaisajeIconos.flores,
       PaisajeIconos.flores,
     ];
     final widgets = <Widget>[];
@@ -163,7 +169,9 @@ class FondoCandy extends StatelessWidget {
           child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
         ),
       );
-      y += 95 + rng.nextDouble() * 70;
+      // Intervalo más chico (antes 95-165) para que la franja de pasto
+      // se sienta más poblada, como pidió el usuario.
+      y += 60 + rng.nextDouble() * 45;
       lado = !lado;
     }
     return widgets;
