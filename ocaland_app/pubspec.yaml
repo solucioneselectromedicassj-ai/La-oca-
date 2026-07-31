@@ -84,6 +84,7 @@ flutter:
     - assets/ruleta/
     - assets/minijuegos/
     - assets/paisaje/
+    - assets/paisaje/fondos/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -25,6 +25,7 @@ class TableroWidget extends StatefulWidget {
     required this.posBot,
     required this.gradiente,
     required this.acento,
+    this.fondoAsset,
     this.spriteJugador,
     this.frameJugador = 0,
     this.spriteBot,
@@ -37,6 +38,10 @@ class TableroWidget extends StatefulWidget {
   /// v2), para pintar el paisaje de fondo (cielo/colinas) del tablero.
   final List<Color> gradiente;
   final Color acento;
+
+  /// Fondo de escena real de este bloque (si existe), repetido
+  /// verticalmente a lo largo de todo el tablero.
+  final String? fondoAsset;
 
   /// Forma del camino de esta etapa (varía por etapa, ver
   /// `CampanaSoloController.camino`).
@@ -134,6 +139,7 @@ class _TableroWidgetState extends State<TableroWidget> {
                     child: FondoCandy(
                       gradiente: widget.gradiente,
                       acento: widget.acento,
+                      fondoAsset: widget.fondoAsset,
                       trampolinesPx: _trampolinesPx(size),
                     ),
                   ),

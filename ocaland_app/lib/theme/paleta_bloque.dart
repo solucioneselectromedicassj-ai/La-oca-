@@ -19,12 +19,18 @@ class PaletaBloque {
     required this.gradiente,
     required this.colorAppBar,
     required this.colorAcento,
+    this.fondoAsset,
   });
 
   final String nombre;
   final List<Color> gradiente;
   final Color colorAppBar;
   final Color colorAcento;
+
+  /// Fondo de escena real (arte del usuario) para este bloque, repetido
+  /// verticalmente a lo largo del tablero — si es `null`, se usa el
+  /// fondo genérico dibujado en código (colina de color + pasto).
+  final String? fondoAsset;
 
   static const Map<BloqueEtapas, PaletaBloque> porBloque = {
     // 1-3 · Comienzo: natural, cálido, amigable — mañana soleada.
@@ -33,6 +39,7 @@ class PaletaBloque {
       gradiente: [Color(0xFFDFF6E0), Color(0xFFFFF6D8), Color(0xFFD9F3FA)],
       colorAppBar: Color(0xFF43D67D),
       colorAcento: Color(0xFFFFC93C),
+      fondoAsset: 'assets/paisaje/fondos/fondo_bosque.png',
     ),
     // 4-6 · Desafío: misterioso, aire fresco — atardecer/viento.
     BloqueEtapas.desafio: PaletaBloque(
@@ -40,6 +47,7 @@ class PaletaBloque {
       gradiente: [Color(0xFFE3DBFF), Color(0xFFD6E4FF), Color(0xFFCFF3F1)],
       colorAppBar: Color(0xFF7C4DFF),
       colorAcento: Color(0xFF4FD8E0),
+      fondoAsset: 'assets/paisaje/fondos/fondo_jardin.png',
     ),
     // 7-9 · Tensión: intenso pero nunca oscuro — peligro controlado.
     BloqueEtapas.tension: PaletaBloque(
@@ -47,6 +55,9 @@ class PaletaBloque {
       gradiente: [Color(0xFFFFE0D6), Color(0xFFFFF0E8), Color(0xFFFFF8F5)],
       colorAppBar: Color(0xFFFF6F4D),
       colorAcento: Color(0xFFFF4D8D),
+      // Sin fondo de escena todavía (el arte que hay de este bloque es
+      // roca volcánica suelta, no una escena completa) — usa el
+      // genérico. Ver README para el detalle.
     ),
     // 10 · Cima: épico, celebratorio — dorado + arcoíris sutil.
     BloqueEtapas.cima: PaletaBloque(
@@ -58,6 +69,7 @@ class PaletaBloque {
       ],
       colorAppBar: Color(0xFFE0A800),
       colorAcento: Color(0xFF7C4DFF),
+      fondoAsset: 'assets/paisaje/fondos/fondo_castillo.png',
     ),
   };
 

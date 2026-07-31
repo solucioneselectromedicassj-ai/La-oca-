@@ -22,11 +22,17 @@ class FondoCandy extends StatelessWidget {
     required this.gradiente,
     required this.acento,
     required this.trampolinesPx,
+    this.fondoAsset,
   });
 
   final List<Color> gradiente;
   final Color acento;
   final List<Offset> trampolinesPx;
+
+  /// Fondo de escena real (arte del usuario), repetido verticalmente
+  /// para cubrir todo el tablero. Si es `null`, se usa el fondo
+  /// genérico (colina de color + pasto dibujado).
+  final String? fondoAsset;
 
   Color _oscurecer(Color color, double cantidad) {
     final hsl = HSLColor.fromColor(color);
@@ -48,16 +54,37 @@ class FondoCandy extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Cielo.
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: gradiente,
+            if (fondoAsset != null)
+              // Escena real de fondo (arte del usuario), repetida
+              // verticalmente — ya trae cielo, suelo y árboles pintados,
+              // así que no hace falta la colina/pasto genéricos.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(fondoAsset!),
+                    alignment: Alignment.topCenter,
+                    fit: BoxFit.fitWidth,
+                    repeat: ImageRepeat.repeatY,
+                  ),
+                ),
+              )
+            else ...[
+              // Cielo.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: gradiente,
+                  ),
                 ),
               ),
-            ),
+              // Una sola colina, arranca bien arriba para que el camino
+              // nunca quede flotando sobre el cielo vacío.
+              Positioned.fill(child: CustomPaint(painter: _ColinaPainter(verdeBase))),
+              // Textura de pasto sobre TODA la colina (no color liso).
+              Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
+            ],
             Align(alignment: const Alignment(0.75, -0.94), child: _sol()),
             Align(
               alignment: const Alignment(-0.55, -0.92),
@@ -67,11 +94,6 @@ class FondoCandy extends StatelessWidget {
               alignment: const Alignment(0.5, -0.86),
               child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
             ),
-            // Una sola colina, arranca bien arriba para que el camino
-            // nunca quede flotando sobre el cielo vacío.
-            Positioned.fill(child: CustomPaint(painter: _ColinaPainter(verdeBase))),
-            // Textura de pasto sobre TODA la colina (no color liso).
-            Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
             // Decoración real repartida en toda la altura del tablero,
             // a los costados del camino — no unos pocos íconos sueltos.
             ..._decoracionesDelCamino(size),

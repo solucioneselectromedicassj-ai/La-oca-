@@ -122,17 +122,29 @@ flutter run -d chrome  # en el navegador, para probar rápido
   casilla es lanzar al jugador +2/+4 casillas de entrada, no un cruce
   — se renombró en todo el código (`TipoCasilla.trampolin`,
   `InfoTrampolin`) para que el nombre no confunda con la mecánica.
+- **Fondo de escena real por bloque** (`lib/theme/paleta_bloque.dart`
+  campo `fondoAsset`, `assets/paisaje/fondos/`): el usuario proveyó
+  fondos ilustrados completos (no piezas sueltas) — bosque, jardín
+  celestial y castillo flotante — que se repiten verticalmente
+  (`DecorationImage` con `ImageRepeat.repeatY`) para cubrir todo el
+  tablero alto. Mapeados por bloque de etapas: Comienzo → bosque,
+  Desafío → jardín, Cima → castillo flotante. El bloque Tensión todavía
+  usa el fondo genérico (colina + pasto dibujado) porque el arte que
+  hay de ese bloque es roca volcánica suelta, no una escena completa.
 
 ### Simplificaciones de este corte (a mejorar después)
 
 - El camino serpenteante es una curva paramétrica genérica (seno), no un
   trazado dibujado a mano — funciona para cualquier cantidad de casillas
   pero no imita un mapa puntual.
-- El paisaje sigue siendo composición de sprites sueltos (árboles, pasto
-  dibujado, colina de color plano) sobre una franja angosta, no una
-  ilustración continua de una sola pieza — para un fondo 100%
-  "escenario pintado" sin costuras haría falta arte de fondo ilustrado
-  específico (por bloque de etapas), que no existe todavía.
+- El bloque "Tensión" (etapas 7-9) todavía no tiene fondo de escena real
+  (usa colina + pasto dibujado) — falta conseguir/generar una escena
+  volcánica completa como las otras 3, o adaptar el arte de roca/lava
+  suelto que sí hay.
+- El fondo de escena real se repite en bloques verticales fijos (no es
+  una ilustración de un tablero entero hecha a mano) — con suficiente
+  scroll se nota la repetición, aunque los árboles/rocas/agua reales
+  encima ayudan a disimularla.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.
