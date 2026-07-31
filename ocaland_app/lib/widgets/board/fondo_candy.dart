@@ -92,20 +92,17 @@ class FondoCandy extends StatelessWidget {
               // Textura de pasto sobre TODA la colina (no color liso).
               Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
             ],
-            // El sol/nubes van pegados al borde de arriba (no más
-            // abajo, como el cartel de INICIO): el camino arranca en
-            // un x aleatorio (puede ser cualquier lado), así que
-            // cualquier posición más baja corre el riesgo real de
-            // quedar tapada por el cartel/avatares de salida.
+            // El sol va pegado al borde de arriba (no más abajo, como
+            // el cartel de INICIO): el camino arranca en un x
+            // aleatorio (puede ser cualquier lado), así que cualquier
+            // posición más baja corre el riesgo real de quedar tapada
+            // por el cartel/avatares de salida.
+            //
+            // Las nubes sueltas (`nube1`/`nube2`) se sacaron: el
+            // usuario las pidió afuera directamente (no eran parte del
+            // paisaje real que subió y se seguían viendo pegadas al
+            // cartel de INICIO).
             Align(alignment: const Alignment(0.7, -0.985), child: _sol()),
-            Align(
-              alignment: const Alignment(-0.6, -0.97),
-              child: Image.asset(PaisajeIconos.nube1, width: 92, cacheWidth: 184),
-            ),
-            Align(
-              alignment: const Alignment(0.15, -0.965),
-              child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
-            ),
             // Decoración real repartida en toda la altura del tablero,
             // a los costados del camino — no unos pocos íconos sueltos.
             ..._decoracionesDelCamino(size),
@@ -169,9 +166,9 @@ class FondoCandy extends StatelessWidget {
           child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
         ),
       );
-      // Intervalo más chico (antes 95-165) para que la franja de pasto
-      // se sienta más poblada, como pidió el usuario.
-      y += 60 + rng.nextDouble() * 45;
+      // Intervalo más chico (95-165 → 60-105 → 40-70): el usuario pidió
+      // más densidad todavía en la franja de pasto de relleno.
+      y += 40 + rng.nextDouble() * 30;
       lado = !lado;
     }
     return widgets;
