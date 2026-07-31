@@ -137,6 +137,21 @@ flutter run -d chrome  # en el navegador, para probar rápido
   castillo flotante. El bloque Tensión todavía usa el fondo genérico
   (colina + pasto dibujado) porque el arte que hay de ese bloque es
   roca volcánica suelta, no una escena completa.
+- **Ajustes de legibilidad tras probar el tablero completo**: el
+  usuario marcó (viendo el tablero de punta a punta, no solo lo que
+  entra en una pantalla) que el sol/nubes quedaban tapados por el
+  cartel de INICIO cuando el camino arrancaba hacia ese lado, que los
+  arbustos/árboles quedaban montados sobre el camino en las curvas más
+  amplias, que las trampas costaban distinguirse contra el fondo real,
+  y que las fichas se veían chicas. Se corrigió: sol/nubes pegados al
+  borde de arriba del todo (fuera del rango donde puede llegar el
+  cartel de INICIO), decoración empujada a los bordes verdaderos del
+  canvas, aura de color detrás de cada trampa (amarillo=oca,
+  turquesa=trampolín, gris=cárcel, fucsia=calavera, celeste=minijuego)
+  para que se distingan de un vistazo, fichas más grandes (30→42px), y
+  el camino arranca un poco más abajo (deja aire para el cartel) con
+  más amplitud/frecuencia de curva para que serpentee de forma más
+  visible.
 
 ### Simplificaciones de este corte (a mejorar después)
 

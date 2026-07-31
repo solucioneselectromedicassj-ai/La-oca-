@@ -113,7 +113,7 @@ class _TableroWidgetState extends State<TableroWidget> {
     }
   }
 
-  double _tamanoDe(TipoCasilla tipo) => tipo.esCasillaFlotante ? 38 : 30;
+  double _tamanoDe(TipoCasilla tipo) => tipo.esCasillaFlotante ? 46 : 32;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +203,7 @@ class _TableroWidgetState extends State<TableroWidget> {
       widget.camino[widget.posBot].dx * size.width,
       widget.camino[widget.posBot].dy * size.height,
     );
-    const fichaTamano = 30.0;
+    const fichaTamano = 42.0;
     const duracion = Duration(milliseconds: 210);
     return Stack(
       clipBehavior: Clip.none,
@@ -311,22 +311,60 @@ class _Casilla extends StatelessWidget {
   final TipoCasilla tipo;
   final double tamano;
 
+  /// Color característico por tipo, para el aura de fondo — ayuda a
+  /// distinguir de un vistazo qué trampa es cada una, sobre todo con
+  /// un fondo de foto real detrás (no un color plano liso).
+  Color get _colorAura {
+    switch (tipo) {
+      case TipoCasilla.oca:
+        return OcalandColors.amarillo;
+      case TipoCasilla.trampolin:
+        return OcalandColors.turquesa;
+      case TipoCasilla.carcel:
+        return Colors.blueGrey.shade200;
+      case TipoCasilla.calavera:
+        return OcalandColors.fucsia;
+      case TipoCasilla.minijuego:
+        return OcalandColors.celeste;
+      default:
+        return Colors.white;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (tipo.esCasillaFlotante) {
       return CasillaTrampaAnimada(
         tipo: tipo,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.28),
-                blurRadius: 5,
-                offset: const Offset(0, 4),
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // Aura de color detrás, para distinguir el tipo de trampa
+            // de un vistazo aunque el fondo real sea una foto ocupada.
+            Container(
+              width: tamano * 1.35,
+              height: tamano * 1.35,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [_colorAura.withValues(alpha: 0.55), _colorAura.withValues(alpha: 0)],
+                ),
               ),
-            ],
-          ),
-          child: Center(child: _arteTrampa()),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    blurRadius: 5,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: _arteTrampa(),
+            ),
+          ],
         ),
       );
     }
@@ -496,8 +534,8 @@ class _FichaSprite extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       frames[indice % frames.length],
-      height: 40,
-      cacheHeight: 120,
+      height: 52,
+      cacheHeight: 156,
       fit: BoxFit.contain,
       alignment: Alignment.bottomCenter,
     );

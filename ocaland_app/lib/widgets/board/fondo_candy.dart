@@ -91,13 +91,18 @@ class FondoCandy extends StatelessWidget {
               // Textura de pasto sobre TODA la colina (no color liso).
               Positioned.fill(child: CustomPaint(painter: _PastoPainter(verdeOscuro))),
             ],
-            Align(alignment: const Alignment(0.75, -0.94), child: _sol()),
+            // El sol/nubes van pegados al borde de arriba (no más
+            // abajo, como el cartel de INICIO): el camino arranca en
+            // un x aleatorio (puede ser cualquier lado), así que
+            // cualquier posición más baja corre el riesgo real de
+            // quedar tapada por el cartel/avatares de salida.
+            Align(alignment: const Alignment(0.7, -0.985), child: _sol()),
             Align(
-              alignment: const Alignment(-0.55, -0.92),
+              alignment: const Alignment(-0.6, -0.97),
               child: Image.asset(PaisajeIconos.nube1, width: 92, cacheWidth: 184),
             ),
             Align(
-              alignment: const Alignment(0.5, -0.86),
+              alignment: const Alignment(0.15, -0.965),
               child: Image.asset(PaisajeIconos.nube2, width: 78, cacheWidth: 156),
             ),
             // Decoración real repartida en toda la altura del tablero,
@@ -144,7 +149,9 @@ class FondoCandy extends StatelessWidget {
     while (y < size.height * 0.98) {
       final asset = assets[rng.nextInt(assets.length)];
       final ancho = 34.0 + rng.nextDouble() * 28;
-      final xFrac = lado ? (0.05 + rng.nextDouble() * 0.09) : (0.95 - rng.nextDouble() * 0.09);
+      // Pegados a los bordes de verdad (el camino puede curvar hasta
+      // ~0.08-0.92 de ancho), para no quedar montados sobre el sendero.
+      final xFrac = lado ? (0.0 + rng.nextDouble() * 0.05) : (1.0 - rng.nextDouble() * 0.05);
       widgets.add(
         Positioned(
           left: size.width * xFrac - ancho / 2,

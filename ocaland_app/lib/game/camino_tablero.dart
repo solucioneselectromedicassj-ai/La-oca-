@@ -16,14 +16,16 @@ class CaminoTablero {
     if (cantidad <= 1) return [const Offset(0.5, 0.5)];
     final rng = random ?? Random();
 
-    final amplitud = 0.26 + rng.nextDouble() * 0.14; // 0.26 - 0.40
-    final frecuencia = 2.0 + rng.nextDouble() * 1.6; // 2.0 - 3.6 curvas
+    final amplitud = 0.32 + rng.nextDouble() * 0.10; // 0.32 - 0.42
+    final frecuencia = 3.0 + rng.nextDouble() * 1.8; // 3.0 - 4.8 curvas (serpenteo bien visible)
     final direccion = rng.nextBool() ? 1 : -1;
     final faseInicial = rng.nextDouble() * 0.3;
 
     Offset punto(double t) {
       final x = 0.5 + direccion * amplitud * sin((t + faseInicial) * frecuencia * pi);
-      final y = 0.06 + 0.88 * t;
+      // Arranca un poco más abajo (0.11 en vez de 0.06) para dejarle
+      // aire al cartel de INICIO y al cielo/sol/nubes sin que se pisen.
+      final y = 0.11 + 0.85 * t;
       return Offset(x, y);
     }
 
