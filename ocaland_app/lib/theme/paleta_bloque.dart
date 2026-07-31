@@ -20,6 +20,8 @@ class PaletaBloque {
     required this.colorAppBar,
     required this.colorAcento,
     this.fondoAsset,
+    this.fondoAspectRatio,
+    this.fondoColorPie,
   });
 
   final String nombre;
@@ -27,10 +29,21 @@ class PaletaBloque {
   final Color colorAppBar;
   final Color colorAcento;
 
-  /// Fondo de escena real (arte del usuario) para este bloque, repetido
-  /// verticalmente a lo largo del tablero — si es `null`, se usa el
+  /// Fondo de escena real (arte del usuario) para este bloque: se
+  /// muestra UNA sola vez, a su proporción natural, arriba del todo
+  /// del tablero (ahí van el cielo/inicio) — si es `null`, se usa el
   /// fondo genérico dibujado en código (colina de color + pasto).
   final String? fondoAsset;
+
+  /// Ancho/alto natural de [fondoAsset], para mostrarlo sin
+  /// distorsión (ni estirado ni recortado raro).
+  final double? fondoAspectRatio;
+
+  /// Color del borde inferior de [fondoAsset] (muestreado de la
+  /// imagen real): el resto del tablero, debajo de la imagen, se
+  /// pinta con este color + textura de pasto, para que la transición
+  /// sea pareja y no una costura brusca.
+  final Color? fondoColorPie;
 
   static const Map<BloqueEtapas, PaletaBloque> porBloque = {
     // 1-3 · Comienzo: natural, cálido, amigable — mañana soleada.
@@ -40,6 +53,8 @@ class PaletaBloque {
       colorAppBar: Color(0xFF43D67D),
       colorAcento: Color(0xFFFFC93C),
       fondoAsset: 'assets/paisaje/fondos/fondo_bosque.png',
+      fondoAspectRatio: 1800 / 913,
+      fondoColorPie: Color(0xFF394736),
     ),
     // 4-6 · Desafío: misterioso, aire fresco — atardecer/viento.
     BloqueEtapas.desafio: PaletaBloque(
@@ -48,6 +63,8 @@ class PaletaBloque {
       colorAppBar: Color(0xFF7C4DFF),
       colorAcento: Color(0xFF4FD8E0),
       fondoAsset: 'assets/paisaje/fondos/fondo_jardin.png',
+      fondoAspectRatio: 1800 / 1014,
+      fondoColorPie: Color(0xFF7B6C63),
     ),
     // 7-9 · Tensión: intenso pero nunca oscuro — peligro controlado.
     BloqueEtapas.tension: PaletaBloque(
@@ -70,6 +87,8 @@ class PaletaBloque {
       colorAppBar: Color(0xFFE0A800),
       colorAcento: Color(0xFF7C4DFF),
       fondoAsset: 'assets/paisaje/fondos/fondo_castillo.png',
+      fondoAspectRatio: 1800 / 1014,
+      fondoColorPie: Color(0xFF603C2D),
     ),
   };
 

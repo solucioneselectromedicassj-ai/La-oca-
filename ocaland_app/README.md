@@ -122,15 +122,21 @@ flutter run -d chrome  # en el navegador, para probar rápido
   casilla muestra solo su propio ícono, sin agua/puente decorativo
   alrededor (se probó esa decoración y el usuario pidió sacarla).
 - **Fondo de escena real por bloque** (`lib/theme/paleta_bloque.dart`
-  campo `fondoAsset`, `assets/paisaje/fondos/`): el usuario proveyó
-  fondos ilustrados completos (no piezas sueltas) — bosque, jardín
-  celestial y castillo flotante. Se usa **una sola imagen grande**
-  cubriendo todo el tablero (`BoxFit.cover`, sin repetir — se probó
-  repetirla verticalmente primero y el usuario prefirió una sola
-  imagen escalada). Mapeados por bloque de etapas: Comienzo → bosque,
-  Desafío → jardín, Cima → castillo flotante. El bloque Tensión todavía
-  usa el fondo genérico (colina + pasto dibujado) porque el arte que
-  hay de ese bloque es roca volcánica suelta, no una escena completa.
+  campos `fondoAsset`/`fondoAspectRatio`/`fondoColorPie`,
+  `assets/paisaje/fondos/`): el usuario proveyó fondos ilustrados
+  completos (no piezas sueltas) — bosque, jardín celestial y castillo
+  flotante. Primero se probó estirar la imagen para cubrir todo el
+  tablero alto (`BoxFit.cover`), pero eso desalineaba el cielo/sol/nube
+  con el pasto y el camino "empezaba en el cielo y terminaba en
+  cualquier lado". La versión final muestra la imagen **una sola vez, a
+  su proporción natural, arriba del todo** (ahí van el cielo, el sol,
+  las nubes y el INICIO), y el resto del tablero hacia abajo se pinta
+  con el color muestreado del borde inferior de esa misma imagen +
+  textura de pasto, para que la transición sea pareja. Mapeados por
+  bloque de etapas: Comienzo → bosque, Desafío → jardín, Cima →
+  castillo flotante. El bloque Tensión todavía usa el fondo genérico
+  (colina + pasto dibujado) porque el arte que hay de ese bloque es
+  roca volcánica suelta, no una escena completa.
 
 ### Simplificaciones de este corte (a mejorar después)
 
@@ -141,10 +147,9 @@ flutter run -d chrome  # en el navegador, para probar rápido
   (usa colina + pasto dibujado) — falta conseguir/generar una escena
   volcánica completa como las otras 3, o adaptar el arte de roca/lava
   suelto que sí hay.
-- El fondo de escena real es una sola imagen escalada para cubrir todo
-  el tablero (`BoxFit.cover`), no una ilustración de un tablero entero
-  hecha a mano — a mayor altura de tablero, más recortada/ampliada se
-  ve la imagen original (se pierde parte de los costados de la escena).
+- Solo la franja de arriba del tablero es la imagen real; el resto es
+  color liso + textura de pasto genérica — no es una ilustración de
+  todo el tablero hecha a mano.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

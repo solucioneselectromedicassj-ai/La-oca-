@@ -26,6 +26,8 @@ class TableroWidget extends StatefulWidget {
     required this.gradiente,
     required this.acento,
     this.fondoAsset,
+    this.fondoAspectRatio,
+    this.fondoColorPie,
     this.spriteJugador,
     this.frameJugador = 0,
     this.spriteBot,
@@ -39,9 +41,11 @@ class TableroWidget extends StatefulWidget {
   final List<Color> gradiente;
   final Color acento;
 
-  /// Fondo de escena real de este bloque (si existe), repetido
-  /// verticalmente a lo largo de todo el tablero.
+  /// Fondo de escena real de este bloque (si existe): se muestra una
+  /// sola vez, a su tamaño natural, arriba del todo del tablero.
   final String? fondoAsset;
+  final double? fondoAspectRatio;
+  final Color? fondoColorPie;
 
   /// Forma del camino de esta etapa (varía por etapa, ver
   /// `CampanaSoloController.camino`).
@@ -132,6 +136,8 @@ class _TableroWidgetState extends State<TableroWidget> {
                       gradiente: widget.gradiente,
                       acento: widget.acento,
                       fondoAsset: widget.fondoAsset,
+                      fondoAspectRatio: widget.fondoAspectRatio,
+                      fondoColorPie: widget.fondoColorPie,
                     ),
                   ),
                   Positioned.fill(

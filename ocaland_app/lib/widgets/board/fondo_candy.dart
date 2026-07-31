@@ -18,15 +18,20 @@ class FondoCandy extends StatelessWidget {
     required this.gradiente,
     required this.acento,
     this.fondoAsset,
+    this.fondoAspectRatio,
+    this.fondoColorPie,
   });
 
   final List<Color> gradiente;
   final Color acento;
 
-  /// Fondo de escena real (arte del usuario), una sola imagen grande
-  /// que cubre todo el tablero (sin repetirla). Si es `null`, se usa
-  /// el fondo genérico (colina de color + pasto dibujado).
+  /// Fondo de escena real (arte del usuario): se muestra UNA sola vez,
+  /// a su tamaño natural, arriba del todo del tablero (ahí van el
+  /// cielo y el inicio del camino). Si es `null`, se usa el fondo
+  /// genérico (colina de color + pasto dibujado).
   final String? fondoAsset;
+  final double? fondoAspectRatio;
+  final Color? fondoColorPie;
 
   Color _oscurecer(Color color, double cantidad) {
     final hsl = HSLColor.fromColor(color);
@@ -43,24 +48,33 @@ class FondoCandy extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
+        final altoImagen =
+            fondoAspectRatio != null ? size.width / fondoAspectRatio! : 0.0;
+        final colorSuelo = fondoColorPie ?? verdeBase;
+        final colorPasto = fondoColorPie != null ? _oscurecer(fondoColorPie!, 0.12) : verdeOscuro;
+
         return Stack(
           fit: StackFit.expand,
           children: [
-            if (fondoAsset != null)
-              // Escena real de fondo (arte del usuario): una sola
-              // imagen grande cubriendo todo el tablero, sin repetir —
-              // ya trae cielo, suelo y árboles pintados, así que no
-              // hace falta la colina/pasto genéricos.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(fondoAsset!),
-                    alignment: Alignment.topCenter,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              )
-            else ...[
+            if (fondoAsset != null) ...[
+              // Suelo de base para TODO el tablero (se ve debajo de la
+              // imagen real y llena el resto, más abajo), del mismo
+              // color que el borde inferior de la imagen para que la
+              // transición sea pareja.
+              DecoratedBox(decoration: BoxDecoration(color: colorSuelo)),
+              Positioned.fill(child: CustomPaint(painter: _PastoPainter(colorPasto))),
+              // La imagen real, UNA sola vez, a su proporción natural,
+              // arriba del todo — no estirada para cubrir todo el
+              // tablero (eso desalineaba el cielo/nubes con el pasto y
+              // el camino terminaba en cualquier lado).
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: altoImagen,
+                child: Image.asset(fondoAsset!, fit: BoxFit.cover, alignment: Alignment.topCenter),
+              ),
+            ] else ...[
               // Cielo.
               DecoratedBox(
                 decoration: BoxDecoration(
