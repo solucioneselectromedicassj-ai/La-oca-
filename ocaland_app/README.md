@@ -36,7 +36,8 @@ flutter run -d chrome  # en el navegador, para probar rápido
 - **Campaña Solo jugable** (`lib/screens/board_screen.dart`, `lib/game/`):
   tablero de 30 casillas con layout aleatorio por etapa (`board_layout.dart`,
   20/30 trampa repartidas 6 oca / 6 minijuego / 3 trampolín / 3 cárcel /
-  2 calavera), motor de movimiento con la regla de rebote real
+  2 calavera — sin cárcel en las etapas 7-10, ver más abajo), motor de
+  movimiento con la regla de rebote real
   (`game_engine.dart`), animación de caminata casilla por casilla,
   Cuestionados con timer y banco chico por franja de edad
   (`game/cuestionados/`), minijuego de Reflejos, trampolines con avance
@@ -260,22 +261,50 @@ flutter run -d chrome  # en el navegador, para probar rápido
   de dirección) para poner 2 elementos ahí — arbusto/flor/roca +
   una oca de adorno — del lado de afuera de la curva (el espacio verde
   que deja el giro), no solo en los bordes.
+- **3 formas de sendero + bloques "sin sendero" + fondos nuevos**: el
+  usuario pidió que el tablero varíe bastante más entre bloques de
+  etapas:
+  - **Etapas 1-6 (Comienzo + Desafío) con sendero**: `camino_tablero.dart`
+    ahora genera 3 formas distintas (`FormaCamino`) en vez de solo la
+    serpiente — interrogación (un gancho arriba + tallo ondulado hacia
+    abajo) y espiral (radio creciente + varias vueltas, como un resorte
+    visto de costado) — y rota por etapa (`FormaCamino.deEtapa`: 1
+    serpiente, 2 interrogación, 3 espiral, 4 serpiente, ...). El fondo
+    del bloque Desafío (etapas 4-6) pasó de `fondo_jardin.png` a
+    `fondo_valle.png` (montañas, río, monedas, cristales) que mandó el
+    usuario — a diferencia de bosque/castillo, no tiene franja de
+    relleno plano que recortar, así que se usa completa.
+  - **Etapas 7-10 (Tensión + Cima) sin sendero**: no hay camino de
+    tierra dibujado — las 30 casillas quedan sueltas/flotando
+    (`lib/game/tablero_flotante.dart`, `TableroWidget.sinSendero`),
+    reordenadas en cada etapa con una separación mínima real en
+    píxeles para que no se superpongan (no arman una curva continua
+    como `CaminoTablero`). Ninguna de estas etapas tiene cárcel
+    (`BoardLayout.generar(sinCarcel: true)` reparte esas 3 casillas
+    entre oca/minijuego/trampolín). Tensión (7-9) sigue sin fondo de
+    escena real — ahora usa un gradiente oscuro/volcánico + rocas de
+    lava sueltas como decoración (`fondo_candy.dart`,
+    `_decoracionLava`) en vez del pasto genérico. Cima (etapa 10) pasó
+    de `fondo_castillo.png` a `fondo_carnaval.png` (calle de carnaval
+    con fuegos artificiales y comparsa) que mandó el usuario.
+  - Los bloques "sin sendero" tampoco muestran sol ni ocas volando de
+    fondo (no tiene sentido un cielo soleado en una cueva de lava o de
+    noche en el carnaval), y se saltean la decoración de "codos" (no
+    hay curva de la que tomar el lado de afuera).
 
 ### Simplificaciones de este corte (a mejorar después)
 
-- El camino serpenteante es una curva paramétrica genérica (seno), no un
-  trazado dibujado a mano — funciona para cualquier cantidad de casillas
-  pero no imita un mapa puntual. El usuario confirmó que este estilo le
-  gusta y pidió, como exploración futura (no urgente), probar otras
-  formas de camino con la misma lógica de generación (circular, espiral)
-  para comparar.
-- El bloque "Tensión" (etapas 7-9) todavía no tiene fondo de escena real
-  (usa colina + pasto dibujado) — falta conseguir/generar una escena
-  volcánica completa como las otras 3, o adaptar el arte de roca/lava
-  suelto que sí hay.
-- Solo la franja de arriba del tablero es la imagen real; el resto es
-  color liso + textura de pasto genérica — no es una ilustración de
-  todo el tablero hecha a mano.
+- Las 3 formas de sendero son curvas paramétricas genéricas, no un
+  trazado dibujado a mano — funcionan para cualquier cantidad de
+  casillas pero no imitan un mapa puntual.
+- El bloque "Tensión" (etapas 7-9) todavía no tiene una imagen de
+  escena volcánica completa como bosque/valle/carnaval — usa un
+  gradiente oscuro + rocas de lava sueltas como decoración en vez de
+  eso.
+- Solo la franja de arriba del tablero (bosque) es un recorte; en
+  valle/carnaval se usa la imagen completa. El resto del tablero hacia
+  abajo sigue siendo color liso + textura de pasto genérica, no una
+  ilustración de todo el tablero hecha a mano.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

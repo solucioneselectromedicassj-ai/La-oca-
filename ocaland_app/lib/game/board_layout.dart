@@ -35,6 +35,17 @@ class BoardLayout {
     TipoCasilla.calavera: 2,
   };
 
+  /// Reparto de los bloques "sin sendero" (Tensión y Cima, sección 1 de
+  /// la spec visual): el usuario pidió sacar la cárcel de esas etapas.
+  /// Las 3 casillas que le tocaban se reparten entre oca/minijuego/
+  /// trampolín para mantener el mismo total de 20 trampas.
+  static const repartoSinCarcel = <TipoCasilla, int>{
+    TipoCasilla.oca: 7,
+    TipoCasilla.minijuego: 7,
+    TipoCasilla.trampolin: 4,
+    TipoCasilla.calavera: 2,
+  };
+
   /// El trampolín adelanta 2-4 casillas de entrada: si dos quedaran a
   /// menos de 5 casillas de distancia, caer en uno podría mandarte
   /// directo a otro (encadenados), lo cual no tiene lógica de juego —
@@ -42,8 +53,9 @@ class BoardLayout {
   /// mínima entre cualquier par de trampolines del layout.
   static const int _separacionMinimaTrampolines = 5;
 
-  factory BoardLayout.generar({Random? random}) {
+  factory BoardLayout.generar({Random? random, bool sinCarcel = false}) {
     final rng = random ?? Random();
+    final repartoUsado = sinCarcel ? repartoSinCarcel : reparto;
 
     var casillas = <int, TipoCasilla>{};
     var trampolines = <int, InfoTrampolin>{};
@@ -55,7 +67,7 @@ class BoardLayout {
       casillas = {};
       trampolines = {};
       var cursor = 0;
-      for (final entry in reparto.entries) {
+      for (final entry in repartoUsado.entries) {
         for (var i = 0; i < entry.value; i++) {
           final posicion = posicionesDisponibles[cursor++];
           casillas[posicion] = entry.key;

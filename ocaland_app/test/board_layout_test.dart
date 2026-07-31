@@ -43,4 +43,19 @@ void main() {
       }
     }
   });
+
+  test('sinCarcel saca la cárcel y reparte igual las 20 trampas entre el resto', () {
+    final layout = BoardLayout.generar(sinCarcel: true);
+    expect(layout.casillas.length, 20);
+    expect(layout.casillas.values.contains(TipoCasilla.carcel), isFalse);
+
+    final conteo = <TipoCasilla, int>{};
+    for (final tipo in layout.casillas.values) {
+      conteo[tipo] = (conteo[tipo] ?? 0) + 1;
+    }
+    expect(conteo[TipoCasilla.oca], 7);
+    expect(conteo[TipoCasilla.minijuego], 7);
+    expect(conteo[TipoCasilla.trampolin], 4);
+    expect(conteo[TipoCasilla.calavera], 2);
+  });
 }

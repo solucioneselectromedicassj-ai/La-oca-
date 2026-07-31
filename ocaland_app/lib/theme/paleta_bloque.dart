@@ -62,9 +62,13 @@ class PaletaBloque {
       gradiente: [Color(0xFFE3DBFF), Color(0xFFD6E4FF), Color(0xFFCFF3F1)],
       colorAppBar: Color(0xFF7C4DFF),
       colorAcento: Color(0xFF4FD8E0),
-      fondoAsset: 'assets/paisaje/fondos/fondo_jardin.png',
-      fondoAspectRatio: 1800 / 335,
-      fondoColorPie: Color(0xFF49741E),
+      // El usuario reemplazó el jardín por este valle (montañas, río,
+      // monedas y cristales) — a diferencia de bosque/castillo, esta
+      // imagen no tiene una franja de relleno plano que recortar: es
+      // detallada de punta a punta, así que se usa completa.
+      fondoAsset: 'assets/paisaje/fondos/fondo_valle.png',
+      fondoAspectRatio: 1024 / 559,
+      fondoColorPie: Color(0xFF809D5A),
     ),
     // 7-9 · Tensión: intenso pero nunca oscuro — peligro controlado.
     BloqueEtapas.tension: PaletaBloque(
@@ -86,9 +90,13 @@ class PaletaBloque {
       ],
       colorAppBar: Color(0xFFE0A800),
       colorAcento: Color(0xFF7C4DFF),
-      fondoAsset: 'assets/paisaje/fondos/fondo_castillo.png',
-      fondoAspectRatio: 1800 / 335,
-      fondoColorPie: Color(0xFF603C2D),
+      // El usuario reemplazó el castillo flotante por esta calle de
+      // carnaval (fuegos artificiales, comparsa, confeti) — misma
+      // lógica que el valle: imagen detallada de punta a punta, se usa
+      // completa en vez de recortar una franja.
+      fondoAsset: 'assets/paisaje/fondos/fondo_carnaval.png',
+      fondoAspectRatio: 1024 / 559,
+      fondoColorPie: Color(0xFF624860),
     ),
   };
 

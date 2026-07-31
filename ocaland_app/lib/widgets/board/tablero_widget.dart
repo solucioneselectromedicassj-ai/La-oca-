@@ -25,6 +25,7 @@ class TableroWidget extends StatefulWidget {
     required this.posBot,
     required this.gradiente,
     required this.acento,
+    this.sinSendero = false,
     this.fondoAsset,
     this.fondoAspectRatio,
     this.fondoColorPie,
@@ -35,6 +36,11 @@ class TableroWidget extends StatefulWidget {
   });
 
   final BoardLayout layout;
+
+  /// Bloques Tensión/Cima (sección 1 de la spec visual): casillas
+  /// sueltas sin camino de tierra dibujado conectándolas, a diferencia
+  /// del resto de las etapas.
+  final bool sinSendero;
 
   /// Paleta del bloque de etapas actual (sección 1 de la spec visual
   /// v2), para pintar el paisaje de fondo (cielo/colinas) del tablero.
@@ -138,14 +144,16 @@ class _TableroWidgetState extends State<TableroWidget> {
                       gradiente: widget.gradiente,
                       acento: widget.acento,
                       camino: widget.camino,
+                      sinSendero: widget.sinSendero,
                       fondoAsset: widget.fondoAsset,
                       fondoAspectRatio: widget.fondoAspectRatio,
                       fondoColorPie: widget.fondoColorPie,
                     ),
                   ),
-                  Positioned.fill(
-                    child: CustomPaint(painter: _CaminoPainter(widget.camino)),
-                  ),
+                  if (!widget.sinSendero)
+                    Positioned.fill(
+                      child: CustomPaint(painter: _CaminoPainter(widget.camino)),
+                    ),
                   for (var i = 0; i < TableroWidget.totalCasillas; i++)
                     _posicionarCasilla(i, size),
                   _posicionarFichas(size),

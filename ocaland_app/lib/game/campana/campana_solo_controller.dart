@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../board_layout.dart';
 import '../camino_tablero.dart';
 import '../game_engine.dart';
+import '../tablero_flotante.dart';
 import 'comodin_ruleta.dart';
 import 'config_etapa.dart';
 
@@ -24,6 +25,13 @@ class CampanaSoloController {
   /// igual que el layout de trampas).
   late List<Offset> camino;
 
+  /// A partir de la etapa 7 (bloques Tensión y Cima) el tablero no
+  /// dibuja un sendero: las casillas quedan sueltas/flotando y sin
+  /// cárcel, pedido explícito del usuario. `board_screen.dart` y
+  /// `tablero_widget.dart` usan esto para no pintar el camino de
+  /// tierra ni la decoración que depende de su dirección.
+  bool get sinSendero => etapa >= 7;
+
   int posJugador = 0;
   int posBot = 0;
   bool jugadorSaltaTurno = false;
@@ -38,10 +46,12 @@ class CampanaSoloController {
 
   void iniciarEtapa(int numero) {
     etapa = numero;
-    layout = BoardLayout.generar();
+    layout = BoardLayout.generar(sinCarcel: sinSendero);
     engine = GameEngine(layout);
     config = ConfigEtapa.generar(numero);
-    camino = CaminoTablero.generar(BoardLayout.meta + 1);
+    camino = sinSendero
+        ? TableroFlotante.generar(BoardLayout.meta + 1)
+        : CaminoTablero.generar(BoardLayout.meta + 1, forma: FormaCamino.deEtapa(numero));
     posJugador = 0;
     posBot = 0;
     jugadorSaltaTurno = false;
