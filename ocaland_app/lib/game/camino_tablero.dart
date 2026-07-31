@@ -16,8 +16,11 @@ class CaminoTablero {
     if (cantidad <= 1) return [const Offset(0.5, 0.5)];
     final rng = random ?? Random();
 
-    final amplitud = 0.32 + rng.nextDouble() * 0.10; // 0.32 - 0.42
-    final frecuencia = 3.0 + rng.nextDouble() * 1.8; // 3.0 - 4.8 curvas (serpenteo bien visible)
+    final amplitud = 0.34 + rng.nextDouble() * 0.09; // 0.34 - 0.43
+    final frecuencia = 6.0 + rng.nextDouble() * 2.5; // 6.0 - 8.5 curvas: muchas vueltas apretadas
+    // (tipo mapa de nivel), para acumular suficiente longitud de
+    // camino en un tablero bajo y que quepa en una pantalla de
+    // celular sin necesitar tanto scroll.
     final direccion = rng.nextBool() ? 1 : -1;
     final faseInicial = rng.nextDouble() * 0.3;
 

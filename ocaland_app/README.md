@@ -152,6 +152,38 @@ flutter run -d chrome  # en el navegador, para probar rápido
   el camino arranca un poco más abajo (deja aire para el cartel) con
   más amplitud/frecuencia de curva para que serpentee de forma más
   visible.
+- **Tablero compactado a una sola pantalla**: el usuario marcó que la
+  imagen completa "no entra en una pantalla de celular". El alto real
+  del contenido del tablero dependía de `_aspectRatioContenido`
+  (0.22, muy angosto/alto) — se subió a 0.62 y, para que las 30
+  casillas no volvieran a superponerse en un tablero más bajo, el
+  camino (`camino_tablero.dart`) pasó a tener muchas más
+  curvas/vueltas (`frecuencia` 3.0-4.8 → 6.0-8.5) para acumular
+  suficiente longitud de recorrido en menos alto. Resultado: INICIO y
+  META entran juntos en una pantalla de celular normal, sin scroll.
+  Como efecto colateral esto también resolvió el reclamo de "nubes en
+  el pasto": al ocupar la imagen real una franja proporcionalmente
+  mucho más grande del tablero compactado, el sol/las nubes quedan
+  dentro de la escena ilustrada en vez de flotar sobre el pasto de
+  relleno de abajo.
+- **Dados con el arte nuevo**: el usuario subió un set de dados más
+  nítido (fondo blanco, pips gris oscuro); se recortaron las 6 caras
+  desde la grilla 3×2 (detectando los bordes reales por canal alfa,
+  no por división pareja del ancho de imagen, porque el contenido no
+  ocupaba todo el ancho) y reemplazaron `assets/dado/estatico_*.png`.
+  No llegó un set nuevo de frames "con desenfoque de movimiento" a
+  juego con este estilo, así que el ciclo rápido de tirada reutiliza
+  las mismas 6 caras limpias en vez de mezclar dos estilos de arte.
+- **Ocas volando de fondo**: unas pocas siluetas de la animación de
+  vuelo de la oca, puramente decorativas (no son casillas), repartidas
+  a lo largo del camino para darle más vida a la escena.
+- **Leyenda al caer en una trampa**: antes el mensaje de la casilla
+  solo aparecía después de resolver la trivia/minijuego. Ahora, al
+  caer en oca/cárcel/calavera/minijuego, primero se muestra un aviso
+  de llegada ("Caíste en la oca: ¡a responder!", etc.) y recién
+  después se abre la trivia o el minijuego. El trampolín también
+  muestra a qué casilla exacta salta ("¡Caíste en el trampolín!
+  Saltás a la casilla 18.") en vez de solo el avance en casillas.
 
 ### Simplificaciones de este corte (a mejorar después)
 

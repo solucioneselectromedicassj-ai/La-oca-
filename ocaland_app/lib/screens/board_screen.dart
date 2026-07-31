@@ -151,14 +151,16 @@ class _BoardScreenState extends State<BoardScreen> {
       case TipoCasilla.trampolin:
         final avance = _controller.layout.infoTrampolinDe(pos)!.avance;
         setState(() => _mensaje =
-            '${esJugador ? "Caíste" : "El bot cayó"} en un trampolín: +$avance casillas.');
-        await Future.delayed(const Duration(milliseconds: 500));
+            '${esJugador ? "¡Caíste en el trampolín!" : "El bot cayó en el trampolín"} Saltás a la casilla ${pos + avance}.');
+        await Future.delayed(const Duration(milliseconds: 700));
         await _mover(esJugador: esJugador, dado: avance);
         return;
 
       case TipoCasilla.oca:
       case TipoCasilla.carcel:
       case TipoCasilla.calavera:
+        setState(() => _mensaje = _leyendaLlegada(esJugador: esJugador, tipo: tipo));
+        await Future.delayed(const Duration(milliseconds: 600));
         final acerto = await _resolverCuestionados(esJugador: esJugador, tipo: tipo);
         await _aplicarResultadoCuestionados(
           esJugador: esJugador,
@@ -168,6 +170,9 @@ class _BoardScreenState extends State<BoardScreen> {
         return;
 
       case TipoCasilla.minijuego:
+        setState(() => _mensaje = _leyendaLlegada(esJugador: esJugador, tipo: tipo));
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted) return;
         final gano = esJugador
             ? await (_rng.nextBool()
                 ? MinijuegoReflejosDialog.mostrar(context)
@@ -220,6 +225,25 @@ class _BoardScreenState extends State<BoardScreen> {
       tituloCasilla: '${tipo.emoji} ${_nombreCasilla(tipo)}',
       segundos: segundos,
     );
+  }
+
+  /// Leyenda al caer en una casilla de trampa, ANTES de resolverla (el
+  /// aviso de "te encontraste con..." que pidió el usuario), para que se
+  /// entienda qué pasó sin esperar al resultado de la trivia/minijuego.
+  String _leyendaLlegada({required bool esJugador, required TipoCasilla tipo}) {
+    final quien = esJugador ? 'Caíste' : 'El bot cayó';
+    switch (tipo) {
+      case TipoCasilla.oca:
+        return '$quien en la oca: ¡a responder!';
+      case TipoCasilla.carcel:
+        return '$quien en la cárcel: ¡a responder!';
+      case TipoCasilla.calavera:
+        return '$quien en la calavera: ¡cuidado, a responder!';
+      case TipoCasilla.minijuego:
+        return '$quien en un minijuego: ¡a jugar!';
+      default:
+        return '';
+    }
   }
 
   String _nombreCasilla(TipoCasilla tipo) {

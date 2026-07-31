@@ -70,10 +70,12 @@ class _TableroWidgetState extends State<TableroWidget> {
   final _scrollController = ScrollController();
   double _anchoActual = 0;
 
-  /// Ancho/alto del contenido interno (no de la pantalla): bien angosto
-  /// para que las 30 casillas tengan espacio real entre sí. El usuario
-  /// hace scroll vertical para recorrerlo.
-  static const double _aspectRatioContenido = 0.22;
+  /// Ancho/alto del contenido interno (no de la pantalla): antes era
+  /// mucho más angosto/alto (0.22) para separar las 30 casillas, pero
+  /// el usuario marcó que ni así entraba en una pantalla de celular.
+  /// Con el camino de más vueltas apretadas (`CaminoTablero`) alcanza
+  /// una proporción bastante más compacta y sigue sin superponerse.
+  static const double _aspectRatioContenido = 0.62;
 
   @override
   void initState() {

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../game/paisaje_iconos.dart';
+import 'casilla_iconos.dart';
 
 /// Fondo del tablero como paisaje continuo: cielo con sol y nubes, una
 /// sola colina con textura de pasto (no color plano) y decoración real
@@ -108,6 +109,9 @@ class FondoCandy extends StatelessWidget {
             // Decoración real repartida en toda la altura del tablero,
             // a los costados del camino — no unos pocos íconos sueltos.
             ..._decoracionesDelCamino(size),
+            // Unas pocas ocas volando de fondo, puramente decorativas
+            // (no son casillas), para darle vida a la escena.
+            ..._gansosVolando(size),
           ],
         );
       },
@@ -163,6 +167,24 @@ class FondoCandy extends StatelessWidget {
       lado = !lado;
     }
     return widgets;
+  }
+
+  /// Un par de ocas volando de fondo (decoración, no casillas), para
+  /// que la escena se sienta con más vida — semilla fija.
+  List<Widget> _gansosVolando(Size size) {
+    final rng = Random(41);
+    final fracs = [0.22, 0.48, 0.74];
+    return [
+      for (final f in fracs)
+        Positioned(
+          left: size.width * (0.2 + rng.nextDouble() * 0.6),
+          top: size.height * f,
+          child: Opacity(
+            opacity: 0.85,
+            child: Image.asset(CasillaIconos.framesOca[0], width: 26, cacheWidth: 52),
+          ),
+        ),
+    ];
   }
 }
 
