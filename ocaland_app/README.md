@@ -115,19 +115,19 @@ flutter run -d chrome  # en el navegador, para probar rápido
     con auto-scroll a la ficha activa) para darles aire real, y
     `camino_tablero.dart` reparte los 30 puntos por longitud de arco en
     vez de por parámetro `t` parejo.
-- **Agua y puente real, anclados al trampolín**: el charco de agua y el
-  puente real aparecen justo donde hay una casilla de trampolín
-  (`_trampolinesPx`), no en un lugar arbitrario del camino.
 - **"Puente" renombrado a "trampolín"**: la mecánica real de esa
   casilla es lanzar al jugador +2/+4 casillas de entrada, no un cruce
   — se renombró en todo el código (`TipoCasilla.trampolin`,
-  `InfoTrampolin`) para que el nombre no confunda con la mecánica.
+  `InfoTrampolin`) para que el nombre no confunda con la mecánica. La
+  casilla muestra solo su propio ícono, sin agua/puente decorativo
+  alrededor (se probó esa decoración y el usuario pidió sacarla).
 - **Fondo de escena real por bloque** (`lib/theme/paleta_bloque.dart`
   campo `fondoAsset`, `assets/paisaje/fondos/`): el usuario proveyó
   fondos ilustrados completos (no piezas sueltas) — bosque, jardín
-  celestial y castillo flotante — que se repiten verticalmente
-  (`DecorationImage` con `ImageRepeat.repeatY`) para cubrir todo el
-  tablero alto. Mapeados por bloque de etapas: Comienzo → bosque,
+  celestial y castillo flotante. Se usa **una sola imagen grande**
+  cubriendo todo el tablero (`BoxFit.cover`, sin repetir — se probó
+  repetirla verticalmente primero y el usuario prefirió una sola
+  imagen escalada). Mapeados por bloque de etapas: Comienzo → bosque,
   Desafío → jardín, Cima → castillo flotante. El bloque Tensión todavía
   usa el fondo genérico (colina + pasto dibujado) porque el arte que
   hay de ese bloque es roca volcánica suelta, no una escena completa.
@@ -141,10 +141,10 @@ flutter run -d chrome  # en el navegador, para probar rápido
   (usa colina + pasto dibujado) — falta conseguir/generar una escena
   volcánica completa como las otras 3, o adaptar el arte de roca/lava
   suelto que sí hay.
-- El fondo de escena real se repite en bloques verticales fijos (no es
-  una ilustración de un tablero entero hecha a mano) — con suficiente
-  scroll se nota la repetición, aunque los árboles/rocas/agua reales
-  encima ayudan a disimularla.
+- El fondo de escena real es una sola imagen escalada para cubrir todo
+  el tablero (`BoxFit.cover`), no una ilustración de un tablero entero
+  hecha a mano — a mayor altura de tablero, más recortada/ampliada se
+  ve la imagen original (se pierde parte de los costados de la escena).
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

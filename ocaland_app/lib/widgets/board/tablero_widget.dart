@@ -111,14 +111,6 @@ class _TableroWidgetState extends State<TableroWidget> {
 
   double _tamanoDe(TipoCasilla tipo) => tipo.esCasillaFlotante ? 38 : 30;
 
-  List<Offset> _trampolinesPx(Size size) {
-    return [
-      for (var i = 1; i < BoardLayout.meta; i++)
-        if (widget.layout.tipoDe(i) == TipoCasilla.trampolin)
-          Offset(widget.camino[i].dx * size.width, widget.camino[i].dy * size.height),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -140,7 +132,6 @@ class _TableroWidgetState extends State<TableroWidget> {
                       gradiente: widget.gradiente,
                       acento: widget.acento,
                       fondoAsset: widget.fondoAsset,
-                      trampolinesPx: _trampolinesPx(size),
                     ),
                   ),
                   Positioned.fill(

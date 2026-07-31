@@ -12,26 +12,20 @@ import '../../game/paisaje_iconos.dart';
 /// un escenario continuo y no piezas pegadas. Los colores de la colina
 /// salen de la paleta del bloque de etapas actual.
 ///
-/// [trampolinesPx] son las posiciones (en píxeles, en el mismo sistema
-/// de coordenadas que el `size` de este widget) de las casillas de
-/// trampolín del layout actual — así el agua y el puente real aparecen
-/// justo donde hay una casilla de trampolín, no en un lugar arbitrario.
 class FondoCandy extends StatelessWidget {
   const FondoCandy({
     super.key,
     required this.gradiente,
     required this.acento,
-    required this.trampolinesPx,
     this.fondoAsset,
   });
 
   final List<Color> gradiente;
   final Color acento;
-  final List<Offset> trampolinesPx;
 
-  /// Fondo de escena real (arte del usuario), repetido verticalmente
-  /// para cubrir todo el tablero. Si es `null`, se usa el fondo
-  /// genérico (colina de color + pasto dibujado).
+  /// Fondo de escena real (arte del usuario), una sola imagen grande
+  /// que cubre todo el tablero (sin repetirla). Si es `null`, se usa
+  /// el fondo genérico (colina de color + pasto dibujado).
   final String? fondoAsset;
 
   Color _oscurecer(Color color, double cantidad) {
@@ -45,8 +39,6 @@ class FondoCandy extends StatelessWidget {
   Widget build(BuildContext context) {
     final verdeBase = _mezclar(const Color(0xFF9CCC65), acento, 0.25);
     final verdeOscuro = _oscurecer(verdeBase, 0.18);
-    const azulAgua = Color(0xFF4FC3F7);
-    final agua = _mezclar(azulAgua, acento, 0.15);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -55,16 +47,16 @@ class FondoCandy extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (fondoAsset != null)
-              // Escena real de fondo (arte del usuario), repetida
-              // verticalmente — ya trae cielo, suelo y árboles pintados,
-              // así que no hace falta la colina/pasto genéricos.
+              // Escena real de fondo (arte del usuario): una sola
+              // imagen grande cubriendo todo el tablero, sin repetir —
+              // ya trae cielo, suelo y árboles pintados, así que no
+              // hace falta la colina/pasto genéricos.
               DecoratedBox(
                 decoration: BoxDecoration(
                   image: DecorationImage(
                     image: AssetImage(fondoAsset!),
                     alignment: Alignment.topCenter,
-                    fit: BoxFit.fitWidth,
-                    repeat: ImageRepeat.repeatY,
+                    fit: BoxFit.cover,
                   ),
                 ),
               )
@@ -97,8 +89,6 @@ class FondoCandy extends StatelessWidget {
             // Decoración real repartida en toda la altura del tablero,
             // a los costados del camino — no unos pocos íconos sueltos.
             ..._decoracionesDelCamino(size),
-            // Agua real + puente real, anclados a cada casilla de trampolín.
-            for (final p in trampolinesPx) ..._puenteEnPunto(p, agua),
           ],
         );
       },
@@ -120,21 +110,6 @@ class FondoCandy extends StatelessWidget {
         Image.asset(PaisajeIconos.sol, width: 62, cacheWidth: 124),
       ],
     );
-  }
-
-  List<Widget> _puenteEnPunto(Offset p, Color agua) {
-    return [
-      Positioned(
-        left: p.dx - 70,
-        top: p.dy - 18,
-        child: Image.asset(PaisajeIconos.agua, width: 140, cacheWidth: 220),
-      ),
-      Positioned(
-        left: p.dx - 55,
-        top: p.dy - 62,
-        child: Image.asset(PaisajeIconos.puente, width: 110, cacheWidth: 220),
-      ),
-    ];
   }
 
   /// Genera decoración (árboles/arbustos/rocas/flores) a intervalos
