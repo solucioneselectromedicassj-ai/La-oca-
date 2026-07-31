@@ -12,21 +12,22 @@ class CasillaIconos {
     // El archivo sigue llamándose puente.png (arte sin cambios); lo que
     // se renombró fue el tipo de casilla, de "puente" a "trampolín".
     TipoCasilla.trampolin: '$_base/puente.png',
+    // Reemplazadas por el arte que mandó el usuario (torre de piedra
+    // con celda, no la gema brillante genérica de antes).
     TipoCasilla.carcel: '$_base/carcel.png',
+    // La estrella con cara reemplaza el ícono de gema genérico.
     TipoCasilla.minijuego: '$_base/minijuego.png',
+    // La calavera nueva es una sola imagen (sin frames de mandíbula
+    // animada como la anterior), reemplazada por el arte "amigable"
+    // que mandó el usuario.
+    TipoCasilla.calavera: '$_base/calavera.png',
   };
 
-  /// La oca y la calavera tienen animación propia (varios frames) en vez
-  /// de ícono estático + transform genérico.
+  /// La oca tiene animación propia (varios frames) en vez de ícono
+  /// estático + transform genérico.
   static const List<String> framesOca = [
     '$_base/oca_vuelo_1.png',
     '$_base/oca_vuelo_2.png',
     '$_base/oca_vuelo_3.png',
-  ];
-
-  static const List<String> framesCalavera = [
-    '$_base/calavera_1.png',
-    '$_base/calavera_2.png',
-    '$_base/calavera_3.png',
   ];
 }

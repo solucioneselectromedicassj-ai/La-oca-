@@ -209,7 +209,26 @@ flutter run -d chrome  # en el navegador, para probar rápido
 - **Más densidad de flores y rocas**: el usuario pidió más variedad en
   la franja de pasto de relleno — la lista de decoración pondera más
   rocas/flores (antes un ítem cada una, ahora dos) y el intervalo entre
-  decoraciones bajó (95-165px → 60-105px) para que no se sienta vacía.
+  decoraciones bajó (95-165px → 60-105px → 40-70px, en dos pedidos
+  seguidos) para que no se sienta vacía.
+- **Nubes sueltas afuera**: el usuario pidió sacar directamente las
+  nubes decorativas (`nube1`/`nube2`) que seguían apareciendo pegadas
+  al cartel de INICIO — se sacaron del todo, queda solo el sol.
+- **Nuevo arte de trampa: calavera, minijuego y cárcel**: el usuario
+  marcó que el estilo "gema brillante" de esas 3 trampas no era el que
+  quería (mandó ese estilo por error/como prueba) y mandó reemplazos:
+  calavera amigable con ojitos grandes, estrella con cara para
+  minijuego, y una torre de piedra con celda para cárcel. Los 3 venían
+  con fondo tipo casillero de transparencia "quemado" en el RGB (sin
+  canal alfa real) en vez de checkerboard prolijo — se procesaron con
+  un flood-fill desde el borde que solo avanza por píxeles acromáticos
+  dentro del rango de brillo del casillero (evita comerse el color
+  cálido de la piedra/hueso real). La calavera pasó de 3 frames
+  animados (mandíbula) a una sola imagen estática — no llegó un set de
+  frames nuevo, así que se sacó la animación especial y ahora usa el
+  mismo camino que cárcel/minijuego/trampolín (`iconoEstatico`). El
+  puente/trampolín sigue con el arte anterior (no llegó reemplazo
+  todavía).
 
 ### Simplificaciones de este corte (a mejorar después)
 
@@ -234,11 +253,11 @@ flutter run -d chrome  # en el navegador, para probar rápido
   arte real — se muestran con un ícono de Material Design.
 - El bot no tiene personalización propia todavía: usa un color fijo
   para verse distinto del jugador.
-- El estilo "cristal/gema brillante" de las casillas de trampa está
-  confirmado como intencional por el usuario (no es una inconsistencia
-  a corregir). La calavera se reemplazó por una versión más amigable
-  (ojos celestes en vez de rojos, con animación de mandíbula). Ver
-  sección 8 de `docs/SPEC_VISUAL_V2.md`.
+- El estilo "cristal/gema brillante" quedó solo en la casilla de
+  trampolín — calavera, minijuego y cárcel ya se reemplazaron por el
+  arte que mandó el usuario (ver más arriba). Falta reemplazo para
+  trampolín. Ver sección 8 de `docs/SPEC_VISUAL_V2.md` (desactualizada
+  en este punto).
 
 Todavía **no** están implementados: multijugador en tiempo real (sala,
 campaña grupal, desafío grupal), economía de monedas visible en pantalla,

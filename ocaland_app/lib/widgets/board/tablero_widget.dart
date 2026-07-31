@@ -374,20 +374,12 @@ class _Casilla extends StatelessWidget {
   }
 
   Widget _arteTrampa() {
-    switch (tipo) {
-      case TipoCasilla.oca:
-        return CicloIconoAnimado(frames: CasillaIconos.framesOca, alto: tamano);
-      case TipoCasilla.calavera:
-        return CicloIconoAnimado(
-          frames: CasillaIconos.framesCalavera,
-          alto: tamano * 1.05,
-          duracionFrame: const Duration(milliseconds: 380),
-        );
-      default:
-        final ruta = CasillaIconos.iconoEstatico[tipo];
-        if (ruta == null) return Text(tipo.emoji, style: TextStyle(fontSize: tamano * 0.7));
-        return Image.asset(ruta, height: tamano, cacheHeight: (tamano * 2).round());
+    if (tipo == TipoCasilla.oca) {
+      return CicloIconoAnimado(frames: CasillaIconos.framesOca, alto: tamano);
     }
+    final ruta = CasillaIconos.iconoEstatico[tipo];
+    if (ruta == null) return Text(tipo.emoji, style: TextStyle(fontSize: tamano * 0.7));
+    return Image.asset(ruta, height: tamano, cacheHeight: (tamano * 2).round());
   }
 }
 
