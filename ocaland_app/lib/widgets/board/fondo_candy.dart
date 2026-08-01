@@ -23,6 +23,7 @@ class FondoCandy extends StatelessWidget {
     this.fondoAsset,
     this.fondoAspectRatio,
     this.fondoColorPie,
+    this.fondoAlturaMinima,
   });
 
   final List<Color> gradiente;
@@ -47,6 +48,9 @@ class FondoCandy extends StatelessWidget {
   final double? fondoAspectRatio;
   final Color? fondoColorPie;
 
+  /// Ver `PaletaBloque.fondoAlturaMinima`.
+  final double? fondoAlturaMinima;
+
   Color _oscurecer(Color color, double cantidad) {
     final hsl = HSLColor.fromColor(color);
     return hsl.withLightness((hsl.lightness - cantidad).clamp(0.0, 1.0)).toColor();
@@ -67,8 +71,11 @@ class FondoCandy extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final altoImagen =
+        final altoImagenNatural =
             fondoAspectRatio != null ? size.width / fondoAspectRatio! : 0.0;
+        final altoImagen = fondoAlturaMinima != null
+            ? max(altoImagenNatural, size.height * fondoAlturaMinima!)
+            : altoImagenNatural;
         final colorSuelo = fondoColorPie ?? verdeBase;
         final colorPasto = fondoColorPie != null ? _oscurecer(fondoColorPie!, 0.12) : verdeOscuro;
 

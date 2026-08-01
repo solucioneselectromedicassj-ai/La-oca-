@@ -29,6 +29,7 @@ class TableroWidget extends StatefulWidget {
     this.fondoAsset,
     this.fondoAspectRatio,
     this.fondoColorPie,
+    this.fondoAlturaMinima,
     this.spriteJugador,
     this.frameJugador = 0,
     this.spriteBot,
@@ -52,6 +53,7 @@ class TableroWidget extends StatefulWidget {
   final String? fondoAsset;
   final double? fondoAspectRatio;
   final Color? fondoColorPie;
+  final double? fondoAlturaMinima;
 
   /// Forma del camino de esta etapa (varía por etapa, ver
   /// `CampanaSoloController.camino`).
@@ -148,6 +150,7 @@ class _TableroWidgetState extends State<TableroWidget> {
                       fondoAsset: widget.fondoAsset,
                       fondoAspectRatio: widget.fondoAspectRatio,
                       fondoColorPie: widget.fondoColorPie,
+                      fondoAlturaMinima: widget.fondoAlturaMinima,
                     ),
                   ),
                   if (!widget.sinSendero)

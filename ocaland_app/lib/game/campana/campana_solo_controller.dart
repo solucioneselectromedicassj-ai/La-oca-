@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../board_layout.dart';
 import '../camino_tablero.dart';
 import '../game_engine.dart';
+import '../tablero_carnaval.dart';
 import '../tablero_flotante.dart';
 import 'comodin_ruleta.dart';
 import 'config_etapa.dart';
@@ -32,6 +33,10 @@ class CampanaSoloController {
   /// tierra ni la decoración que depende de su dirección.
   bool get sinSendero => etapa >= 7;
 
+  /// Últimas etapas del bloque Tensión (8 y 9): más trampas que la
+  /// primera del bloque, pedido explícito del usuario.
+  bool get trampasIntensas => etapa >= 8 && etapa <= 9;
+
   int posJugador = 0;
   int posBot = 0;
   bool jugadorSaltaTurno = false;
@@ -46,12 +51,14 @@ class CampanaSoloController {
 
   void iniciarEtapa(int numero) {
     etapa = numero;
-    layout = BoardLayout.generar(sinCarcel: sinSendero);
+    layout = BoardLayout.generar(sinCarcel: sinSendero, trampasIntensas: trampasIntensas);
     engine = GameEngine(layout);
     config = ConfigEtapa.generar(numero);
-    camino = sinSendero
-        ? TableroFlotante.generar(BoardLayout.meta + 1)
-        : CaminoTablero.generar(BoardLayout.meta + 1, forma: FormaCamino.deEtapa(numero));
+    camino = numero == 10
+        ? TableroCarnaval.generar(BoardLayout.meta + 1)
+        : sinSendero
+            ? TableroFlotante.generar(BoardLayout.meta + 1)
+            : CaminoTablero.generar(BoardLayout.meta + 1, forma: FormaCamino.deEtapa(numero));
     posJugador = 0;
     posBot = 0;
     jugadorSaltaTurno = false;

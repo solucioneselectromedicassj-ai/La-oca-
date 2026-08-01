@@ -46,6 +46,17 @@ class BoardLayout {
     TipoCasilla.calavera: 2,
   };
 
+  /// El usuario pidió que, dentro del bloque Tensión, las últimas
+  /// etapas tengan más trampas que la primera ("sería igual a la
+  /// anterior con un poco más de formas y las casillas con más
+  /// trampas") — 24 de 28 en vez de 20, todavía sin cárcel.
+  static const repartoSinCarcelIntenso = <TipoCasilla, int>{
+    TipoCasilla.oca: 8,
+    TipoCasilla.minijuego: 8,
+    TipoCasilla.trampolin: 4,
+    TipoCasilla.calavera: 4,
+  };
+
   /// El trampolín adelanta 2-4 casillas de entrada: si dos quedaran a
   /// menos de 5 casillas de distancia, caer en uno podría mandarte
   /// directo a otro (encadenados), lo cual no tiene lógica de juego —
@@ -53,9 +64,14 @@ class BoardLayout {
   /// mínima entre cualquier par de trampolines del layout.
   static const int _separacionMinimaTrampolines = 5;
 
-  factory BoardLayout.generar({Random? random, bool sinCarcel = false}) {
+  factory BoardLayout.generar({
+    Random? random,
+    bool sinCarcel = false,
+    bool trampasIntensas = false,
+  }) {
     final rng = random ?? Random();
-    final repartoUsado = sinCarcel ? repartoSinCarcel : reparto;
+    final repartoUsado =
+        trampasIntensas ? repartoSinCarcelIntenso : (sinCarcel ? repartoSinCarcel : reparto);
 
     var casillas = <int, TipoCasilla>{};
     var trampolines = <int, InfoTrampolin>{};

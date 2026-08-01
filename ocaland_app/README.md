@@ -291,6 +291,50 @@ flutter run -d chrome  # en el navegador, para probar rápido
     fondo (no tiene sentido un cielo soleado en una cueva de lava o de
     noche en el carnaval), y se saltean la decoración de "codos" (no
     hay curva de la que tomar el lado de afuera).
+- **Ronda de ajustes sobre lo anterior, etapa por etapa** (el usuario
+  probó las 10 etapas y marcó qué servía y qué no):
+  - **Interrogación sin cruzarse**: la primera versión barría ~260°
+    (casi una vuelta completa) y con el ancho real del camino pintado
+    se veía "un rulo que se entrecruza" — el usuario lo marcó como "no
+    sirve". Se rediseñó a un arco de exactamente 180° (medio círculo,
+    de un lado al otro pasando por arriba) que geométricamente no
+    puede volver a pasar por donde ya pasó, seguido del tallo hacia
+    abajo como antes.
+  - **Valle ocupa mucho más del tablero**: el usuario pidió "ocupar
+    todo el fondo" en vez del ~34% de franja que ocupaba. Se agregó
+    `PaletaBloque.fondoAlturaMinima` (0.55 para Desafío): agranda el
+    recuadro de la imagen más allá de su alto natural y usa
+    `BoxFit.cover` para llenarlo (recorta un poco los costados, no
+    estira), dejando ~35% igual para la decoración de abajo que
+    también pidió.
+  - **Tablero flotante con "sentido de sendero invisible"**: en los
+    bloques sin camino dibujado, cada casilla ahora camina un paso
+    acotado en X desde la casilla anterior (en vez de sortear X
+    totalmente al azar) para que 1→2→3... se sienta consecutivo, como
+    si seguyera un sendero invisible — pedido explícito del usuario.
+  - **Más trampas en las etapas 8-9 de Tensión**: el usuario pidió que
+    esas etapas tengan más trampas que la 7 — `BoardLayout.generar`
+    ahora acepta `trampasIntensas` (24 de 28 casillas, en vez de 20,
+    todavía sin cárcel) para las etapas 8 y 9.
+  - **Etapa 10 sigue el camino de mosaico ya pintado en la imagen**:
+    el usuario notó que `fondo_carnaval.png` ya trae un sendero de
+    mosaico dibujado y pidió usar ESE camino para ubicar las 30
+    casillas reales, terminando junto al escenario con los fuegos
+    artificiales ("que dé sensación de terminación"). Se agregó
+    `lib/game/tablero_carnaval.dart`: puntos de control medidos a mano
+    sobre la imagen (con una grilla superpuesta) siguiendo el centro
+    del mosaico, repartidos por longitud de arco igual que
+    `CaminoTablero`. También se subió `fondoAlturaMinima` de Cima a
+    0.85 para que ese camino tenga lugar real para 30 casillas
+    espaciadas.
+  - **Etapa 4 con fondo de bosque**: el usuario reportó que la etapa 4
+    seguía mostrando el bosque en vez del valle. Se verificó
+    `PaletaBloque.deEtapa(4)` directamente (test manual) y devuelve
+    `fondo_valle.png` correctamente — bloqueDeEtapa no cambió sus
+    límites (1-3/4-6/7-9/10) en ningún momento de esta sesión. Es
+    probable que haya sido una build vieja en la pantalla que estaba
+    probando; si se lo sigue viendo después de este commit, avisar de
+    nuevo.
 
 ### Simplificaciones de este corte (a mejorar después)
 
@@ -298,11 +342,14 @@ flutter run -d chrome  # en el navegador, para probar rápido
   trazado dibujado a mano — funcionan para cualquier cantidad de
   casillas pero no imitan un mapa puntual.
 - El bloque "Tensión" (etapas 7-9) todavía no tiene una imagen de
-  escena volcánica completa como bosque/valle/carnaval — usa un
-  gradiente oscuro + rocas de lava sueltas como decoración en vez de
-  eso.
+  escena volcánica completa como bosque/valle/carnaval — el usuario
+  mencionó haber mandado un fondo para esa etapa, pero no llegó
+  ninguna imagen de escena nueva (solo hay rocas/volcán sueltos de
+  antes, ya usados como decoración) — sigue usando un gradiente
+  oscuro + esas rocas en vez de una escena completa.
 - Solo la franja de arriba del tablero (bosque) es un recorte; en
-  valle/carnaval se usa la imagen completa. El resto del tablero hacia
+  valle/carnaval se usa la imagen completa, agrandada más allá de su
+  alto natural con `fondoAlturaMinima`. El resto del tablero hacia
   abajo sigue siendo color liso + textura de pasto genérica, no una
   ilustración de todo el tablero hecha a mano.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /

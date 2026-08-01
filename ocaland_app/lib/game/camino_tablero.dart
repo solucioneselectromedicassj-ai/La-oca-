@@ -104,19 +104,25 @@ class CaminoTablero {
     };
   }
 
-  /// Forma de signo de pregunta: un gancho/espiral chico arriba (el
-  /// "rulo" de la ?) seguido de un tallo largo y ondulado hacia abajo
-  /// (la parte recta de la ?), continuo en el punto donde se unen.
+  /// Forma de signo de pregunta: un arco/gancho arriba (el "rulo" de la
+  /// ?) seguido de un tallo largo y ondulado hacia abajo (la parte
+  /// recta de la ?). La primera versión barría ~260° (casi una vuelta
+  /// completa) y con el ancho real del camino pintado se veía
+  /// cruzada/enredada sobre sí misma — el usuario lo marcó
+  /// explícitamente ("es un rulo y el sendero se entrecruza"). Este
+  /// arco barre solo 180° (medio círculo, de un lado al otro pasando
+  /// por arriba), así que geométricamente no puede volver a pasar por
+  /// donde ya pasó.
   static Offset Function(double) _generarInterrogacion(Random rng) {
     final direccion = rng.nextBool() ? 1 : -1;
-    final faseX = (rng.nextDouble() - 0.5) * 0.06;
+    final faseX = (rng.nextDouble() - 0.5) * 0.04;
     const centroX = 0.5;
     const centroYGancho = 0.19;
-    const radioXGancho = 0.27;
-    const radioYGancho = 0.10;
-    const anguloInicio = -0.35;
-    const anguloFin = 4.55; // ~260° de barrido
-    const finGancho = 0.34;
+    const radioXGancho = 0.23;
+    const radioYGancho = 0.11;
+    const anguloInicio = pi; // apunta a la izquierda
+    const anguloFin = 2 * pi; // medio giro después, apunta a la derecha
+    const finGancho = 0.30;
 
     final anguloFinX = centroX + radioXGancho * cos(anguloFin) * direccion + faseX;
     final anguloFinY = centroYGancho + radioYGancho * sin(anguloFin);
@@ -129,8 +135,12 @@ class CaminoTablero {
         final y = centroYGancho + radioYGancho * sin(angulo);
         return Offset(x, y);
       }
+      // El tallo arranca donde termina el arco y deriva de vuelta hacia
+      // el centro mientras baja, con una ondulación suave — nunca
+      // vuelve a subir a la altura del arco, así que tampoco se cruza
+      // con él.
       final tt = (t - finGancho) / (1 - finGancho);
-      final x = anguloFinX + sin(tt * pi * 1.4) * 0.09 * direccion;
+      final x = anguloFinX + (centroX - anguloFinX) * tt + sin(tt * pi * 1.3) * 0.08 * direccion;
       final y = anguloFinY + tt * (0.92 - anguloFinY);
       return Offset(x, y);
     };

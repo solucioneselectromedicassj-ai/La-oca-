@@ -524,6 +524,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   fondoAsset: paleta.fondoAsset,
                   fondoAspectRatio: paleta.fondoAspectRatio,
                   fondoColorPie: paleta.fondoColorPie,
+                  fondoAlturaMinima: paleta.fondoAlturaMinima,
                   spriteJugador: _avatarJugador?.caminata,
                   frameJugador: _frameCaminataJugador,
                   spriteBot: _avatarBot?.caminata,

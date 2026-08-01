@@ -22,6 +22,7 @@ class PaletaBloque {
     this.fondoAsset,
     this.fondoAspectRatio,
     this.fondoColorPie,
+    this.fondoAlturaMinima,
   });
 
   final String nombre;
@@ -38,6 +39,15 @@ class PaletaBloque {
   /// Ancho/alto natural de [fondoAsset], para mostrarlo sin
   /// distorsión (ni estirado ni recortado raro).
   final double? fondoAspectRatio;
+
+  /// Fracción mínima (0..1) del alto del tablero que debe ocupar
+  /// [fondoAsset], aunque su proporción natural dé una franja más
+  /// chica — agranda el recuadro y usa `BoxFit.cover` (recorta los
+  /// costados, no estira) para llenarlo. `null` = usar solo el alto
+  /// natural (como bosque, que necesita alinear el cielo/sol con
+  /// precisión). El usuario pidió esto para el valle: "quería ocupar
+  /// todo el fondo".
+  final double? fondoAlturaMinima;
 
   /// Color del borde inferior de [fondoAsset] (muestreado de la
   /// imagen real): el resto del tablero, debajo de la imagen, se
@@ -69,6 +79,10 @@ class PaletaBloque {
       fondoAsset: 'assets/paisaje/fondos/fondo_valle.png',
       fondoAspectRatio: 1024 / 559,
       fondoColorPie: Color(0xFF809D5A),
+      // El usuario pidió que ocupe más del tablero (antes solo un 34%
+      // de franja arriba) — deja igual ~35% para la decoración de
+      // abajo (arbustos/flores/rocas) que también pidió.
+      fondoAlturaMinima: 0.55,
     ),
     // 7-9 · Tensión: intenso pero nunca oscuro — peligro controlado.
     BloqueEtapas.tension: PaletaBloque(
@@ -97,6 +111,11 @@ class PaletaBloque {
       fondoAsset: 'assets/paisaje/fondos/fondo_carnaval.png',
       fondoAspectRatio: 1024 / 559,
       fondoColorPie: Color(0xFF624860),
+      // El usuario pidió usar el camino de mosaico ya pintado en la
+      // imagen para las 30 casillas (`TableroCarnaval`) — hace falta
+      // que la imagen ocupe la mayor parte del tablero para que ese
+      // camino tenga lugar real para 30 casillas espaciadas.
+      fondoAlturaMinima: 0.85,
     ),
   };
 
