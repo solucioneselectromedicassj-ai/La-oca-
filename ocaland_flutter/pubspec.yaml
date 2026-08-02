@@ -39,6 +39,7 @@ dependencies:
   realtime_client: ^2.6.0
   shared_preferences: ^2.3.3
   share_plus: ^10.1.3
+  audioplayers: ^6.6.0
 
 dev_dependencies:
   flutter_test:

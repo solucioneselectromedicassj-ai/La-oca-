@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/audio_service.dart';
 import '../../services/economy_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -16,12 +17,14 @@ class _RuletaBonusDialogState extends State<RuletaBonusDialog> {
 
   Future<void> _girar() async {
     setState(() => _girando = true);
+    AudioService.sorteo();
     try {
       final r = await EconomyService.girarRuletaBonus(widget.usuarioId);
       if (!mounted) return;
       if (r == null || r.yaUsado) {
         setState(() => _resultado = '⏳ Ya usaste tu giro de hoy. Volvé mañana.');
       } else if (r.valor > 1) {
+        AudioService.win();
         setState(() => _resultado = '🎉 ¡Conseguiste x${r.valor.toStringAsFixed(r.valor == r.valor.roundToDouble() ? 0 : 1)} monedas por ${r.minutosDuracion} minutos!');
       } else {
         setState(() => _resultado = '😅 Nada esta vez. Probá de nuevo mañana.');

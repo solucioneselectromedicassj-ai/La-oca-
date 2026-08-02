@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/audio_service.dart';
 import '../services/identity_service.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
@@ -30,6 +31,7 @@ class _RootScreenState extends State<RootScreen> {
       return;
     }
     if (resultado.premio != null) {
+      AudioService.coin();
       await showDialog(
         context: context,
         builder: (_) => PremioDiarioDialog(usuario: resultado.usuario, premio: resultado.premio!),

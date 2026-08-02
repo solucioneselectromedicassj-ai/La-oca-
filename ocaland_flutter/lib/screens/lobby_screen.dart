@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/usuario.dart';
+import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
@@ -47,6 +48,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
       try {
         final r = await EconomyService.registrarMinutoActivo(widget.usuario.id);
         if (mounted && r != null && r.huboPremio) {
+          AudioService.coin();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('+${r.monedasGanadas} 🪙 por seguir jugando (${r.minutosHoy} min hoy)')));
         }
       } catch (_) {}
@@ -146,6 +148,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     try {
       final r = await EconomyService.recompensaPorCompartir(widget.usuario.id);
       if (!mounted || r == null || r.yaReclamado) return;
+      AudioService.coin();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('+${r.monedasGanadas} 🪙 por compartir Ocaland')));
     } catch (_) {}
   }
