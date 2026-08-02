@@ -51,7 +51,6 @@ class SalaGameController extends ChangeNotifier {
   // ---- estado visible para la UI ----
   String gameMsg = '';
   MpOverlay overlay = MpOverlay.none;
-  bool diceHabilitado = false;
   bool diceRodando = false;
   int? diceValorMostrado;
   String? animatingPlayerId;
@@ -105,6 +104,20 @@ class SalaGameController extends ChangeNotifier {
   }
 
   bool get esMiTurno => jugadorEnTurno?.id == myPlayerId;
+
+  /// Calculado en vivo (en vez de un flag que hay que sincronizar a mano en
+  /// cada punto del código donde cambia el turno): habilitado solo si la
+  /// partida está en curso, no hay ningún overlay abierto, no se está
+  /// resolviendo ya una tirada, y es mi turno sin estar preso.
+  bool get diceHabilitado {
+    if (partida?.estado != 'en_curso') return false;
+    if (overlay != MpOverlay.none) return false;
+    if (diceRodando) return false;
+    final j = jugadorEnTurno;
+    if (j == null || j.id != myPlayerId) return false;
+    if (j.saltaTurno) return false;
+    return true;
+  }
 
   String get marcadorTexto => jugadores.map((j) => '${j.nombre}: ${j.victorias}').join('  ·  ');
 
@@ -420,7 +433,6 @@ class SalaGameController extends ChangeNotifier {
 
   Future<void> tirarDado() async {
     if (!esMiTurno || partida?.estado != 'en_curso' || overlay != MpOverlay.none) return;
-    diceHabilitado = false;
     diceRodando = true;
     AudioService.diceRoll();
     notifyListeners();
@@ -739,7 +751,6 @@ class SalaGameController extends ChangeNotifier {
 
   void _mostrarFinDePartida() {
     if (partida == null || jugadores.isEmpty) return;
-    diceHabilitado = false;
     final ganadorRonda = jugadores.where((j) => j.id == partida!.ultimoGanadorId).firstOrNull;
     final ronda = partida!.rondaActual;
     final rachaTermina = partida!.rachaGanador >= 2;
@@ -805,7 +816,6 @@ class SalaGameController extends ChangeNotifier {
   void _actualizarPanelDesempate() {
     final pendientes = partida!.desempatePendientes;
     if (pendientes.isEmpty) return;
-    diceHabilitado = false;
     final idx = partida!.desempateTurnoIdx % pendientes.length;
     final jugadorTurnoId = pendientes[idx];
     if (jugadorTurnoId == myPlayerId && !_desempateTriviaMostrada) {

@@ -108,7 +108,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             sufriendoPlayerId: c.sufriendoPlayerId,
                           ),
                           DiceWidget(
-                            habilitado: c.diceHabilitado && c.overlay == MpOverlay.none && !finalizada && !enDesempate,
+                            habilitado: c.diceHabilitado,
                             rodando: c.diceRodando,
                             valorFinal: c.diceValorMostrado,
                             onTap: c.tirarDado,
