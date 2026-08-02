@@ -7,11 +7,13 @@ import '../models/board_layout.dart';
 import '../models/jugador.dart';
 import '../models/pacing.dart';
 import '../models/partida.dart';
+import '../models/sesion_activa.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
 import 'join_room_result.dart';
+import 'session_service.dart';
 import 'supabase_service.dart';
 
 enum MpOverlay { none, sorteo, trivia, minijuego }
@@ -124,6 +126,7 @@ class SalaGameController extends ChangeNotifier {
     partida = Partida.fromJson(row);
     await _joinAsPlayer(partida!.id, 0);
     await _refreshJugadores();
+    await _guardarSesion();
     cargando = false;
     notifyListeners();
     _subscribeRealtime();
@@ -161,6 +164,7 @@ class SalaGameController extends ChangeNotifier {
     partida = p;
     await _joinAsPlayer(p.id, existentesRaw.length);
     await _refreshJugadores();
+    await _guardarSesion();
     cargando = false;
     notifyListeners();
     _subscribeRealtime();
@@ -168,14 +172,41 @@ class SalaGameController extends ChangeNotifier {
     return JoinRoomResult.ok(p);
   }
 
+  /// Desde "Mis partidas": recupera la partida y el jugador guardados por
+  /// id directamente (sin pasar por el código de sala) y reconecta.
+  /// Devuelve false si la partida ya no existe (se borró, etc.).
+  Future<bool> reanudarDesdeSesion(SesionActiva sesion) async {
+    try {
+      final partidaRow = await SupabaseService.from('partidas').select().eq('id', sesion.partidaId).single();
+      final jugadorRow = await SupabaseService.from('jugadores_partida').select().eq('id', sesion.playerId).single();
+      await reconectarComo(Partida.fromJson(partidaRow), JugadorPartida.fromJson(jugadorRow));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> reconectarComo(Partida p, JugadorPartida jugador) async {
     partida = p;
     myPlayerId = jugador.id;
     await _refreshJugadores();
+    await _guardarSesion();
     notifyListeners();
     _subscribeRealtime();
     _startPolling();
     if (partida!.estado == 'finalizada') _mostrarFinDePartida();
+  }
+
+  Future<void> _guardarSesion() async {
+    await SessionService.guardar(SesionActiva(
+      partidaId: partida!.id,
+      playerId: myPlayerId!,
+      nombre: myNombre,
+      edadBracket: myEdadBracket,
+      pais: myPais,
+      codigo: partida!.codigo,
+      esModoSolo: false,
+    ));
   }
 
   Future<void> _joinAsPlayer(String partidaId, int ordenTurno) async {
@@ -780,6 +811,7 @@ class SalaGameController extends ChangeNotifier {
     if (_channel != null) {
       await SupabaseService.client.removeChannel(_channel!);
     }
+    if (partida != null) await SessionService.borrar(partida!.id);
   }
 
   @override

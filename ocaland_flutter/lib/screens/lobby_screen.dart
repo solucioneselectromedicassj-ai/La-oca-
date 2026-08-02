@@ -1,17 +1,23 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/usuario.dart';
+import '../services/economy_service.dart';
 import '../services/sala_game_controller.dart';
+import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
 import 'join_sala_screen.dart';
+import 'mis_partidas_screen.dart';
 import 'pais_screen.dart';
+import 'perfil_screen.dart';
+import 'ranking_screen.dart';
 import 'waiting_room_screen.dart';
+import 'widgets/ruleta_bonus_dialog.dart';
 
-/// Lobby simplificado: el modo solo (campaña de 10 etapas vs bot) está
-/// activo y jugable. Los modos multijugador (sala normal, campaña grupal,
-/// desafío grupal) y las pestañas de Bonus/Cuenta todavía no están
-/// conectados — quedan para las próximas fases (ver plan de trabajo).
+/// Lobby: modo solo, sala normal (tanda) y toda la cuenta/economía activos.
+/// Campaña grupal en vivo y desafío grupal quedan para la próxima fase.
 class LobbyScreen extends StatefulWidget {
   final Usuario usuario;
   final String? nombre;
@@ -28,12 +34,28 @@ class _LobbyScreenState extends State<LobbyScreen> {
   int _tab = 0;
   String? _edadBracket;
   String? _pais;
+  Timer? _heartbeat;
 
   @override
   void initState() {
     super.initState();
     _edadBracket = widget.edadBracket;
     _pais = widget.pais;
+    // Recompensa por tiempo activo en la app (hitos a los 5/15/30 min), igual que el prototipo.
+    _heartbeat = Timer.periodic(const Duration(seconds: 60), (_) async {
+      try {
+        final r = await EconomyService.registrarMinutoActivo(widget.usuario.id);
+        if (mounted && r != null && r.huboPremio) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('+${r.monedasGanadas} 🪙 por seguir jugando (${r.minutosHoy} min hoy)')));
+        }
+      } catch (_) {}
+    });
+  }
+
+  @override
+  void dispose() {
+    _heartbeat?.cancel();
+    super.dispose();
   }
 
   String get _nombre => widget.nombre ?? widget.usuario.nombre;
@@ -63,9 +85,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   void _jugarSolo() {
     _conEdadYPais(() {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GameScreenSolo(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
-      ));
+      final controller = SoloGameController(usuario: widget.usuario, myNombre: _nombre, myEdadBracket: _edadBracket!, myPais: _pais!);
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => GameScreenSolo(controller: controller)));
     });
   }
 
@@ -90,6 +111,19 @@ class _LobbyScreenState extends State<LobbyScreen> {
         builder: (_) => JoinSalaScreen(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
       ));
     });
+  }
+
+  void _girarRuletaBonus() {
+    showDialog(context: context, builder: (_) => RuletaBonusDialog(usuarioId: widget.usuario.id));
+  }
+
+  Future<void> _compartirApp() async {
+    await Share.share('🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.');
+    try {
+      final r = await EconomyService.recompensaPorCompartir(widget.usuario.id);
+      if (!mounted || r == null || r.yaReclamado) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('+${r.monedasGanadas} 🪙 por compartir Ocaland')));
+    } catch (_) {}
   }
 
   @override
@@ -175,9 +209,41 @@ class _LobbyScreenState extends State<LobbyScreen> {
           ),
         );
       case 1:
-        return const _ProximamentePanel(texto: 'La ruleta de bonus diaria y compartir la app llegan en la próxima fase.');
+        return SingleChildScrollView(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _girarRuletaBonus, child: const Text('🎰 Ruleta de bonus diaria (multiplicador)'))),
+                  const SizedBox(height: 8),
+                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _compartirApp, child: const Text('📲 Compartir Ocaland (+15 🪙 hoy)'))),
+                ],
+              ),
+            ),
+          ),
+        );
       default:
-        return const _ProximamentePanel(texto: 'Perfil, ranking y "mis partidas" llegan en la próxima fase.');
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario))), child: const Text('📊 Mi perfil'))),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario))), child: const Text('🏆 Ranking'))),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario))), child: const Text('🎮 Mis partidas'))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
     }
   }
 
@@ -193,15 +259,5 @@ class _LobbyScreenState extends State<LobbyScreen> {
         ),
       ),
     );
-  }
-}
-
-class _ProximamentePanel extends StatelessWidget {
-  final String texto;
-  const _ProximamentePanel({required this.texto});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(texto, textAlign: TextAlign.center)));
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/usuario.dart';
+import '../models/sesion_activa.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
@@ -15,30 +15,24 @@ import 'widgets/sorteo_overlay.dart';
 import 'widgets/trivia_overlay.dart';
 
 class GameScreenSolo extends StatefulWidget {
-  final Usuario usuario;
-  final String nombre;
-  final String edadBracket;
-  final String pais;
+  final SoloGameController controller;
+  final SesionActiva? sesionAReanudar;
 
-  const GameScreenSolo({super.key, required this.usuario, required this.nombre, required this.edadBracket, required this.pais});
+  const GameScreenSolo({super.key, required this.controller, this.sesionAReanudar});
 
   @override
   State<GameScreenSolo> createState() => _GameScreenSoloState();
 }
 
 class _GameScreenSoloState extends State<GameScreenSolo> {
-  late final SoloGameController _c = SoloGameController(
-    usuario: widget.usuario,
-    myNombre: widget.nombre,
-    myEdadBracket: widget.edadBracket,
-    myPais: widget.pais,
-  );
+  SoloGameController get _c => widget.controller;
   String? _errorInicio;
 
   @override
   void initState() {
     super.initState();
-    _c.iniciar().catchError((e) {
+    final futuro = widget.sesionAReanudar != null ? _c.reanudar(widget.sesionAReanudar!) : _c.iniciar();
+    futuro.catchError((e) {
       if (mounted) setState(() => _errorInicio = 'No pudimos conectar con el servidor para arrancar la partida.');
     });
   }
@@ -130,9 +124,11 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
     );
   }
 
-  void _salir(BuildContext context) {
+  Future<void> _salir(BuildContext context) async {
+    await _c.salir();
+    if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LobbyScreen(usuario: _c.usuario, nombre: widget.nombre, edadBracket: widget.edadBracket, pais: widget.pais)),
+      MaterialPageRoute(builder: (_) => LobbyScreen(usuario: _c.usuario, nombre: _c.myNombre, edadBracket: _c.myEdadBracket, pais: _c.myPais)),
       (route) => false,
     );
   }

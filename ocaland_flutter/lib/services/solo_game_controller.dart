@@ -8,10 +8,12 @@ import '../models/campana.dart';
 import '../models/jugador.dart';
 import '../models/pacing.dart';
 import '../models/partida.dart';
+import '../models/sesion_activa.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
+import 'session_service.dart';
 import 'supabase_service.dart';
 
 enum GameOverlay {
@@ -163,11 +165,41 @@ class SoloGameController extends ChangeNotifier {
     partida = Partida.fromJson(updated);
 
     await _refreshJugadores();
+    await SessionService.guardar(SesionActiva(
+      partidaId: partida!.id,
+      playerId: myPlayerId!,
+      nombre: myNombre,
+      edadBracket: myEdadBracket,
+      pais: myPais,
+      codigo: partida!.codigo,
+      esModoSolo: true,
+    ));
     cargando = false;
     notifyListeners();
 
     await _sortearTurnoInicial();
     _procesarTurnoActual();
+  }
+
+  /// Retoma una campaña guardada (pantalla "Mis partidas") en vez de crear
+  /// una nueva. No vuelve a sortear el turno: continúa donde había quedado.
+  Future<void> reanudar(SesionActiva sesion) async {
+    cargando = true;
+    notifyListeners();
+    final row = await SupabaseService.from('partidas').select().eq('id', sesion.partidaId).single();
+    partida = Partida.fromJson(row);
+    myPlayerId = sesion.playerId;
+    etapaConfig = Campana.generarConfigEtapa(partida!.etapaActual);
+    _campanaInicioTs = DateTime.now();
+    _etapaInicioTs = DateTime.now();
+    await _refreshJugadores();
+    cargando = false;
+    notifyListeners();
+    _procesarTurnoActual();
+  }
+
+  Future<void> salir() async {
+    if (partida != null) await SessionService.borrar(partida!.id);
   }
 
   Future<void> _refreshJugadores() async {
