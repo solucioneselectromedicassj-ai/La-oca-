@@ -6,6 +6,7 @@ import '../services/economy_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
+import 'desafio_grupal_screen.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
 import 'join_sala_screen.dart';
@@ -16,8 +17,8 @@ import 'ranking_screen.dart';
 import 'waiting_room_screen.dart';
 import 'widgets/ruleta_bonus_dialog.dart';
 
-/// Lobby: modo solo, sala normal (tanda) y toda la cuenta/economía activos.
-/// Campaña grupal en vivo y desafío grupal quedan para la próxima fase.
+/// Lobby: todos los modos (solo, sala normal, campaña grupal en vivo,
+/// desafío grupal) y toda la cuenta/economía ya están activos.
 class LobbyScreen extends StatefulWidget {
   final Usuario usuario;
   final String? nombre;
@@ -113,6 +114,29 @@ class _LobbyScreenState extends State<LobbyScreen> {
     });
   }
 
+  void _crearCampanaGrupal() {
+    _conEdadYPais(() async {
+      final controller = SalaGameController(usuario: widget.usuario, myNombre: _nombre, myEdadBracket: _edadBracket!, myPais: _pais!);
+      try {
+        await controller.crearSalaCampanaGrupal();
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No pudimos conectar con el servidor.')));
+        return;
+      }
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => WaitingRoomScreen(controller: controller)));
+    });
+  }
+
+  void _desafioGrupal() {
+    _conEdadYPais(() {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => DesafioGrupalScreen(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
+      ));
+    });
+  }
+
   void _girarRuletaBonus() {
     showDialog(context: context, builder: (_) => RuletaBonusDialog(usuarioId: widget.usuario.id));
   }
@@ -203,8 +227,18 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ),
                 ),
               ),
-              _proximamente('🏆 Crear campaña grupal (10 etapas, en vivo)'),
-              _proximamente('🎯 Desafío grupal (campañas por separado)'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _crearCampanaGrupal, child: const Text('🏆 Crear campaña grupal (10 etapas, en vivo)'))),
+                ),
+              ),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _desafioGrupal, child: const Text('🎯 Desafío grupal (campañas por separado)'))),
+                ),
+              ),
             ],
           ),
         );
@@ -247,17 +281,4 @@ class _LobbyScreenState extends State<LobbyScreen> {
     }
   }
 
-  Widget _proximamente(String label) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: const TextStyle(color: Colors.black45))),
-            const Text('Próximamente', style: TextStyle(fontSize: 11, color: AppColors.magenta, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -5,9 +5,11 @@ import 'lobby_screen.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/desempate_panel.dart';
 import 'widgets/dice_widget.dart';
+import 'widgets/etapa_banner.dart';
 import 'widgets/fin_partida_panel.dart';
 import 'widgets/jugadores_status_row.dart';
 import 'widgets/minijuego_overlay.dart';
+import 'widgets/ruleta_overlay.dart';
 import 'widgets/sorteo_overlay.dart';
 import 'widgets/trivia_overlay.dart';
 
@@ -78,8 +80,12 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                                 : (c.esMiTurno ? '¡Tu turno!' : jugadorTurno != null ? 'Turno de ${jugadorTurno.nombre}' : ''),
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                           ),
-                          Text('Tanda (partida ${c.partida!.rondaActual}): ${c.marcadorTexto}', style: const TextStyle(fontSize: 11.5, color: Color(0xFF9B8AB5))),
-                          const SizedBox(height: 8),
+                          Text(
+                            c.esCampanaGrupal ? 'Campaña grupal (etapa ${c.partida!.rondaActual} de 10): ${c.marcadorTexto}' : 'Tanda (partida ${c.partida!.rondaActual}): ${c.marcadorTexto}',
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF9B8AB5)),
+                          ),
+                          const SizedBox(height: 6),
+                          if (c.esCampanaGrupal) EtapaBanner(etapa: c.partida!.etapaActual),
                           if (enDesempate) DesempatePanel(pendientesIds: c.partida!.desempatePendientes, jugadores: c.jugadores),
                           if (finalizada)
                             FinPartidaPanel(
@@ -137,6 +143,16 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
         );
       case MpOverlay.minijuego:
         return MinijuegoOverlay(titulo: '🎮 ¡Casilla de minijuego!', tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
+      case MpOverlay.transicionMinijuego:
+        return MinijuegoOverlay(titulo: '🎉 ¡Ganaste la etapa!', tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
+      case MpOverlay.transicionRuleta:
+        return RuletaOverlay(
+          girando: c.wheelGirando,
+          listaParaContinuar: c.wheelListaParaContinuar,
+          resultado: c.wheelResultLabel,
+          onGirar: c.girarRuletaGanador,
+          onContinuar: c.cerrarRuletaGanador,
+        );
       case MpOverlay.sorteo:
         return _sorteoOverlay(c);
       case MpOverlay.none:

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:realtime_client/realtime_client.dart';
 
 import '../models/board_layout.dart';
+import '../models/campana.dart';
 import '../models/jugador.dart';
 import '../models/pacing.dart';
 import '../models/partida.dart';
@@ -16,7 +17,7 @@ import 'join_room_result.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
 
-enum MpOverlay { none, sorteo, trivia, minijuego }
+enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta }
 
 const _horasPlazoTurno = 6;
 const _tiempoLimiteTriviaTanda = 15; // segundos, fijo (sin escalado de dificultad, a diferencia de la campaña)
@@ -38,6 +39,7 @@ class SalaGameController extends ChangeNotifier {
   List<JugadorPartida> jugadores = [];
   String? myPlayerId;
   bool cargando = false;
+  EtapaConfig? etapaConfig;
 
   RealtimeChannel? _channel;
   Timer? _pollTimer;
@@ -70,12 +72,21 @@ class SalaGameController extends ChangeNotifier {
   String? minijuegoTipo;
   void Function(bool exito)? _onMinijuegoResuelto;
 
+  // ---- ruleta de premio del ganador de cada etapa (solo campaña grupal) ----
+  String wheelResultLabel = '';
+  bool wheelGirando = false;
+  bool wheelListaParaContinuar = false;
+
   // ---- fin de partida / tanda ----
   String? finMensaje;
   bool finMostrarRevancha = false;
   String finLabelRevancha = '';
   bool finMostrarNuevaTanda = false;
   bool finMostrarJugarOtra = false;
+
+  bool get esCampanaGrupal => partida?.esCampanaGrupal ?? false;
+  int get _totalRondas => esCampanaGrupal ? 10 : _totalPartidasTanda;
+  String get _palabraRonda => esCampanaGrupal ? 'etapa' : 'partida';
 
   bool get soyHost {
     if (jugadores.isEmpty) return false;
@@ -123,6 +134,28 @@ class SalaGameController extends ChangeNotifier {
       } catch (_) {}
     }
     if (row == null) throw Exception('No se pudo crear la sala.');
+    partida = Partida.fromJson(row);
+    await _joinAsPlayer(partida!.id, 0);
+    await _refreshJugadores();
+    await _guardarSesion();
+    cargando = false;
+    notifyListeners();
+    _subscribeRealtime();
+    _startPolling();
+  }
+
+  /// Campaña grupal en vivo: mismo tablero para todos, pero cada ronda es
+  /// una etapa distinta (1 a 10) con la dificultad progresiva de la campaña.
+  Future<void> crearSalaCampanaGrupal() async {
+    cargando = true;
+    notifyListeners();
+    Map<String, dynamic>? row;
+    for (var attempt = 0; attempt < 5 && row == null; attempt++) {
+      try {
+        row = await SupabaseService.from('partidas').insert({'codigo': _genCode(), 'estado': 'esperando', 'max_jugadores': 6, 'modo': 'campana_grupal', 'etapa_actual': 1}).select().single();
+      } catch (_) {}
+    }
+    if (row == null) throw Exception('No se pudo crear la campaña grupal.');
     partida = Partida.fromJson(row);
     await _joinAsPlayer(partida!.id, 0);
     await _refreshJugadores();
@@ -189,6 +222,7 @@ class SalaGameController extends ChangeNotifier {
   Future<void> reconectarComo(Partida p, JugadorPartida jugador) async {
     partida = p;
     myPlayerId = jugador.id;
+    if (esCampanaGrupal) etapaConfig = Campana.generarConfigEtapa(p.etapaActual);
     await _refreshJugadores();
     await _guardarSesion();
     notifyListeners();
@@ -313,6 +347,7 @@ class SalaGameController extends ChangeNotifier {
   // Iniciar la partida (host)
   // ---------------------------------------------------------------------
   Future<void> iniciarPartida() async {
+    if (esCampanaGrupal) etapaConfig = Campana.generarConfigEtapa(partida!.etapaActual);
     final layout = BoardEngine.generarLayoutAleatorio();
     await _updatePartida({
       'estado': 'en_curso',
@@ -470,7 +505,7 @@ class SalaGameController extends ChangeNotifier {
   // ---------------------------------------------------------------------
   Future<void> _mostrarTriviaCasilla(String tipo, int posActual, String jugadorId) async {
     await _updatePartida({'estado_turno': 'resolviendo_trivia'});
-    final usaDificil = tipo == 'calavera';
+    final usaDificil = tipo == 'calavera' || (esCampanaGrupal && etapaConfig != null && etapaConfig!.ocaCarcelUsanBancoDificil);
     final pregunta = usaDificil
         ? (TriviaBank.bancoDificil(myEdadBracket)..shuffle()).first
         : (TriviaBank.bancoPorPais(myPais, myEdadBracket)..shuffle()).first;
@@ -480,7 +515,7 @@ class SalaGameController extends ChangeNotifier {
     _esDesempateTrivia = false;
     _triviaCallbackPos = posActual;
     _triviaCallbackJugador = jugadorId;
-    triviaSegundosRestantes = _tiempoLimiteTriviaTanda;
+    triviaSegundosRestantes = (esCampanaGrupal && etapaConfig != null) ? etapaConfig!.tiempoLimiteTrivia : _tiempoLimiteTriviaTanda;
     if (yo?.comodinPendiente == 'doble_tiempo') {
       triviaSegundosRestantes *= 2;
       await _updateJugador(myPlayerId!, {'comodin_pendiente': null});
@@ -649,6 +684,57 @@ class SalaGameController extends ChangeNotifier {
 
     await _updateJugador(jugadorGanadorId, {'victorias': nuevasVictorias});
     await _updatePartida({'estado': 'finalizada', 'estado_turno': null, 'ultimo_ganador_id': jugadorGanadorId, 'racha_ganador': nuevaRacha});
+
+    // El ganador de la etapa tira el mini-juego + ruleta para su propio
+    // comodín; es cosmético y no bloquea al resto de la sala, que ya ve
+    // el marcador normal (fin de partida) al mismo tiempo.
+    if (esCampanaGrupal && jugadorGanadorId == myPlayerId) {
+      _mostrarTransicionPremioGanador();
+    }
+  }
+
+  void _mostrarTransicionPremioGanador() {
+    minijuegoTipo = Random().nextBool() ? 'reflejos' : 'memoria';
+    overlay = MpOverlay.transicionMinijuego;
+    _onMinijuegoResuelto = (_) => _irAFaseRuletaGanador();
+    notifyListeners();
+  }
+
+  static const List<Map<String, String>> _wheelPrizes = [
+    {'id': 'ventaja3', 'label': '+3 casillas de ventaja'},
+    {'id': 'doble_tiempo', 'label': 'Doble tiempo en tu próxima Cuestionados'},
+    {'id': 'nada', 'label': 'Nada esta vez'},
+    {'id': 'tirada_extra', 'label': '+1 tirada extra al empezar'},
+    {'id': 'inmunidad', 'label': 'Inmunidad a una trampa'},
+    {'id': 'nada', 'label': 'Nada esta vez'},
+  ];
+
+  void _irAFaseRuletaGanador() {
+    wheelResultLabel = '';
+    wheelGirando = false;
+    wheelListaParaContinuar = false;
+    overlay = MpOverlay.transicionRuleta;
+    notifyListeners();
+  }
+
+  Future<void> girarRuletaGanador() async {
+    if (wheelGirando) return;
+    wheelGirando = true;
+    notifyListeners();
+    final premio = _wheelPrizes[Random().nextInt(_wheelPrizes.length)];
+    await _wait(const Duration(milliseconds: 3600));
+    wheelResultLabel = '🎁 ¡Premio: ${premio['label']}!';
+    wheelGirando = false;
+    wheelListaParaContinuar = true;
+    if (premio['id'] != 'nada' && myPlayerId != null) {
+      await _updateJugador(myPlayerId!, {'comodin_pendiente': premio['id']});
+    }
+    notifyListeners();
+  }
+
+  void cerrarRuletaGanador() {
+    overlay = MpOverlay.none;
+    notifyListeners();
   }
 
   void _mostrarFinDePartida() {
@@ -657,6 +743,8 @@ class SalaGameController extends ChangeNotifier {
     final ganadorRonda = jugadores.where((j) => j.id == partida!.ultimoGanadorId).firstOrNull;
     final ronda = partida!.rondaActual;
     final rachaTermina = partida!.rachaGanador >= 2;
+    final grupal = esCampanaGrupal;
+    final nombreCompeticion = grupal ? 'CAMPAÑA GRUPAL' : 'TANDA';
 
     finMostrarJugarOtra = true;
 
@@ -664,14 +752,14 @@ class SalaGameController extends ChangeNotifier {
       finLabelRevancha = '';
       finMostrarRevancha = false;
       finMostrarNuevaTanda = soyHost;
-      finMensaje = '🏆🏆 ¡${ganadorRonda?.nombre} gana la TANDA! ($marcadorTexto)';
+      finMensaje = '🏆🏆 ¡${ganadorRonda?.nombre} gana la $nombreCompeticion! ($marcadorTexto)';
       notifyListeners();
       return;
     }
 
-    if (ronda < _totalPartidasTanda) {
-      finMensaje = '🏆 ¡Ganó ${ganadorRonda?.nombre} la partida $ronda! ($marcadorTexto)';
-      finLabelRevancha = '▶️ Siguiente partida de la tanda';
+    if (ronda < _totalRondas) {
+      finMensaje = '🏆 ¡Ganó ${ganadorRonda?.nombre} la $_palabraRonda $ronda! ($marcadorTexto)';
+      finLabelRevancha = grupal ? '▶️ Siguiente etapa' : '▶️ Siguiente partida de la tanda';
       finMostrarRevancha = soyHost;
       finMostrarNuevaTanda = false;
       notifyListeners();
@@ -682,16 +770,16 @@ class SalaGameController extends ChangeNotifier {
     final empatados = jugadores.where((j) => j.victorias == maxVictorias).toList();
 
     if (empatados.length == 1) {
-      finMensaje = '🏆🏆 ¡${empatados.first.nombre} gana la TANDA! ($marcadorTexto)';
+      finMensaje = '🏆🏆 ¡${empatados.first.nombre} gana la $nombreCompeticion! ($marcadorTexto)';
       finMostrarRevancha = false;
       finMostrarNuevaTanda = soyHost;
       notifyListeners();
       return;
     }
 
-    if (ronda == _totalPartidasTanda) {
-      finMensaje = '🤝 Empate entre ${empatados.map((j) => j.nombre).join(", ")} tras $_totalPartidasTanda partidas. Se juega una más para definir.';
-      finLabelRevancha = '▶️ Partida extra de desempate';
+    if (ronda == _totalRondas) {
+      finMensaje = '🤝 Empate entre ${empatados.map((j) => j.nombre).join(", ")} tras $_totalRondas ${_palabraRonda}s. Se juega una más para definir.';
+      finLabelRevancha = grupal ? '▶️ Etapa extra de desempate' : '▶️ Partida extra de desempate';
       finMostrarRevancha = soyHost;
       finMostrarNuevaTanda = false;
       notifyListeners();
@@ -777,6 +865,11 @@ class SalaGameController extends ChangeNotifier {
 
   Future<void> _reiniciarYArrancarDirecto({required int rondaExtra, required bool resetVictorias, int? nuevaRondaFija}) async {
     final layout = BoardEngine.generarLayoutAleatorio();
+    final grupal = esCampanaGrupal;
+    final ganadorId = partida!.ultimoGanadorId;
+    final ganador = grupal ? jugadores.where((j) => j.id == ganadorId).firstOrNull : null;
+    final comodinGanador = ganador?.comodinPendiente;
+
     await SupabaseService.from('jugadores_partida').update({
       'posicion': 0,
       'salta_turno': false,
@@ -784,8 +877,30 @@ class SalaGameController extends ChangeNotifier {
       if (resetVictorias) 'victorias': 0,
     }).eq('partida_id', partida!.id);
 
+    var mensajeComodin = '';
+    if (grupal && ganadorId != null && comodinGanador != null) {
+      switch (comodinGanador) {
+        case 'ventaja3':
+          await _updateJugador(ganadorId, {'posicion': 3});
+          mensajeComodin = ' 🎁 ${ganador!.nombre} arranca con 3 casillas de ventaja.';
+          break;
+        case 'tirada_extra':
+          await _updateJugador(ganadorId, {'comodin_pendiente': 'tirada_extra_activa'});
+          mensajeComodin = ' 🎁 ${ganador!.nombre} tiene tirada extra en su primer turno.';
+          break;
+        case 'inmunidad':
+          await _updateJugador(ganadorId, {'comodin_pendiente': 'inmunidad'});
+          mensajeComodin = ' 🛡️ ${ganador!.nombre} tiene inmunidad para la próxima trampa.';
+          break;
+        case 'doble_tiempo':
+          await _updateJugador(ganadorId, {'comodin_pendiente': 'doble_tiempo'});
+          mensajeComodin = ' ⏳ ${ganador!.nombre} tiene doble tiempo en su próxima Cuestionados.';
+          break;
+      }
+    }
+
     final nuevaRonda = nuevaRondaFija ?? (partida!.rondaActual + rondaExtra);
-    await _updatePartida({
+    final updates = <String, dynamic>{
       'estado': 'en_curso',
       'turno_actual': 0,
       'estado_turno': null,
@@ -797,11 +912,18 @@ class SalaGameController extends ChangeNotifier {
       if (resetVictorias) 'ganador_tanda_id': null,
       'layout_casillas': layout.layoutCasillas.map((k, v) => MapEntry(k.toString(), v)),
       'layout_puentes': layout.layoutPuentes.map((k, v) => MapEntry(k.toString(), v)),
-    });
+    };
+    if (grupal) {
+      final nuevaEtapa = min(nuevaRonda, 10);
+      updates['etapa_actual'] = nuevaEtapa;
+      etapaConfig = Campana.generarConfigEtapa(nuevaEtapa);
+    }
+    await _updatePartida(updates);
     finMensaje = null;
     finMostrarRevancha = false;
     finMostrarNuevaTanda = false;
     finMostrarJugarOtra = false;
+    if (mensajeComodin.isNotEmpty) _msg(mensajeComodin.trim());
     await _refreshJugadores();
     await _sortearTurnoInicial();
   }

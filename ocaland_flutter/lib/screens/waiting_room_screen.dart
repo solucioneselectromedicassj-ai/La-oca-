@@ -63,6 +63,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      if (c.esCampanaGrupal)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 10),
+                          child: Text('🏆 Campaña grupal en vivo (10 etapas)', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+                        ),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),

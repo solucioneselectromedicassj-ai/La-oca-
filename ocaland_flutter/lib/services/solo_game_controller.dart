@@ -38,7 +38,12 @@ class SoloGameController extends ChangeNotifier {
   final String myEdadBracket;
   final String myPais;
 
-  SoloGameController({required this.usuario, required this.myNombre, required this.myEdadBracket, required this.myPais});
+  /// Si esta campaña corre atada a un desafío grupal (campañas comparadas
+  /// por separado), acá va el id de `desafios_grupales` — al completar las
+  /// 10 etapas se guarda el resultado en `desafios_resultados`.
+  final String? desafioId;
+
+  SoloGameController({required this.usuario, required this.myNombre, required this.myEdadBracket, required this.myPais, this.desafioId});
 
   String? myPlayerId;
   Partida? partida;
@@ -700,6 +705,17 @@ class SoloGameController extends ChangeNotifier {
           );
         }
       } catch (_) {}
+      if (desafioId != null) {
+        try {
+          await SupabaseService.from('desafios_resultados').insert({
+            'desafio_id': desafioId,
+            'usuario_id': usuario.id,
+            'nombre': myNombre,
+            'etapas_completadas': 10,
+            'ms_total': msTotal,
+          });
+        } catch (_) {}
+      }
       AudioService.win();
       campanaFinTexto = '🏆🎉 ¡COMPLETASTE LAS 10 ETAPAS! Tiempo total: ${_formatearMs(msTotal)}';
       overlay = GameOverlay.campanaTerminada;
