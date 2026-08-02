@@ -30,6 +30,7 @@ class CaminoTablero {
     int cantidad, {
     Random? random,
     FormaCamino forma = FormaCamino.serpiente,
+    double escalaHorizontal = 1.0,
   }) {
     if (cantidad <= 1) return [const Offset(0.5, 0.5)];
     final rng = random ?? Random();
@@ -47,9 +48,14 @@ class CaminoTablero {
     // Todas las formas se acotan al mismo rango: deja aire para el
     // cartel de INICIO (arriba) y el de META (abajo), y nunca se van
     // tan al costado que las casillas queden pegadas al borde.
+    // `escalaHorizontal` (< 1) angosta el recorrido hacia el centro —
+    // el usuario pidió que en el valle el sendero se mantenga en la
+    // franja abierta entre montañas en vez de llegar hasta los bordes
+    // rocosos de la imagen.
     Offset punto(double t) {
       final p = puntoCrudo(t);
-      return Offset(p.dx.clamp(0.05, 0.95), p.dy.clamp(0.02, 0.98));
+      final x = 0.5 + (p.dx - 0.5) * escalaHorizontal;
+      return Offset(x.clamp(0.05, 0.95), p.dy.clamp(0.02, 0.98));
     }
 
     // Repartir los puntos por LONGITUD DE ARCO, no por `t` parejo: con
@@ -106,13 +112,18 @@ class CaminoTablero {
 
   /// Forma de signo de pregunta: un arco/gancho arriba (el "rulo" de la
   /// ?) seguido de un tallo largo y ondulado hacia abajo (la parte
-  /// recta de la ?). La primera versión barría ~260° (casi una vuelta
-  /// completa) y con el ancho real del camino pintado se veía
-  /// cruzada/enredada sobre sí misma — el usuario lo marcó
-  /// explícitamente ("es un rulo y el sendero se entrecruza"). Este
-  /// arco barre solo 180° (medio círculo, de un lado al otro pasando
-  /// por arriba), así que geométricamente no puede volver a pasar por
-  /// donde ya pasó.
+  /// recta de la ?). La primera versión barría ~260° y con el ancho
+  /// real del camino pintado se veía cruzada/enredada sobre sí misma
+  /// — el usuario lo marcó explícitamente ("es un rulo y el sendero se
+  /// entrecruza"). Se probó un arco de exactamente 180° para no
+  /// arriesgar, pero el usuario lo vio poco parecido a un signo de
+  /// pregunta real ("no me gusta, probá haciendo como un ?"). Un arco
+  /// (círculo) nunca se cruza a sí mismo sin importar cuánto barra —
+  /// lo que causaba el cruce original era el TALLO volviendo a pasar
+  /// cerca del gancho. Como el tallo sigue arrancando exactamente
+  /// donde termina el arco y de ahí solo baja (nunca vuelve a subir a
+  /// la altura del gancho), se puede agrandar el barrido a 235° —
+  /// bastante más parecido al rulo real de un "?" — sin ese riesgo.
   static Offset Function(double) _generarInterrogacion(Random rng) {
     final direccion = rng.nextBool() ? 1 : -1;
     final faseX = (rng.nextDouble() - 0.5) * 0.04;
@@ -121,8 +132,8 @@ class CaminoTablero {
     const radioXGancho = 0.23;
     const radioYGancho = 0.11;
     const anguloInicio = pi; // apunta a la izquierda
-    const anguloFin = 2 * pi; // medio giro después, apunta a la derecha
-    const finGancho = 0.30;
+    const anguloFin = pi + 235 * pi / 180; // barrido de 235°, pasando por arriba
+    const finGancho = 0.34;
 
     final anguloFinX = centroX + radioXGancho * cos(anguloFin) * direccion + faseX;
     final anguloFinY = centroYGancho + radioYGancho * sin(anguloFin);

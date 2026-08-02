@@ -333,25 +333,59 @@ flutter run -d chrome  # en el navegador, para probar rápido
     `fondo_valle.png` correctamente — bloqueDeEtapa no cambió sus
     límites (1-3/4-6/7-9/10) en ningún momento de esta sesión. Es
     probable que haya sido una build vieja en la pantalla que estaba
-    probando; si se lo sigue viendo después de este commit, avisar de
-    nuevo.
+    probando.
+- **Segunda ronda etapa por etapa, con arte nuevo del usuario**:
+  - **Interrogación más parecida a un "?" de verdad**: el arco de 180°
+    de la ronda anterior no se cruzaba, pero al usuario le pareció
+    poco parecido a un signo de pregunta real. Un círculo/arco no
+    puede cruzarse a sí mismo sin importar cuánto barra (lo que se
+    cruzaba antes era el tallo volviendo a pasar cerca del gancho, ya
+    resuelto); aprovechando eso se agrandó el barrido a 235° — bastante
+    más parecido al rulo real — sin volver a arriesgar el cruce.
+  - **Sendero del valle angostado hacia el centro**: el usuario marcó
+    que el sendero llegaba hasta las montañas de los bordes de la
+    imagen ("quedaría lindo si camina al lado de la montaña... hay un
+    valle que se puede usar"). `CaminoTablero.generar` ahora acepta
+    `escalaHorizontal` (0.55 para el bloque Desafío) que angosta
+    cualquier forma hacia el centro sin tocar su lógica — el sendero
+    se queda en la franja verde abierta entre las montañas.
+  - **Escena real de lava con las 30 casillas exactas del usuario**:
+    el usuario mandó la escena de plataformas de roca flotante
+    conectadas por grietas de lava — y, para no dejar lugar a
+    interpretación, una segunda versión con los 30 números puestos a
+    mano sobre cada piedra ("te ahorro el trabajo"). Se leyeron esas
+    30 posiciones directamente de la imagen numerada (con una grilla
+    superpuesta) y se armó `lib/game/tablero_lava.dart` con esos
+    puntos fijos — a diferencia de `TableroCarnaval` (que interpola
+    entre pocos puntos de control), acá son las 30 posiciones exactas
+    que marcó el usuario. La imagen (`fondo_lava.png`) venía con fondo
+    negro sólido (no checkerboard) — se le sacó con flood-fill desde
+    el borde, misma técnica que las casillas de trampa. Reemplaza el
+    gradiente oscuro genérico + rocas sueltas de la ronda anterior
+    (`TableroFlotante` y esa decoración quedaron sin uso, se
+    borraron).
+  - El bloque "sin sendero" (Tensión + Cima) ahora también se saltea
+    el sol, la decoración de árboles/flores/rocas y las ocas de fondo
+    del paisaje "candy" genérico — esos dos bloques ya traen su propia
+    escena completa (cueva de lava, calle de carnaval de noche) y esa
+    decoración encima no pegaba.
 
 ### Simplificaciones de este corte (a mejorar después)
 
 - Las 3 formas de sendero son curvas paramétricas genéricas, no un
   trazado dibujado a mano — funcionan para cualquier cantidad de
   casillas pero no imitan un mapa puntual.
-- El bloque "Tensión" (etapas 7-9) todavía no tiene una imagen de
-  escena volcánica completa como bosque/valle/carnaval — el usuario
-  mencionó haber mandado un fondo para esa etapa, pero no llegó
-  ninguna imagen de escena nueva (solo hay rocas/volcán sueltos de
-  antes, ya usados como decoración) — sigue usando un gradiente
-  oscuro + esas rocas en vez de una escena completa.
 - Solo la franja de arriba del tablero (bosque) es un recorte; en
-  valle/carnaval se usa la imagen completa, agrandada más allá de su
-  alto natural con `fondoAlturaMinima`. El resto del tablero hacia
-  abajo sigue siendo color liso + textura de pasto genérica, no una
-  ilustración de todo el tablero hecha a mano.
+  valle/carnaval/lava se usa la imagen completa, agrandada más allá de
+  su alto natural con `fondoAlturaMinima` cuando hace falta. El resto
+  del tablero hacia abajo (una franja chica, sobre todo en lava/
+  carnaval) sigue siendo color liso + textura de pasto genérica.
+- El angostado del sendero del valle (`escalaHorizontal`) es una
+  aproximación pareja (más centrado en todo el recorrido) — no evita
+  puntualmente cada saliente de montaña como sí hacen
+  `TableroCarnaval`/`TableroLava` con sus puntos medidos a mano; si
+  hace falta más precisión, el mismo truco de la imagen con números
+  puestos a mano serviría acá también.
 - Cuestionados todavía no está segmentado por país (Argentina / Chile /
   Internacional) ni tiene pantalla de selección de edad/país — usa
   `adultos` fijo por ahora.

@@ -4,7 +4,7 @@ import '../board_layout.dart';
 import '../camino_tablero.dart';
 import '../game_engine.dart';
 import '../tablero_carnaval.dart';
-import '../tablero_flotante.dart';
+import '../tablero_lava.dart';
 import 'comodin_ruleta.dart';
 import 'config_etapa.dart';
 
@@ -54,11 +54,19 @@ class CampanaSoloController {
     layout = BoardLayout.generar(sinCarcel: sinSendero, trampasIntensas: trampasIntensas);
     engine = GameEngine(layout);
     config = ConfigEtapa.generar(numero);
-    camino = numero == 10
-        ? TableroCarnaval.generar(BoardLayout.meta + 1)
-        : sinSendero
-            ? TableroFlotante.generar(BoardLayout.meta + 1)
-            : CaminoTablero.generar(BoardLayout.meta + 1, forma: FormaCamino.deEtapa(numero));
+    camino = switch (numero) {
+      10 => TableroCarnaval.generar(BoardLayout.meta + 1),
+      >= 7 => TableroLava.generar(BoardLayout.meta + 1),
+      // El usuario marcó que en el valle (4-6) el sendero llegaba
+      // hasta las montañas de los bordes de la imagen — se angosta
+      // hacia el centro para que se quede en la franja abierta.
+      >= 4 && <= 6 => CaminoTablero.generar(
+          BoardLayout.meta + 1,
+          forma: FormaCamino.deEtapa(numero),
+          escalaHorizontal: 0.55,
+        ),
+      _ => CaminoTablero.generar(BoardLayout.meta + 1, forma: FormaCamino.deEtapa(numero)),
+    };
     posJugador = 0;
     posBot = 0;
     jugadorSaltaTurno = false;

@@ -10,9 +10,4 @@ class PaisajeIconos {
   static const nube1 = 'assets/paisaje/nube1.png';
   static const nube2 = 'assets/paisaje/nube2.png';
   static const sol = 'assets/paisaje/sol.png';
-
-  /// Roca volcánica, para decorar el bloque Tensión (sin fondo de
-  /// escena real todavía, ver README).
-  static const lavaRoca1 = 'assets/paisaje/lava_roca_1.png';
-  static const lavaRoca2 = 'assets/paisaje/lava_roca_2.png';
 }

@@ -90,9 +90,15 @@ class PaletaBloque {
       gradiente: [Color(0xFFFFE0D6), Color(0xFFFFF0E8), Color(0xFFFFF8F5)],
       colorAppBar: Color(0xFFFF6F4D),
       colorAcento: Color(0xFFFF4D8D),
-      // Sin fondo de escena todavía (el arte que hay de este bloque es
-      // roca volcánica suelta, no una escena completa) — usa el
-      // genérico. Ver README para el detalle.
+      // El usuario mandó esta escena de plataformas de roca flotante
+      // conectadas por grietas de lava, con las 30 piedras ya
+      // numeradas a mano sobre el arte (`TableroLava` usa esas mismas
+      // posiciones). La imagen es RGB con fondo negro sólido (no
+      // checkerboard) — se le sacó el fondo con flood-fill desde el
+      // borde, igual técnica que las casillas de trampa.
+      fondoAsset: 'assets/paisaje/fondos/fondo_lava.png',
+      fondoAspectRatio: 1536 / 2048,
+      fondoColorPie: Color(0xFF504239),
     ),
     // 10 · Cima: épico, celebratorio — dorado + arcoíris sutil.
     BloqueEtapas.cima: PaletaBloque(

@@ -35,9 +35,7 @@ class FondoCandy extends StatelessWidget {
   final List<Offset> camino;
 
   /// Bloques Tensión/Cima: no hay camino dibujado, así que no tiene
-  /// sentido decorar "codos" de una curva que no existe — y si tampoco
-  /// hay fondo de escena real (Tensión todavía no tiene uno), se usa un
-  /// tema oscuro/volcánico con rocas de lava en vez del pasto genérico.
+  /// sentido decorar "codos" de una curva que no existe.
   final bool sinSendero;
 
   /// Fondo de escena real (arte del usuario): se muestra UNA sola vez,
@@ -62,11 +60,6 @@ class FondoCandy extends StatelessWidget {
   Widget build(BuildContext context) {
     final verdeBase = _mezclar(const Color(0xFF9CCC65), acento, 0.25);
     final verdeOscuro = _oscurecer(verdeBase, 0.18);
-    // Tensión sin fondo de escena real todavía (ver README): en vez
-    // del pasto genérico, un tema oscuro/volcánico para que al menos
-    // se sienta "lava" como pidió el usuario.
-    final esLavaGenerico = sinSendero && fondoAsset == null;
-    const gradienteLava = [Color(0xFF2A1B1F), Color(0xFF3D2320), Color(0xFF1A1214)];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -100,17 +93,6 @@ class FondoCandy extends StatelessWidget {
                 height: altoImagen,
                 child: Image.asset(fondoAsset!, fit: BoxFit.cover, alignment: Alignment.topCenter),
               ),
-            ] else if (esLavaGenerico) ...[
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: gradienteLava,
-                  ),
-                ),
-              ),
-              ..._decoracionLava(size),
             ] else ...[
               // Cielo.
               DecoratedBox(
@@ -142,9 +124,14 @@ class FondoCandy extends StatelessWidget {
             // usuario las pidió afuera directamente (no eran parte del
             // paisaje real que subió y se seguían viendo pegadas al
             // cartel de INICIO).
-            // Una cueva de lava no lleva sol — se salta directamente
-            // en ese caso (no tendría sentido un cielo soleado ahí).
-            if (!esLavaGenerico)
+            //
+            // El sol, la decoración de árboles/flores/rocas y las ocas
+            // de fondo son parte del paisaje "candy" genérico — no
+            // pintan nada en los bloques sin sendero (Tensión/Cima):
+            // esos ya traen su propia escena completa (cueva de lava,
+            // calle de carnaval de noche) y un sol sonriente o un
+            // arbusto ahí encima no pega.
+            if (!sinSendero) ...[
               Builder(builder: (context) {
                 final cieloAlto = fondoAsset != null ? altoImagen : size.height * 0.1;
                 final tamanoIcono = (cieloAlto * 0.42).clamp(18.0, 36.0);
@@ -154,20 +141,20 @@ class FondoCandy extends StatelessWidget {
                   child: _sol(tamanoIcono),
                 );
               }),
-            // Decoración real repartida en toda la altura del tablero,
-            // a los costados del camino — no unos pocos íconos sueltos.
-            // (La versión lava ya puso la suya arriba, en vez de esta).
-            if (!esLavaGenerico) ..._decoracionesDelCamino(size),
-            // El doble de decoración, esta vez puntual en los "codos"
-            // del sendero (donde tuerce), en el espacio verde que deja
-            // la curva — no solo pegada a los bordes del canvas. No
-            // aplica sin sendero: no hay curva de la cual tomar el
-            // "afuera".
-            if (!sinSendero) ..._decoracionesEnCodos(size),
-            // Unas pocas ocas volando de fondo, puramente decorativas
-            // (no son casillas), para darle vida a la escena — no en
-            // una cueva de lava.
-            if (!esLavaGenerico) ..._gansosVolando(size),
+              // Decoración real repartida en toda la altura del
+              // tablero, a los costados del camino — no unos pocos
+              // íconos sueltos.
+              ..._decoracionesDelCamino(size),
+              // El doble de decoración, esta vez puntual en los
+              // "codos" del sendero (donde tuerce), en el espacio
+              // verde que deja la curva — no solo pegada a los bordes
+              // del canvas.
+              ..._decoracionesEnCodos(size),
+              // Unas pocas ocas volando de fondo, puramente
+              // decorativas (no son casillas), para darle vida a la
+              // escena.
+              ..._gansosVolando(size),
+            ],
           ],
         );
       },
@@ -287,33 +274,6 @@ class FondoCandy extends StatelessWidget {
           ),
         );
       }
-    }
-    return widgets;
-  }
-
-  /// Rocas de lava repartidas en toda la altura del canvas, para el
-  /// bloque Tensión (sin fondo de escena real todavía, ver README) —
-  /// mismo espíritu que `_decoracionesDelCamino` pero con el arte
-  /// volcánico en vez de árboles/flores.
-  List<Widget> _decoracionLava(Size size) {
-    final rng = Random(23);
-    const assets = [PaisajeIconos.lavaRoca1, PaisajeIconos.lavaRoca2];
-    final widgets = <Widget>[];
-    var y = size.height * 0.13;
-    var lado = rng.nextBool();
-    while (y < size.height * 0.98) {
-      final asset = assets[rng.nextInt(assets.length)];
-      final ancho = 40.0 + rng.nextDouble() * 34;
-      final xFrac = lado ? (0.0 + rng.nextDouble() * 0.06) : (1.0 - rng.nextDouble() * 0.06);
-      widgets.add(
-        Positioned(
-          left: size.width * xFrac - ancho / 2,
-          top: y,
-          child: Image.asset(asset, width: ancho, cacheWidth: (ancho * 2).round()),
-        ),
-      );
-      y += 70 + rng.nextDouble() * 50;
-      lado = !lado;
     }
     return widgets;
   }
