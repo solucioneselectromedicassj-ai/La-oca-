@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/usuario.dart';
+import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
+import 'join_sala_screen.dart';
 import 'pais_screen.dart';
+import 'waiting_room_screen.dart';
 
 /// Lobby simplificado: el modo solo (campaña de 10 etapas vs bot) está
 /// activo y jugable. Los modos multijugador (sala normal, campaña grupal,
@@ -35,12 +38,15 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   String get _nombre => widget.nombre ?? widget.usuario.nombre;
 
-  void _jugarSolo() {
+  /// Asegura tener edad/país elegidos (pidiéndolos si hace falta) y recién
+  /// entonces ejecuta la acción real. Se reutiliza para solo, sala nueva y
+  /// unirse, ya que las tres necesitan lo mismo antes de arrancar.
+  void _conEdadYPais(VoidCallback then) {
     if (_edadBracket == null) {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => EdadScreen(onSelected: (b) {
         setState(() => _edadBracket = b);
         Navigator.of(context).pop();
-        _jugarSolo();
+        _conEdadYPais(then);
       })));
       return;
     }
@@ -48,13 +54,42 @@ class _LobbyScreenState extends State<LobbyScreen> {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaisScreen(onSelected: (p) {
         setState(() => _pais = p);
         Navigator.of(context).pop();
-        _jugarSolo();
+        _conEdadYPais(then);
       })));
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GameScreenSolo(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
-    ));
+    then();
+  }
+
+  void _jugarSolo() {
+    _conEdadYPais(() {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => GameScreenSolo(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
+      ));
+    });
+  }
+
+  void _crearSala() {
+    _conEdadYPais(() async {
+      final controller = SalaGameController(usuario: widget.usuario, myNombre: _nombre, myEdadBracket: _edadBracket!, myPais: _pais!);
+      try {
+        await controller.crearSala();
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No pudimos conectar con el servidor.')));
+        return;
+      }
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => WaitingRoomScreen(controller: controller)));
+    });
+  }
+
+  void _unirseSala() {
+    _conEdadYPais(() {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => JoinSalaScreen(usuario: widget.usuario, nombre: _nombre, edadBracket: _edadBracket!, pais: _pais!),
+      ));
+    });
   }
 
   @override
@@ -122,9 +157,19 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ),
                 ),
               ),
-              _proximamente('Crear sala nueva (tanda)'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _crearSala, child: const Text('Crear sala nueva (tanda)'))),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _unirseSala, child: const Text('¿Ya tenés un código? Unirme'))),
+                    ],
+                  ),
+                ),
+              ),
               _proximamente('🏆 Crear campaña grupal (10 etapas, en vivo)'),
-              _proximamente('Unirme con un código'),
               _proximamente('🎯 Desafío grupal (campañas por separado)'),
             ],
           ),

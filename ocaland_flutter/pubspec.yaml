@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   supabase_flutter: ^2.8.0
+  realtime_client: ^2.6.0
   shared_preferences: ^2.3.3
   share_plus: ^10.1.3
 

@@ -28,7 +28,11 @@ class _NicknameScreenState extends State<NicknameScreen> {
     try {
       final usuario = await IdentityService.crearUsuario(nombre, codigoReferido: _referidoCtrl.text);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      // Importante: push (no pushReplacement) — _irAPais y el onSelected de
+      // PaisScreen reutilizan este `context` más adelante; si esta pantalla
+      // se reemplazara, ese context quedaría desmontado y el Navigator.of(context)
+      // posterior explota con un null check en tiempo de ejecución.
+      Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => EdadScreen(onSelected: (bracket) => _irAPais(context, usuario, nombre, bracket))),
       );
     } catch (_) {

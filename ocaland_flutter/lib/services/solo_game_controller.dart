@@ -10,6 +10,7 @@ import '../models/pacing.dart';
 import '../models/partida.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
+import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
 import 'supabase_service.dart';
 
@@ -809,8 +810,4 @@ class SoloGameController extends ChangeNotifier {
     _triviaTimer?.cancel();
     super.dispose();
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
