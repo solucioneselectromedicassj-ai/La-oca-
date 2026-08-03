@@ -55,37 +55,28 @@ List<(int, int)> _espiralCoords() {
   return cells.take(BoardEngine.totalCells).toList();
 }
 
-/// Sendero en forma de triángulo: filas que crecen de a 1 casillero
-/// (alineadas a la izquierda), recorridas en zigzag — cada fila entra
-/// justo donde terminó la anterior, así el camino queda siempre continuo.
+/// Sendero triangular: una espiral de 3 lados (en vez de los 4 del
+/// cuadrado) que converge hacia el centro — un lado recto abajo, uno
+/// diagonal y uno vertical, achicándose en cada vuelta.
 List<(int, int)> _trianguloCoords() {
-  const rowLengths = [1, 2, 3, 4, 5, 6, 7];
-  const offX = 1, offY = 1; // margen para centrarlo un poco en la grilla
-  final cells = <(int, int)>[];
-  var lastEnd = 0;
-  for (var r = 0; r < rowLengths.length; r++) {
-    final len = rowLengths[r];
-    final startL2R = 0;
-    final startR2L = len - 1;
-    final goL2R = r == 0 || (startL2R - lastEnd).abs() <= (startR2L - lastEnd).abs();
-    if (goL2R) {
-      for (var c = 0; c < len; c++) {
-        cells.add((offX + c, offY + r));
-      }
-      lastEnd = len - 1;
-    } else {
-      for (var c = len - 1; c >= 0; c--) {
-        cells.add((offX + c, offY + r));
-      }
-      lastEnd = 0;
+  const dirs = [(1, 0), (-1, -1), (0, 1)]; // abajo→derecha, diagonal arriba-izq, hacia abajo
+  var x = 0, y = _visualGrid - 2;
+  var dirIdx = 0;
+  var segLen = _visualGrid - 2;
+  var segPassed = 0;
+  final cells = <(int, int)>[(x, y)];
+  while (cells.length < BoardEngine.totalCells && segLen > 0) {
+    final (dx, dy) = dirs[dirIdx];
+    x += dx;
+    y += dy;
+    cells.add((x, y));
+    segPassed++;
+    if (segPassed == segLen) {
+      segPassed = 0;
+      dirIdx = (dirIdx + 1) % dirs.length;
+      segLen--;
     }
   }
-  // remate corto de 2 casillas para llegar a las 30, siguiendo desde donde
-  // quedó la última fila (queda de "cola" del triángulo).
-  final tailRow = rowLengths.length;
-  final startCol = (lastEnd + 1).clamp(0, _visualGrid - 1 - offX);
-  cells.add((offX + startCol, offY + tailRow));
-  cells.add((offX + max(0, startCol - 1), offY + tailRow));
   return cells;
 }
 
