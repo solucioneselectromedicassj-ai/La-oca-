@@ -11,12 +11,12 @@ const _visualGrid = 10;
 
 /// Cuatro formas de sendero bien distintas entre sí, para que el tablero
 /// no se sienta monótono a lo largo de las 10 etapas de la campaña: espiral
-/// (etapas 1-3), triángulo (4-6), círculo (7-9) y una S para el cierre
-/// (etapa 10) — ver [boardShapeForEtapa].
-enum BoardShape { espiral, triangulo, circulo, ese }
+/// (etapas 1-3), la misma espiral invertida en espejo (4-6), círculo (7-9)
+/// y una S para el cierre (etapa 10) — ver [boardShapeForEtapa].
+enum BoardShape { espiral, espiralInvertida, circulo, ese }
 
 BoardShape boardShapeForEtapa(int etapa) {
-  const formas = [BoardShape.espiral, BoardShape.triangulo, BoardShape.circulo, BoardShape.ese];
+  const formas = [BoardShape.espiral, BoardShape.espiralInvertida, BoardShape.circulo, BoardShape.ese];
   return formas[((etapa - 1) ~/ 3) % formas.length];
 }
 
@@ -26,7 +26,7 @@ List<Offset> buildBoardFractions(BoardShape shape) {
   const cellFrac = 1 / _visualGrid;
   final coords = switch (shape) {
     BoardShape.espiral => _espiralCoords(),
-    BoardShape.triangulo => _trianguloCoords(),
+    BoardShape.espiralInvertida => _espiralInvertidaCoords(),
     BoardShape.circulo => _circuloCoords(),
     BoardShape.ese => _eseCoords(),
   };
@@ -57,57 +57,10 @@ List<(int, int)> _espiralCoords() {
   return cells.take(BoardEngine.totalCells).toList();
 }
 
-/// Línea recta entre dos puntos de la grilla, con pasos de un solo
-/// casillero (diagonal mientras se pueda, derecho para lo que sobre) —
-/// para trazar los lados de los triángulos sin saltos.
-List<(int, int)> _staircase((int, int) from, (int, int) to) {
-  var (x, y) = from;
-  final sx = (to.$1 - x).sign, sy = (to.$2 - y).sign;
-  var ax = (to.$1 - x).abs(), ay = (to.$2 - y).abs();
-  final points = <(int, int)>[];
-  while (ax > 0 || ay > 0) {
-    if (ax > 0 && ay > 0) {
-      x += sx;
-      y += sy;
-      ax--;
-      ay--;
-    } else if (ax > 0) {
-      x += sx;
-      ax--;
-    } else {
-      y += sy;
-      ay--;
-    }
-    points.add((x, y));
-  }
-  return points;
-}
-
-/// Sendero triangular: dos triángulos anidados (uno grande por afuera y
-/// uno chico adentro, unidos por un puente corto) — como el ícono clásico
-/// de espiral triangular, pero calcado sobre nuestras casillas.
-List<(int, int)> _trianguloCoords() {
-  const outerApex = (4, 0);
-  const outerLeft = (0, 8);
-  const outerRight = (8, 8);
-  const innerApex = (4, 5);
-  const innerLeft = (4, 6);
-  const innerRight = (5, 6);
-
-  // Arranca en una esquina de la base (no en el ápice) para que el ápice
-  // quede a mitad de camino del perímetro y no se vuelva a cruzar cerca
-  // del puente hacia el triángulo interior.
-  final cells = <(int, int)>[outerLeft];
-  cells.addAll(_staircase(outerLeft, outerRight));
-  cells.addAll(_staircase(outerRight, outerApex));
-  final closing = _staircase(outerApex, outerLeft);
-  cells.addAll(closing.sublist(0, closing.length - 1)); // no repetir el inicio
-  cells.addAll(_staircase(cells.last, innerApex));
-  cells.addAll(_staircase(innerApex, innerLeft));
-  cells.addAll(_staircase(innerLeft, innerRight));
-  final closingInner = _staircase(innerRight, innerApex);
-  cells.addAll(closingInner.sublist(0, closingInner.length - 1));
-  return cells;
+/// La misma espiral de la etapa 1, invertida en espejo (izquierda-derecha)
+/// — misma forma reconocible, pero mirando para el otro lado.
+List<(int, int)> _espiralInvertidaCoords() {
+  return _espiralCoords().map((c) => (_visualGrid - 1 - c.$1, c.$2)).toList();
 }
 
 /// Sendero circular: recorre el perímetro de un círculo (barrido de

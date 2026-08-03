@@ -33,8 +33,8 @@ void main() {
         }
 
         // sendero continuo: cada casilla es adyacente a la siguiente (un paso
-        // de grilla, derecho o en diagonal — el triángulo y el círculo usan
-        // diagonales para poder curvar el camino).
+        // de grilla, derecho o en diagonal — el círculo usa diagonales para
+        // poder curvar el camino).
         const cellFrac = 1 / 10;
         for (var i = 1; i < fractions.length; i++) {
           final dx = ((fractions[i].dx - fractions[i - 1].dx) / cellFrac).round().abs();
