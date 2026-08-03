@@ -1,17 +1,21 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/board_layout.dart';
 import '../../models/jugador.dart';
 import '../../theme/app_colors.dart';
 
-const _visualGrid = 8; // grilla visual de 8x8 dentro de la que se ubican las 30 casillas
+// Grilla visual de 10x10 (más grande que las 30 casillas a propósito: al
+// haber más "huecos" libres que casilleros, queda espacio de separación
+// visible entre una casilla y la siguiente en vez de verse todas pegadas).
+const _visualGrid = 10;
 
-/// Tres formas de sendero distintas, para que el tablero no se sienta
-/// monótono a lo largo de las 10 etapas de la campaña. Se elige una según
-/// la etapa (grupos de a 3) — ver [boardShapeForEtapa].
-enum BoardShape { espiral, filas, columnas }
+/// Tres formas de sendero bien distintas entre sí, para que el tablero no
+/// se sienta monótono a lo largo de las 10 etapas de la campaña. Se elige
+/// una según la etapa (grupos de a 3) — ver [boardShapeForEtapa].
+enum BoardShape { espiral, triangulo, circulo }
 
 BoardShape boardShapeForEtapa(int etapa) {
-  const formas = [BoardShape.espiral, BoardShape.filas, BoardShape.columnas];
+  const formas = [BoardShape.espiral, BoardShape.triangulo, BoardShape.circulo];
   return formas[((etapa - 1) ~/ 3) % formas.length];
 }
 
@@ -21,15 +25,16 @@ List<Offset> buildBoardFractions(BoardShape shape) {
   const cellFrac = 1 / _visualGrid;
   final coords = switch (shape) {
     BoardShape.espiral => _espiralCoords(),
-    BoardShape.filas => _serpienteCoords(cols: 6, rows: 5, porFilas: true),
-    BoardShape.columnas => _serpienteCoords(cols: 5, rows: 6, porFilas: false),
+    BoardShape.triangulo => _trianguloCoords(),
+    BoardShape.circulo => _circuloCoords(),
   };
   return coords.map((c) => Offset(c.$1 * cellFrac, c.$2 * cellFrac)).toList();
 }
 
-/// El mismo algoritmo en espiral del prototipo HTML original.
+/// El mismo algoritmo en espiral del prototipo HTML original, escalado a
+/// la grilla visual actual.
 List<(int, int)> _espiralCoords() {
-  const gridSize = 7;
+  final gridSize = _visualGrid - 1;
   var x = 0, y = 0, dx = 1, dy = 0;
   var segLen = gridSize, segPassed = 0, turns = 0;
   final cells = <(int, int)>[];
@@ -50,37 +55,57 @@ List<(int, int)> _espiralCoords() {
   return cells.take(BoardEngine.totalCells).toList();
 }
 
-/// Sendero "serpiente" (como en muchos juegos de mesa clásicos): recorre
-/// una grilla de cols x rows en zigzag, por filas o por columnas, centrada
-/// dentro de la grilla visual de 8x8.
-List<(int, int)> _serpienteCoords({required int cols, required int rows, required bool porFilas}) {
-  final offX = ((_visualGrid - cols) / 2).floor();
-  final offY = ((_visualGrid - rows) / 2).floor();
+/// Sendero en forma de triángulo: filas que crecen de a 1 casillero
+/// (alineadas a la izquierda), recorridas en zigzag — cada fila entra
+/// justo donde terminó la anterior, así el camino queda siempre continuo.
+List<(int, int)> _trianguloCoords() {
+  const rowLengths = [1, 2, 3, 4, 5, 6, 7];
+  const offX = 1, offY = 1; // margen para centrarlo un poco en la grilla
   final cells = <(int, int)>[];
-  if (porFilas) {
-    for (var r = 0; r < rows; r++) {
-      if (r.isEven) {
-        for (var c = 0; c < cols; c++) {
-          cells.add((offX + c, offY + r));
-        }
-      } else {
-        for (var c = cols - 1; c >= 0; c--) {
-          cells.add((offX + c, offY + r));
-        }
+  var lastEnd = 0;
+  for (var r = 0; r < rowLengths.length; r++) {
+    final len = rowLengths[r];
+    final startL2R = 0;
+    final startR2L = len - 1;
+    final goL2R = r == 0 || (startL2R - lastEnd).abs() <= (startR2L - lastEnd).abs();
+    if (goL2R) {
+      for (var c = 0; c < len; c++) {
+        cells.add((offX + c, offY + r));
       }
-    }
-  } else {
-    for (var c = 0; c < cols; c++) {
-      if (c.isEven) {
-        for (var r = 0; r < rows; r++) {
-          cells.add((offX + c, offY + r));
-        }
-      } else {
-        for (var r = rows - 1; r >= 0; r--) {
-          cells.add((offX + c, offY + r));
-        }
+      lastEnd = len - 1;
+    } else {
+      for (var c = len - 1; c >= 0; c--) {
+        cells.add((offX + c, offY + r));
       }
+      lastEnd = 0;
     }
+  }
+  // remate corto de 2 casillas para llegar a las 30, siguiendo desde donde
+  // quedó la última fila (queda de "cola" del triángulo).
+  final tailRow = rowLengths.length;
+  final startCol = (lastEnd + 1).clamp(0, _visualGrid - 1 - offX);
+  cells.add((offX + startCol, offY + tailRow));
+  cells.add((offX + max(0, startCol - 1), offY + tailRow));
+  return cells;
+}
+
+/// Sendero circular: recorre el perímetro de un círculo (barrido de
+/// ángulo) centrado en la grilla visual.
+List<(int, int)> _circuloCoords() {
+  final cx = (_visualGrid - 1) / 2, cy = (_visualGrid - 1) / 2;
+  const r = 4.0;
+  const steps = 300;
+  final cells = <(int, int)>[];
+  final seen = <(int, int)>{};
+  for (var i = 0; i < steps; i++) {
+    final theta = 2 * pi * i / steps;
+    final x = (cx + r * cos(theta)).round().clamp(0, _visualGrid - 1);
+    final y = (cy + r * sin(theta)).round().clamp(0, _visualGrid - 1);
+    final p = (x, y);
+    if (cells.isEmpty || p != cells.last) {
+      if (seen.add(p)) cells.add(p);
+    }
+    if (cells.length == BoardEngine.totalCells) break;
   }
   return cells;
 }
@@ -170,7 +195,7 @@ class _CellBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = tipo != null ? AppColors.cellColors[tipo] : AppColors.parchment;
     return Container(
-      margin: const EdgeInsets.all(1),
+      margin: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))]),
       child: Stack(
         children: [

@@ -30,12 +30,16 @@ void main() {
           expect(f.dy, lessThan(1));
         }
 
-        // sendero continuo: cada casilla es adyacente (no diagonal) a la siguiente
-        const cellFrac = 1 / 8;
+        // sendero continuo: cada casilla es adyacente a la siguiente (un paso
+        // de grilla, derecho o en diagonal — el triángulo y el círculo usan
+        // diagonales para poder curvar el camino).
+        const cellFrac = 1 / 10;
         for (var i = 1; i < fractions.length; i++) {
           final dx = ((fractions[i].dx - fractions[i - 1].dx) / cellFrac).round().abs();
           final dy = ((fractions[i].dy - fractions[i - 1].dy) / cellFrac).round().abs();
-          expect(dx + dy, 1, reason: 'casilla $i no es adyacente a la anterior');
+          expect(dx, lessThanOrEqualTo(1), reason: 'casilla $i no es adyacente a la anterior');
+          expect(dy, lessThanOrEqualTo(1), reason: 'casilla $i no es adyacente a la anterior');
+          expect(dx + dy, greaterThan(0), reason: 'casilla $i está superpuesta con la anterior');
         }
       });
     }
