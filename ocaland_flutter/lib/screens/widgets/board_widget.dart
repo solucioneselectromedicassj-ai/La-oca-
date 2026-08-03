@@ -3,17 +3,38 @@ import '../../models/board_layout.dart';
 import '../../models/jugador.dart';
 import '../../theme/app_colors.dart';
 
-/// Calcula la posición (0..1) de cada una de las 30 casillas siguiendo
-/// exactamente el mismo algoritmo en espiral del prototipo HTML.
-List<Offset> buildSpiralFractions() {
+const _visualGrid = 8; // grilla visual de 8x8 dentro de la que se ubican las 30 casillas
+
+/// Tres formas de sendero distintas, para que el tablero no se sienta
+/// monótono a lo largo de las 10 etapas de la campaña. Se elige una según
+/// la etapa (grupos de a 3) — ver [boardShapeForEtapa].
+enum BoardShape { espiral, filas, columnas }
+
+BoardShape boardShapeForEtapa(int etapa) {
+  const formas = [BoardShape.espiral, BoardShape.filas, BoardShape.columnas];
+  return formas[((etapa - 1) ~/ 3) % formas.length];
+}
+
+/// Calcula la posición (0..1) de cada una de las 30 casillas para la forma
+/// de sendero indicada.
+List<Offset> buildBoardFractions(BoardShape shape) {
+  const cellFrac = 1 / _visualGrid;
+  final coords = switch (shape) {
+    BoardShape.espiral => _espiralCoords(),
+    BoardShape.filas => _serpienteCoords(cols: 6, rows: 5, porFilas: true),
+    BoardShape.columnas => _serpienteCoords(cols: 5, rows: 6, porFilas: false),
+  };
+  return coords.map((c) => Offset(c.$1 * cellFrac, c.$2 * cellFrac)).toList();
+}
+
+/// El mismo algoritmo en espiral del prototipo HTML original.
+List<(int, int)> _espiralCoords() {
   const gridSize = 7;
-  const visualGrid = gridSize + 1; // 8
-  const cellFrac = 1 / visualGrid;
   var x = 0, y = 0, dx = 1, dy = 0;
   var segLen = gridSize, segPassed = 0, turns = 0;
-  final cells = <Offset>[];
-  for (var i = 0; i < visualGrid * visualGrid; i++) {
-    cells.add(Offset(x * cellFrac, y * cellFrac));
+  final cells = <(int, int)>[];
+  for (var i = 0; i < _visualGrid * _visualGrid; i++) {
+    cells.add((x, y));
     x += dx;
     y += dy;
     segPassed++;
@@ -29,9 +50,45 @@ List<Offset> buildSpiralFractions() {
   return cells.take(BoardEngine.totalCells).toList();
 }
 
+/// Sendero "serpiente" (como en muchos juegos de mesa clásicos): recorre
+/// una grilla de cols x rows en zigzag, por filas o por columnas, centrada
+/// dentro de la grilla visual de 8x8.
+List<(int, int)> _serpienteCoords({required int cols, required int rows, required bool porFilas}) {
+  final offX = ((_visualGrid - cols) / 2).floor();
+  final offY = ((_visualGrid - rows) / 2).floor();
+  final cells = <(int, int)>[];
+  if (porFilas) {
+    for (var r = 0; r < rows; r++) {
+      if (r.isEven) {
+        for (var c = 0; c < cols; c++) {
+          cells.add((offX + c, offY + r));
+        }
+      } else {
+        for (var c = cols - 1; c >= 0; c--) {
+          cells.add((offX + c, offY + r));
+        }
+      }
+    }
+  } else {
+    for (var c = 0; c < cols; c++) {
+      if (c.isEven) {
+        for (var r = 0; r < rows; r++) {
+          cells.add((offX + c, offY + r));
+        }
+      } else {
+        for (var r = rows - 1; r >= 0; r--) {
+          cells.add((offX + c, offY + r));
+        }
+      }
+    }
+  }
+  return cells;
+}
+
 class BoardWidget extends StatelessWidget {
   final Map<int, String> layoutCasillas;
   final List<JugadorPartida> jugadores;
+  final int etapa;
   final String? animatingPlayerId;
   final int? animatingPos;
   final String? sufriendoPlayerId;
@@ -40,6 +97,7 @@ class BoardWidget extends StatelessWidget {
     super.key,
     required this.layoutCasillas,
     required this.jugadores,
+    this.etapa = 1,
     this.animatingPlayerId,
     this.animatingPos,
     this.sufriendoPlayerId,
@@ -47,8 +105,8 @@ class BoardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cells = buildSpiralFractions();
-    const cellSize = 1 / 8;
+    final cells = buildBoardFractions(boardShapeForEtapa(etapa));
+    const cellSize = 1 / _visualGrid;
 
     return AspectRatio(
       aspectRatio: 1,
@@ -116,9 +174,9 @@ class _CellBox extends StatelessWidget {
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))]),
       child: Stack(
         children: [
-          Padding(padding: const EdgeInsets.all(2), child: Text('$index', style: const TextStyle(fontSize: 8, color: Color(0xFF7A6A99)))),
+          Positioned(top: 1, left: 2, child: Text('$index', style: const TextStyle(fontSize: 7, color: Color(0xFF7A6A99)))),
           if (tipo != null)
-            Positioned(bottom: 1, right: 2, child: Text(AppColors.cellIcons[tipo] ?? '', style: const TextStyle(fontSize: 9))),
+            Center(child: Text(AppColors.cellIcons[tipo] ?? '', style: const TextStyle(fontSize: 15))),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/cell_descriptions.dart';
 import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
@@ -103,6 +104,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                           BoardWidget(
                             layoutCasillas: c.partida!.layoutCasillas,
                             jugadores: c.jugadores,
+                            etapa: c.esCampanaGrupal ? c.partida!.etapaActual : 1,
                             animatingPlayerId: c.animatingPlayerId,
                             animatingPos: c.animatingPos,
                             sufriendoPlayerId: c.sufriendoPlayerId,
@@ -116,8 +118,6 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                           Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(c.gameMsg, textAlign: TextAlign.center)),
                           const SizedBox(height: 8),
                           OutlinedButton(onPressed: () => _salir(context), child: const Text('Salir del juego')),
-                          const SizedBox(height: 16),
-                          _leyenda(),
                         ],
                       ),
                     ),
@@ -137,12 +137,13 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
       case MpOverlay.trivia:
         return TriviaOverlay(
           titulo: {'oca': '🪿 Oca — Cuestionados', 'carcel': '⛓️ Cárcel — Cuestionados', 'calavera': '💀 Calavera — Cuestionados DIFÍCIL'}[c.triviaTipo] ?? '🎯 Desempate — Cuestionados decisiva',
+          subtitulo: cellDescriptions[c.triviaTipo],
           pregunta: c.triviaActual!,
           segundos: c.triviaSegundosRestantes,
           onResponder: c.responderTrivia,
         );
       case MpOverlay.minijuego:
-        return MinijuegoOverlay(titulo: '🎮 ¡Casilla de minijuego!', tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
+        return MinijuegoOverlay(titulo: '🎮 ¡Casilla de minijuego!', subtitulo: cellDescriptions['minijuego'], tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
       case MpOverlay.transicionMinijuego:
         return MinijuegoOverlay(titulo: '🎉 ¡Ganaste la etapa!', tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
       case MpOverlay.transicionRuleta:
@@ -176,29 +177,4 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
     );
   }
 
-  Widget _leyenda() {
-    const items = [
-      ('#FFD93D', 'Oca: Cuestionados, acertá y tirás de nuevo'),
-      ('#4FD8E0', 'Puente: salto directo'),
-      ('#5C7CFA', 'Cárcel: Cuestionados o perdés turno'),
-      ('#FF7043', 'Calavera: Cuestionados difícil o volvés al inicio'),
-      ('#29B6F6', 'Minijuego: reflejos o memoria'),
-    ];
-    return Wrap(
-      spacing: 10,
-      runSpacing: 6,
-      alignment: WrapAlignment.center,
-      children: [
-        for (final it in items)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 9, height: 9, color: Color(int.parse(it.$1.replaceFirst('#', '0xFF')))),
-              const SizedBox(width: 3),
-              Text(it.$2, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A6A99))),
-            ],
-          ),
-      ],
-    );
-  }
 }

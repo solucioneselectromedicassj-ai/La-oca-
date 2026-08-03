@@ -340,7 +340,7 @@ class SoloGameController extends ChangeNotifier {
     if (tipo == 'puente') {
       final destino = BoardEngine.destinoPuente(rawNewPos, partida!.layoutPuentes) ?? rawNewPos;
       await _updateJugador(jugadorId, {'posicion': destino});
-      _msg('🌉 ¡Puente! ${esBot ? "El bot salta" : "Saltás"} a la casilla $destino.');
+      _msg('🌉 ¡Puente! ${esBot ? "El bot salta" : "Saltás"} directo a la casilla $destino, sin pregunta.');
       await _refreshJugadores();
       await _terminarTurno(false);
       return;

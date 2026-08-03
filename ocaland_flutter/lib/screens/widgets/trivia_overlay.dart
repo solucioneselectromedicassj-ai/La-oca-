@@ -4,11 +4,12 @@ import '../../theme/app_colors.dart';
 
 class TriviaOverlay extends StatefulWidget {
   final String titulo;
+  final String? subtitulo;
   final TriviaQuestion pregunta;
   final int segundos; // 0 = sin límite (desafío de 3 Cuestionados)
   final ValueChanged<int> onResponder;
 
-  const TriviaOverlay({super.key, required this.titulo, required this.pregunta, required this.segundos, required this.onResponder});
+  const TriviaOverlay({super.key, required this.titulo, this.subtitulo, required this.pregunta, required this.segundos, required this.onResponder});
 
   @override
   State<TriviaOverlay> createState() => _TriviaOverlayState();
@@ -30,6 +31,11 @@ class _TriviaOverlayState extends State<TriviaOverlay> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(widget.titulo, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+          if (widget.subtitulo != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(widget.subtitulo!, style: const TextStyle(fontSize: 12, color: Color(0xFF7A6A99)), textAlign: TextAlign.center),
+            ),
           if (widget.segundos > 0)
             Padding(
               padding: const EdgeInsets.only(top: 4),
