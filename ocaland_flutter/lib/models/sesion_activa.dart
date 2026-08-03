@@ -10,6 +10,11 @@ class SesionActiva {
   final String codigo;
   final bool esModoSolo;
 
+  /// Solo para el modo solo: snapshot completo del estado local del juego
+  /// (partida + jugadores + progreso de campaña), para poder reanudar sin
+  /// depender de la red — el modo solo no guarda nada en Supabase.
+  final Map<String, dynamic>? snapshot;
+
   const SesionActiva({
     required this.partidaId,
     required this.playerId,
@@ -18,6 +23,7 @@ class SesionActiva {
     required this.pais,
     required this.codigo,
     required this.esModoSolo,
+    this.snapshot,
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +34,7 @@ class SesionActiva {
         'pais': pais,
         'codigo': codigo,
         'esModoSolo': esModoSolo,
+        if (snapshot != null) 'snapshot': snapshot,
       };
 
   factory SesionActiva.fromJson(Map<String, dynamic> j) => SesionActiva(
@@ -38,5 +45,6 @@ class SesionActiva {
         pais: j['pais'] as String,
         codigo: j['codigo'] as String? ?? '',
         esModoSolo: j['esModoSolo'] as bool? ?? false,
+        snapshot: (j['snapshot'] as Map?)?.cast<String, dynamic>(),
       );
 }

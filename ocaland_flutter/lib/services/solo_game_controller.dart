@@ -12,7 +12,10 @@ import '../models/sesion_activa.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../utils/iterable_ext.dart';
+import '../utils/uuid.dart';
 import 'audio_service.dart';
+import 'identity_service.dart';
+import 'pending_rewards_service.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
 
@@ -29,9 +32,18 @@ enum GameOverlay {
 }
 
 /// Motor del modo solo (campaña de 10 etapas contra un bot), portado 1 a 1
-/// de las reglas del prototipo HTML. Reutiliza el mismo backend Supabase
-/// (tablas `partidas` / `jugadores_partida`) aunque juegue una sola persona,
-/// para no bifurcar el modelo de datos del resto del juego.
+/// de las reglas del prototipo HTML.
+///
+/// A diferencia del multijugador, el modo solo es "offline-first": toda la
+/// partida (tablero, posiciones, turnos) vive únicamente como estado local
+/// en memoria — nunca se guarda en las tablas `partidas`/`jugadores_partida`
+/// de Supabase, así que se puede jugar sin conexión. Después de cada
+/// mutación se guarda un snapshot completo en `SesionActiva` (vía
+/// [SessionService]) para poder retomar la campaña desde "Mis partidas"
+/// aunque se cierre la app sin internet. Lo único que sí intenta ir a
+/// Supabase son las recompensas (monedas/estadísticas) al ganar una partida
+/// o completar la campaña — y si eso falla por falta de red, queda
+/// encolado en [PendingRewardsService] para reintentarse más tarde.
 class SoloGameController extends ChangeNotifier {
   Usuario usuario;
   final String myNombre;
@@ -116,69 +128,61 @@ class SoloGameController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------
-  // Arranque del modo solo
+  // Arranque del modo solo — todo local, no depende de la red.
   // ---------------------------------------------------------------------
   Future<void> iniciar() async {
     cargando = true;
     notifyListeners();
 
-    Map<String, dynamic>? partidaRow;
-    for (var attempt = 0; attempt < 5 && partidaRow == null; attempt++) {
-      try {
-        partidaRow = await SupabaseService.from('partidas').insert({
-          'codigo': _genCode(),
-          'estado': 'esperando',
-          'max_jugadores': 2,
-          'etapa_actual': 1,
-        }).select().single();
-      } catch (_) {
-        // código duplicado u otro error transitorio: reintenta con otro código
-      }
-    }
-    if (partidaRow == null) throw Exception('No se pudo crear la partida.');
-
-    partida = Partida.fromJson(partidaRow);
+    final partidaId = uuidV4();
+    final layout = BoardEngine.generarLayoutAleatorio();
+    partida = Partida(
+      id: partidaId,
+      codigo: _genCode(),
+      estado: 'en_curso',
+      maxJugadores: 2,
+      turnoActual: 0,
+      rondaActual: 1,
+      etapaActual: 1,
+      rachaGanador: 0,
+      desempatePendientes: const [],
+      desempateTurnoIdx: 0,
+      layoutCasillas: layout.layoutCasillas,
+      layoutPuentes: layout.layoutPuentes,
+    );
     _campanaInicioTs = DateTime.now();
     _etapaInicioTs = _campanaInicioTs;
     etapaConfig = Campana.generarConfigEtapa(1);
 
-    final miFila = await SupabaseService.from('jugadores_partida').insert({
-      'partida_id': partida!.id,
-      'nombre': myNombre,
-      'orden_turno': 0,
-      'posicion': 0,
-      'edad_bracket': myEdadBracket,
-      'pais': myPais,
-    }).select().single();
-    myPlayerId = miFila['id'] as String;
+    myPlayerId = uuidV4();
+    jugadores = [
+      JugadorPartida(
+        id: myPlayerId!,
+        partidaId: partidaId,
+        nombre: myNombre,
+        esBot: false,
+        posicion: 0,
+        ordenTurno: 0,
+        edadBracket: myEdadBracket,
+        pais: myPais,
+        saltaTurno: false,
+        victorias: 0,
+      ),
+      JugadorPartida(
+        id: uuidV4(),
+        partidaId: partidaId,
+        nombre: 'Bot',
+        esBot: true,
+        posicion: 0,
+        ordenTurno: 1,
+        edadBracket: myEdadBracket,
+        pais: myPais,
+        saltaTurno: false,
+        victorias: 0,
+      ),
+    ];
 
-    await SupabaseService.from('jugadores_partida').insert({
-      'partida_id': partida!.id,
-      'nombre': 'Bot',
-      'orden_turno': 1,
-      'posicion': 0,
-      'es_bot': true,
-      'edad_bracket': myEdadBracket,
-    });
-
-    final layout = BoardEngine.generarLayoutAleatorio();
-    final updated = await SupabaseService.from('partidas').update({
-      'estado': 'en_curso',
-      'layout_casillas': layout.layoutCasillas.map((k, v) => MapEntry(k.toString(), v)),
-      'layout_puentes': layout.layoutPuentes.map((k, v) => MapEntry(k.toString(), v)),
-    }).eq('id', partida!.id).select().single();
-    partida = Partida.fromJson(updated);
-
-    await _refreshJugadores();
-    await SessionService.guardar(SesionActiva(
-      partidaId: partida!.id,
-      playerId: myPlayerId!,
-      nombre: myNombre,
-      edadBracket: myEdadBracket,
-      pais: myPais,
-      codigo: partida!.codigo,
-      esModoSolo: true,
-    ));
+    await _guardarSesionLocal();
     cargando = false;
     notifyListeners();
 
@@ -186,18 +190,26 @@ class SoloGameController extends ChangeNotifier {
     _procesarTurnoActual();
   }
 
-  /// Retoma una campaña guardada (pantalla "Mis partidas") en vez de crear
-  /// una nueva. No vuelve a sortear el turno: continúa donde había quedado.
+  /// Retoma una campaña guardada (pantalla "Mis partidas") desde el
+  /// snapshot local — no depende de la red para nada.
   Future<void> reanudar(SesionActiva sesion) async {
     cargando = true;
     notifyListeners();
-    final row = await SupabaseService.from('partidas').select().eq('id', sesion.partidaId).single();
-    partida = Partida.fromJson(row);
-    myPlayerId = sesion.playerId;
+
+    final snap = sesion.snapshot;
+    if (snap == null) {
+      throw Exception('Esta partida guardada es de una versión anterior y no se puede retomar.');
+    }
+    partida = Partida.fromJson((snap['partida'] as Map).cast<String, dynamic>());
+    jugadores = ((snap['jugadores'] as List?) ?? [])
+        .map((j) => JugadorPartida.fromJson((j as Map).cast<String, dynamic>()))
+        .toList();
+    myPlayerId = snap['myPlayerId'] as String? ?? sesion.playerId;
+    reintentosEtapaActual = (snap['reintentosEtapaActual'] as num?)?.toInt() ?? 0;
+    _campanaInicioTs = DateTime.tryParse(snap['campanaInicioTs'] as String? ?? '') ?? DateTime.now();
+    _etapaInicioTs = DateTime.tryParse(snap['etapaInicioTs'] as String? ?? '') ?? DateTime.now();
     etapaConfig = Campana.generarConfigEtapa(partida!.etapaActual);
-    _campanaInicioTs = DateTime.now();
-    _etapaInicioTs = DateTime.now();
-    await _refreshJugadores();
+
     cargando = false;
     notifyListeners();
     _procesarTurnoActual();
@@ -207,19 +219,52 @@ class SoloGameController extends ChangeNotifier {
     if (partida != null) await SessionService.borrar(partida!.id);
   }
 
-  Future<void> _refreshJugadores() async {
-    final rows = await SupabaseService.from('jugadores_partida').select().eq('partida_id', partida!.id).order('orden_turno');
-    jugadores = (rows as List).map((r) => JugadorPartida.fromJson(r as Map<String, dynamic>)).toList();
+  /// Snapshot completo del estado local para poder reanudar sin red.
+  Map<String, dynamic> _construirSnapshot() => {
+        'partida': partida!.toJson(),
+        'jugadores': jugadores.map((j) => j.toJson()).toList(),
+        'myPlayerId': myPlayerId,
+        'reintentosEtapaActual': reintentosEtapaActual,
+        'campanaInicioTs': _campanaInicioTs?.toIso8601String(),
+        'etapaInicioTs': _etapaInicioTs?.toIso8601String(),
+      };
+
+  Future<void> _guardarSesionLocal() async {
+    if (partida == null || myPlayerId == null) return;
+    await SessionService.guardar(SesionActiva(
+      partidaId: partida!.id,
+      playerId: myPlayerId!,
+      nombre: myNombre,
+      edadBracket: myEdadBracket,
+      pais: myPais,
+      codigo: partida!.codigo,
+      esModoSolo: true,
+      snapshot: _construirSnapshot(),
+    ));
+  }
+
+  /// Muta el estado local de la partida (sin red) y persiste el snapshot.
+  Future<void> _updatePartida(Map<String, dynamic> values) async {
+    partida!.applyPatch(values);
+    await _guardarSesionLocal();
     notifyListeners();
   }
 
-  Future<void> _updatePartida(Map<String, dynamic> values) async {
-    final updated = await SupabaseService.from('partidas').update(values).eq('id', partida!.id).select().single();
-    partida = Partida.fromJson(updated);
+  /// Muta el estado local de un jugador (sin red) y persiste el snapshot.
+  Future<void> _updateJugador(String id, Map<String, dynamic> values) async {
+    jugadores.where((j) => j.id == id).firstOrNull?.applyPatch(values);
+    await _guardarSesionLocal();
+    notifyListeners();
   }
 
-  Future<void> _updateJugador(String id, Map<String, dynamic> values) async {
-    await SupabaseService.from('jugadores_partida').update(values).eq('id', id);
+  /// Aplica el mismo parche a todos los jugadores de la partida (equivalente
+  /// al `.update(values).eq('partida_id', ...)` que hacía el multijugador).
+  Future<void> _updateTodosLosJugadores(Map<String, dynamic> values) async {
+    for (final j in jugadores) {
+      j.applyPatch(values);
+    }
+    await _guardarSesionLocal();
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------
@@ -287,7 +332,6 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _saltarTurnoAutomatico(JugadorPartida j) async {
     await _updateJugador(j.id, {'salta_turno': false});
     _msg('⛓️ ${j.id == myPlayerId ? "Perdiste" : "${j.nombre} perdió"} este turno por la cárcel.');
-    await _refreshJugadores();
     await _terminarTurno(false);
   }
 
@@ -341,14 +385,12 @@ class SoloGameController extends ChangeNotifier {
       final destino = BoardEngine.destinoPuente(rawNewPos, partida!.layoutPuentes) ?? rawNewPos;
       await _updateJugador(jugadorId, {'posicion': destino});
       _msg('🌉 ¡Puente! ${esBot ? "El bot salta" : "Saltás"} directo a la casilla $destino, sin pregunta.');
-      await _refreshJugadores();
       await _terminarTurno(false);
       return;
     }
 
     if (tipo == 'oca' || tipo == 'carcel' || tipo == 'calavera') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
-      await _refreshJugadores();
       if (esBot) {
         final probAcierto = tipo == 'calavera'
             ? etapaConfig!.botAciertoCalavera
@@ -365,7 +407,6 @@ class SoloGameController extends ChangeNotifier {
 
     if (tipo == 'minijuego') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
-      await _refreshJugadores();
       if (esBot) {
         final exito = Random().nextDouble() < etapaConfig!.botAciertoMinijuego;
         await _aplicarResultadoMinijuego(jugadorId, rawNewPos, exito, true);
@@ -376,7 +417,6 @@ class SoloGameController extends ChangeNotifier {
     }
 
     await _updateJugador(jugadorId, {'posicion': rawNewPos});
-    await _refreshJugadores();
     if (rawNewPos >= BoardEngine.meta) {
       await _manejarVictoria(jugadorId);
       return;
@@ -506,7 +546,6 @@ class SoloGameController extends ChangeNotifier {
     }
 
     await _updateJugador(jugadorId, {'posicion': posFinal});
-    await _refreshJugadores();
 
     final quien = esBot ? 'El bot' : 'Vos';
     _msg(forzarSkip ? '⏱️ ${quien == "Vos" ? "Se te acabó" : "Se le acabó"} el tiempo.' : _mensajeTrivia(tipo, acierto, quien));
@@ -517,7 +556,6 @@ class SoloGameController extends ChangeNotifier {
     }
     if ((tipo == 'carcel' && skipNext) || forzarSkip) {
       await _updateJugador(jugadorId, {'salta_turno': true});
-      await _refreshJugadores();
     }
     await _terminarTurno(_triviaOutcomeExtraTurn.contains(tipo) && extraTurn && !forzarSkip);
   }
@@ -559,7 +597,6 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _aplicarResultadoMinijuego(String jugadorId, int posActual, bool exito, bool esBot) async {
     final nuevaPos = exito ? min(posActual + 2, BoardEngine.meta) : posActual;
     await _updateJugador(jugadorId, {'posicion': nuevaPos});
-    await _refreshJugadores();
     final quien = esBot ? 'El bot' : 'Vos';
     _msg(exito ? '🎮 ¡$quien superó el minijuego! Avanza 2 casillas extra.' : '🎮 ${quien == "Vos" ? "No superaste" : "No superó"} el minijuego esta vez.');
 
@@ -585,7 +622,6 @@ class SoloGameController extends ChangeNotifier {
     }
     final siguiente = usarExtra ? partida!.turnoActual : (partida!.turnoActual + 1) % jugadores.length;
     await _updatePartida({'turno_actual': siguiente, 'estado_turno': null});
-    await _refreshJugadores();
     _procesarTurnoActual();
   }
 
@@ -608,9 +644,11 @@ class SoloGameController extends ChangeNotifier {
             partidasGanadas: usuario.partidasGanadas + (gane ? 1 : 0),
             monedas: (fila['monedas_total'] as num?)?.toInt(),
           );
+          await IdentityService.actualizarCache(usuario);
         }
       } catch (_) {
-        // si falla la RPC (p.ej. sin conexión) seguimos sin bloquear el juego
+        // sin conexión: la recompensa queda encolada y se reintenta cuando vuelva la red
+        await PendingRewardsService.encolar(PendingReward('partida_jugada', {'usuario_id': usuario.id, 'gano': gane}));
       }
     }
 
@@ -703,8 +741,11 @@ class SoloGameController extends ChangeNotifier {
             mejorTiempoCampanaMs: (usuario.mejorTiempoCampanaMs == null || msTotal < usuario.mejorTiempoCampanaMs!) ? msTotal : usuario.mejorTiempoCampanaMs,
             monedas: (fila['monedas_total'] as num?)?.toInt(),
           );
+          await IdentityService.actualizarCache(usuario);
         }
-      } catch (_) {}
+      } catch (_) {
+        await PendingRewardsService.encolar(PendingReward('campana_completada', {'usuario_id': usuario.id, 'ms_total': msTotal}));
+      }
       if (desafioId != null) {
         try {
           await SupabaseService.from('desafios_resultados').insert({
@@ -714,7 +755,15 @@ class SoloGameController extends ChangeNotifier {
             'etapas_completadas': 10,
             'ms_total': msTotal,
           });
-        } catch (_) {}
+        } catch (_) {
+          await PendingRewardsService.encolar(PendingReward('desafio_resultado', {
+            'desafio_id': desafioId,
+            'usuario_id': usuario.id,
+            'nombre': myNombre,
+            'etapas_completadas': 10,
+            'ms_total': msTotal,
+          }));
+        }
       }
       AudioService.win();
       campanaFinTexto = '🏆🎉 ¡COMPLETASTE LAS 10 ETAPAS! Tiempo total: ${_formatearMs(msTotal)}';
@@ -804,7 +853,7 @@ class SoloGameController extends ChangeNotifier {
     final mio = yo;
     final comodin = mio?.comodinPendiente;
 
-    await SupabaseService.from('jugadores_partida').update({'posicion': 0, 'salta_turno': false, 'comodin_pendiente': null}).eq('partida_id', partida!.id);
+    await _updateTodosLosJugadores({'posicion': 0, 'salta_turno': false, 'comodin_pendiente': null});
 
     var mensajeComodin = '';
     if (comodin == 'ventaja3') {
@@ -827,7 +876,6 @@ class SoloGameController extends ChangeNotifier {
       'layout_casillas': layout.layoutCasillas.map((k, v) => MapEntry(k.toString(), v)),
       'layout_puentes': layout.layoutPuentes.map((k, v) => MapEntry(k.toString(), v)),
     });
-    await _refreshJugadores();
     _msg('🎉 ¡Superaste la etapa $etapaActual! Arranca la etapa $nuevaEtapa de 10.$mensajeComodin');
     notifyListeners();
 
@@ -839,13 +887,12 @@ class SoloGameController extends ChangeNotifier {
     final etapaActual = partida!.etapaActual;
     _etapaInicioTs = DateTime.now();
     final layout = BoardEngine.generarLayoutAleatorio();
-    await SupabaseService.from('jugadores_partida').update({'posicion': 0, 'salta_turno': false}).eq('partida_id', partida!.id);
+    await _updateTodosLosJugadores({'posicion': 0, 'salta_turno': false});
     await _updatePartida({
       'estado_turno': null,
       'layout_casillas': layout.layoutCasillas.map((k, v) => MapEntry(k.toString(), v)),
       'layout_puentes': layout.layoutPuentes.map((k, v) => MapEntry(k.toString(), v)),
     });
-    await _refreshJugadores();
     _msg('😕 Te ganó el bot en la etapa $etapaActual. ¡Reintentá!');
     notifyListeners();
 

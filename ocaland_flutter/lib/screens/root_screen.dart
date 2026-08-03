@@ -38,7 +38,7 @@ class _RootScreenState extends State<RootScreen> {
       );
     }
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => LobbyScreen(usuario: resultado.usuario)));
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => LobbyScreen(usuario: resultado.usuario, offline: resultado.offline)));
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
+import '../services/pending_rewards_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
@@ -25,8 +26,9 @@ class LobbyScreen extends StatefulWidget {
   final String? nombre;
   final String? edadBracket;
   final String? pais;
+  final bool offline;
 
-  const LobbyScreen({super.key, required this.usuario, this.nombre, this.edadBracket, this.pais});
+  const LobbyScreen({super.key, required this.usuario, this.nombre, this.edadBracket, this.pais, this.offline = false});
 
   @override
   State<LobbyScreen> createState() => _LobbyScreenState();
@@ -43,6 +45,17 @@ class _LobbyScreenState extends State<LobbyScreen> {
     super.initState();
     _edadBracket = widget.edadBracket;
     _pais = widget.pais;
+    // Si había recompensas de partidas jugadas offline, las sincroniza apenas hay red.
+    PendingRewardsService.flush();
+    if (widget.offline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('📡 Sin conexión: podés jugar el modo solo. Tus monedas y estadísticas se van a poner al día cuando vuelva internet.'),
+          duration: Duration(seconds: 5),
+        ));
+      });
+    }
     // Recompensa por tiempo activo en la app (hitos a los 5/15/30 min), igual que el prototipo.
     _heartbeat = Timer.periodic(const Duration(seconds: 60), (_) async {
       try {
