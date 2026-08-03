@@ -9,13 +9,14 @@ import '../../theme/app_colors.dart';
 // visible entre una casilla y la siguiente en vez de verse todas pegadas).
 const _visualGrid = 10;
 
-/// Tres formas de sendero bien distintas entre sí, para que el tablero no
-/// se sienta monótono a lo largo de las 10 etapas de la campaña. Se elige
-/// una según la etapa (grupos de a 3) — ver [boardShapeForEtapa].
-enum BoardShape { espiral, triangulo, circulo }
+/// Cuatro formas de sendero bien distintas entre sí, para que el tablero
+/// no se sienta monótono a lo largo de las 10 etapas de la campaña: espiral
+/// (etapas 1-3), triángulo (4-6), círculo (7-9) y una S para el cierre
+/// (etapa 10) — ver [boardShapeForEtapa].
+enum BoardShape { espiral, triangulo, circulo, ese }
 
 BoardShape boardShapeForEtapa(int etapa) {
-  const formas = [BoardShape.espiral, BoardShape.triangulo, BoardShape.circulo];
+  const formas = [BoardShape.espiral, BoardShape.triangulo, BoardShape.circulo, BoardShape.ese];
   return formas[((etapa - 1) ~/ 3) % formas.length];
 }
 
@@ -27,6 +28,7 @@ List<Offset> buildBoardFractions(BoardShape shape) {
     BoardShape.espiral => _espiralCoords(),
     BoardShape.triangulo => _trianguloCoords(),
     BoardShape.circulo => _circuloCoords(),
+    BoardShape.ese => _eseCoords(),
   };
   return coords.map((c) => Offset(c.$1 * cellFrac, c.$2 * cellFrac)).toList();
 }
@@ -97,6 +99,36 @@ List<(int, int)> _circuloCoords() {
       if (seen.add(p)) cells.add(p);
     }
     if (cells.length == BoardEngine.totalCells) break;
+  }
+  return cells;
+}
+
+/// Sendero en forma de S: fila de arriba (izq→der), un tramo corto bajando
+/// por la derecha, fila del medio (der→izq), un tramo más largo bajando
+/// por la izquierda, y fila de abajo (izq→der) — el remate de las 10
+/// etapas de la campaña.
+List<(int, int)> _eseCoords() {
+  const width = 9;
+  const offX = 1;
+  const topRow = 1;
+  const midRow = 3;
+  final botRow = midRow + 4;
+  final cells = <(int, int)>[];
+  for (var c = 0; c < width; c++) {
+    cells.add((offX + c, topRow));
+  }
+  final rightCol = offX + width - 1;
+  for (var r = topRow + 1; r <= topRow + 2; r++) {
+    cells.add((rightCol, r));
+  }
+  for (var c = width - 2; c >= 0; c--) {
+    cells.add((offX + c, midRow));
+  }
+  for (var r = midRow + 1; r <= midRow + 3; r++) {
+    cells.add((offX, r));
+  }
+  for (var c = 1; c < width; c++) {
+    cells.add((offX + c, botRow));
   }
   return cells;
 }

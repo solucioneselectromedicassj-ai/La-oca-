@@ -10,6 +10,8 @@ void main() {
       expect(boardShapeForEtapa(3), isNot(boardShapeForEtapa(4)));
       expect(boardShapeForEtapa(4), boardShapeForEtapa(5));
       expect(boardShapeForEtapa(6), isNot(boardShapeForEtapa(7)));
+      expect(boardShapeForEtapa(9), isNot(boardShapeForEtapa(10)));
+      expect(boardShapeForEtapa(10), BoardShape.ese);
     });
   });
 
