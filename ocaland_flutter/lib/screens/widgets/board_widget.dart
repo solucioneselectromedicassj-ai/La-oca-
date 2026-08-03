@@ -57,28 +57,56 @@ List<(int, int)> _espiralCoords() {
   return cells.take(BoardEngine.totalCells).toList();
 }
 
-/// Sendero triangular: una espiral de 3 lados (en vez de los 4 del
-/// cuadrado) que converge hacia el centro — un lado recto abajo, uno
-/// diagonal y uno vertical, achicándose en cada vuelta.
-List<(int, int)> _trianguloCoords() {
-  const dirs = [(1, 0), (-1, -1), (0, 1)]; // abajo→derecha, diagonal arriba-izq, hacia abajo
-  var x = 0, y = _visualGrid - 2;
-  var dirIdx = 0;
-  var segLen = _visualGrid - 2;
-  var segPassed = 0;
-  final cells = <(int, int)>[(x, y)];
-  while (cells.length < BoardEngine.totalCells && segLen > 0) {
-    final (dx, dy) = dirs[dirIdx];
-    x += dx;
-    y += dy;
-    cells.add((x, y));
-    segPassed++;
-    if (segPassed == segLen) {
-      segPassed = 0;
-      dirIdx = (dirIdx + 1) % dirs.length;
-      segLen--;
+/// Línea recta entre dos puntos de la grilla, con pasos de un solo
+/// casillero (diagonal mientras se pueda, derecho para lo que sobre) —
+/// para trazar los lados de los triángulos sin saltos.
+List<(int, int)> _staircase((int, int) from, (int, int) to) {
+  var (x, y) = from;
+  final sx = (to.$1 - x).sign, sy = (to.$2 - y).sign;
+  var ax = (to.$1 - x).abs(), ay = (to.$2 - y).abs();
+  final points = <(int, int)>[];
+  while (ax > 0 || ay > 0) {
+    if (ax > 0 && ay > 0) {
+      x += sx;
+      y += sy;
+      ax--;
+      ay--;
+    } else if (ax > 0) {
+      x += sx;
+      ax--;
+    } else {
+      y += sy;
+      ay--;
     }
+    points.add((x, y));
   }
+  return points;
+}
+
+/// Sendero triangular: dos triángulos anidados (uno grande por afuera y
+/// uno chico adentro, unidos por un puente corto) — como el ícono clásico
+/// de espiral triangular, pero calcado sobre nuestras casillas.
+List<(int, int)> _trianguloCoords() {
+  const outerApex = (4, 0);
+  const outerLeft = (0, 8);
+  const outerRight = (8, 8);
+  const innerApex = (4, 5);
+  const innerLeft = (4, 6);
+  const innerRight = (5, 6);
+
+  // Arranca en una esquina de la base (no en el ápice) para que el ápice
+  // quede a mitad de camino del perímetro y no se vuelva a cruzar cerca
+  // del puente hacia el triángulo interior.
+  final cells = <(int, int)>[outerLeft];
+  cells.addAll(_staircase(outerLeft, outerRight));
+  cells.addAll(_staircase(outerRight, outerApex));
+  final closing = _staircase(outerApex, outerLeft);
+  cells.addAll(closing.sublist(0, closing.length - 1)); // no repetir el inicio
+  cells.addAll(_staircase(cells.last, innerApex));
+  cells.addAll(_staircase(innerApex, innerLeft));
+  cells.addAll(_staircase(innerLeft, innerRight));
+  final closingInner = _staircase(innerRight, innerApex);
+  cells.addAll(closingInner.sublist(0, closingInner.length - 1));
   return cells;
 }
 
@@ -103,31 +131,32 @@ List<(int, int)> _circuloCoords() {
   return cells;
 }
 
-/// Sendero en forma de S: fila de arriba (izq→der), un tramo corto bajando
-/// por la derecha, fila del medio (der→izq), un tramo más largo bajando
-/// por la izquierda, y fila de abajo (izq→der) — el remate de las 10
-/// etapas de la campaña.
+/// Sendero en forma de S, simétrica: fila de arriba (izq→der), baja por
+/// la derecha, fila del medio (der→izq), baja por la izquierda — el mismo
+/// largo que la bajada de la derecha — y fila de abajo (izq→der), del
+/// mismo ancho que la de arriba. Remate de las 10 etapas de la campaña.
 List<(int, int)> _eseCoords() {
-  const width = 9;
+  const width = 8; // ancho de las 3 filas (arriba, medio, abajo)
+  const descent = 3; // largo de cada bajada, igual de los dos lados
   const offX = 1;
-  const topRow = 1;
-  const midRow = 3;
-  final botRow = midRow + 4;
+  const topRow = 0;
+  final midRow = topRow + descent + 1;
+  final botRow = midRow + descent + 1;
   final cells = <(int, int)>[];
   for (var c = 0; c < width; c++) {
     cells.add((offX + c, topRow));
   }
   final rightCol = offX + width - 1;
-  for (var r = topRow + 1; r <= topRow + 2; r++) {
+  for (var r = topRow + 1; r <= topRow + descent; r++) {
     cells.add((rightCol, r));
   }
-  for (var c = width - 2; c >= 0; c--) {
+  for (var c = width - 1; c >= 0; c--) {
     cells.add((offX + c, midRow));
   }
-  for (var r = midRow + 1; r <= midRow + 3; r++) {
+  for (var r = midRow + 1; r <= midRow + descent; r++) {
     cells.add((offX, r));
   }
-  for (var c = 1; c < width; c++) {
+  for (var c = 0; c < width; c++) {
     cells.add((offX + c, botRow));
   }
   return cells;
