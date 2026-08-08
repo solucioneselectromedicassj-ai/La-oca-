@@ -676,20 +676,31 @@ class SoloGameController extends ChangeNotifier {
 
   /// Pedir una pista en la trivia actual: elimina una opción incorrecta.
   /// Cuesta monedas o sellos, o se puede conseguir gratis viendo un video.
+  ///
+  /// Pausa el timer de la trivia mientras se decide (si no, seguía corriendo
+  /// en segundo plano y podía vencer justo mientras se elegía video/monedas,
+  /// pisando el overlay/completer de este diálogo y dejando el juego
+  /// trabado sin ninguna pantalla con la que interactuar) y siempre vuelve
+  /// a mostrar la trivia al terminar, se haya conseguido la pista o no.
   Future<void> pedirPista() async {
     if (pistaUsada || triviaActual == null) return;
+    _triviaTimer?.cancel();
     final conseguida = await _ofrecerVideoOMonedas(
       descripcion: 'Una pista elimina una opción incorrecta. ¿Cómo la conseguís?',
       costoMonedas: 10,
       costoSellos: 3,
     );
-    if (!conseguida || triviaActual == null || pistaUsada) return;
-    final pregunta = triviaActual!;
-    final incorrectas = List.generate(pregunta.options.length, (i) => i).where((i) => i != pregunta.correct).toList();
-    incorrectas.shuffle();
-    pistaOpcionEliminada = incorrectas.first;
-    pistaUsada = true;
+    if (triviaActual == null) return; // se resolvió por otro lado mientras tanto
+    if (conseguida && !pistaUsada) {
+      final pregunta = triviaActual!;
+      final incorrectas = List.generate(pregunta.options.length, (i) => i).where((i) => i != pregunta.correct).toList();
+      incorrectas.shuffle();
+      pistaOpcionEliminada = incorrectas.first;
+      pistaUsada = true;
+    }
+    overlay = GameOverlay.trivia;
     notifyListeners();
+    _iniciarTimerTrivia();
   }
 
   // ---------------------------------------------------------------------
@@ -706,24 +717,34 @@ class SoloGameController extends ChangeNotifier {
     _eleccionCompleter = Completer<String>();
     final eleccion = await _eleccionCompleter!.future;
 
-    if (eleccion == 'video') {
-      await _mostrarAnuncioSimulado();
-      return true;
-    }
-    if (eleccion == 'monedas') {
-      final r = await EconomyService.gastarMonedas(usuario.id, costoMonedas);
-      if (r == null || !r.exito) {
-        _msg('🪙 No te alcanzan las monedas.');
-        return false;
+    try {
+      if (eleccion == 'video') {
+        await _mostrarAnuncioSimulado();
+        return true;
       }
-      usuario = usuario.copyWith(monedas: r.monedasRestantes);
-      notifyListeners();
-      return true;
-    }
-    if (eleccion == 'sellos') {
-      sellos = await SellosService.agregar(-costoSellos);
-      notifyListeners();
-      return true;
+      if (eleccion == 'monedas') {
+        final r = await EconomyService.gastarMonedas(usuario.id, costoMonedas);
+        if (r == null || !r.exito) {
+          _msg('🪙 No te alcanzan las monedas.');
+          return false;
+        }
+        usuario = usuario.copyWith(monedas: r.monedasRestantes);
+        notifyListeners();
+        return true;
+      }
+      if (eleccion == 'sellos') {
+        sellos = await SellosService.agregar(-costoSellos);
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {
+      // Si falla la red o el guardado local, no dejamos el juego trabado:
+      // se trata como si el jugador hubiera cancelado.
+      if (overlay == GameOverlay.anuncioSimulado || overlay == GameOverlay.eleccionVideoMonedas) {
+        overlay = GameOverlay.none;
+      }
+      _msg('⚠️ No se pudo completar. Seguimos.');
+      return false;
     }
     return false;
   }

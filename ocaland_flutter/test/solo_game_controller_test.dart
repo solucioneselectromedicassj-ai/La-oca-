@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ocaland_flutter/models/jugador.dart';
 import 'package:ocaland_flutter/models/partida.dart';
 import 'package:ocaland_flutter/models/sesion_activa.dart';
+import 'package:ocaland_flutter/models/trivia_bank.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/solo_game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -177,6 +178,66 @@ void main() {
 
       c.partida!.applyPatch({'turno_actual': 0, 'estado_turno': null}); // termina el turno del bot
       expect(c.diceHabilitado, isTrue);
+    });
+  });
+
+  group('SoloGameController.pedirPista', () {
+    // Regresión: pedir la pista pausaba el diálogo de "video o monedas"
+    // pero dejaba corriendo el timer de la trivia en segundo plano, y
+    // nunca volvía a mostrar la trivia después — si el timer vencía
+    // mientras se elegía, o incluso al elegir normalmente, el juego
+    // quedaba sin overlay visible y el dado sin poder tirarse (trabado).
+    test('vuelve a mostrar la trivia (no queda trabado) después de conseguir la pista con sellos', () async {
+      // SellosService lee/escribe SharedPreferences de verdad (no el campo
+      // c.sellos, que es solo una copia en memoria para la UI) — hay que
+      // sembrar el mock ahí para que el gasto de sellos se vea reflejado.
+      SharedPreferences.setMockInitialValues({'sellos_count': 5});
+      final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+      c.myPlayerId = 'yo';
+      c.jugadores = [
+        JugadorPartida.fromJson(_jugadorJson(id: 'yo', ordenTurno: 0, esBot: false)),
+        JugadorPartida.fromJson(_jugadorJson(id: 'bot', ordenTurno: 1, esBot: true)),
+      ];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+      c.triviaActual = const TriviaQuestion('¿Test?', ['a', 'b', 'c', 'd'], 0);
+      c.triviaTipo = 'carcel';
+      c.sellos = 5;
+      c.overlay = GameOverlay.trivia;
+
+      final pedido = c.pedirPista();
+      expect(c.overlay, GameOverlay.eleccionVideoMonedas, reason: 'se abrió el diálogo de video/monedas/sellos');
+
+      c.elegirSellosParaEleccion();
+      await pedido;
+
+      expect(c.overlay, GameOverlay.trivia, reason: 'la trivia tiene que seguir en pantalla, no un overlay vacío');
+      expect(c.triviaActual, isNotNull);
+      expect(c.pistaUsada, isTrue);
+      expect(c.pistaOpcionEliminada, isNotNull);
+      expect(c.pistaOpcionEliminada, isNot(0)); // nunca elimina la opción correcta
+      expect(c.sellos, 2); // gastó 3 de los 5 que tenía
+    });
+
+    test('también vuelve a mostrar la trivia si se cancela el diálogo de pista', () async {
+      final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+      c.myPlayerId = 'yo';
+      c.jugadores = [
+        JugadorPartida.fromJson(_jugadorJson(id: 'yo', ordenTurno: 0, esBot: false)),
+        JugadorPartida.fromJson(_jugadorJson(id: 'bot', ordenTurno: 1, esBot: true)),
+      ];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+      c.triviaActual = const TriviaQuestion('¿Test?', ['a', 'b', 'c', 'd'], 0);
+      c.triviaTipo = 'carcel';
+      c.overlay = GameOverlay.trivia;
+
+      final pedido = c.pedirPista();
+      c.cancelarEleccionVideoMonedas();
+      await pedido;
+
+      expect(c.overlay, GameOverlay.trivia);
+      expect(c.triviaActual, isNotNull);
+      expect(c.pistaUsada, isFalse);
+      expect(c.pistaOpcionEliminada, isNull);
     });
   });
 }

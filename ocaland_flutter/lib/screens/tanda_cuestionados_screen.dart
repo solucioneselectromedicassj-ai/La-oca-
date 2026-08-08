@@ -29,6 +29,11 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
   int _sellosGanadosAca = 0;
   int _sellos = 0;
 
+  /// Cola de preguntas ya barajadas: se van sacando de a una para no repetir
+  /// hasta agotar todo el banco (en vez de barajar y sacar la primera cada
+  /// vez, que podía repetir la misma pregunta seguida).
+  final List<TriviaQuestion> _cola = [];
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +44,10 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
   }
 
   void _elegirPregunta() {
-    final banco = TriviaBank.bancoPorPais(widget.pais, widget.edadBracket)..shuffle();
-    _pregunta = banco.first;
+    if (_cola.isEmpty) {
+      _cola.addAll(List<TriviaQuestion>.from(TriviaBank.bancoPorPais(widget.pais, widget.edadBracket))..shuffle());
+    }
+    _pregunta = _cola.removeAt(0);
   }
 
   Future<void> _responder(int idx) async {
