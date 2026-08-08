@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import '../app_config.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
@@ -164,7 +165,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   Future<void> _compartirApp() async {
-    await Share.share('🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.');
+    await Share.share('🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.\n${AppConfig.appUrl}');
     try {
       final r = await EconomyService.recompensaPorCompartir(widget.usuario.id);
       if (!mounted || r == null || r.yaReclamado) return;

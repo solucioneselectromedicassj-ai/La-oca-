@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import '../app_config.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
@@ -142,7 +143,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: OutlinedButton(
-                                    onPressed: () => Share.share('🎲 ¡Jugá Ocaland conmigo! Usá mi código ${u.codigoReferido} al entrar.'),
+                                    onPressed: () => Share.share('🎲 ¡Jugá Ocaland conmigo! Usá mi código ${u.codigoReferido} al entrar.\n${AppConfig.appUrl}'),
                                     child: const Text('📲 Compartir mi código'),
                                   ),
                                 ),

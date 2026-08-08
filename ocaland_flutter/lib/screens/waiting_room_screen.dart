@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../app_config.dart';
 import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'game_screen_multi.dart';
@@ -87,7 +88,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton(
-                                  onPressed: () => Share.share('🎲 ¡Jugá conmigo a Ocaland! Entrá con el código: $codigo'),
+                                  onPressed: () => Share.share('🎲 ¡Jugá conmigo a Ocaland! Entrá con el código: $codigo\n${AppConfig.appUrl}'),
                                   child: const Text('📲 Compartir por WhatsApp/chat'),
                                 ),
                               ),
