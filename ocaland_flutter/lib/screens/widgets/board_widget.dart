@@ -153,6 +153,12 @@ class BoardWidget extends StatelessWidget {
             final side = constraints.maxWidth;
             return Stack(
               children: [
+                Center(
+                  child: Opacity(
+                    opacity: 0.16,
+                    child: Text('🪿', style: TextStyle(fontSize: side * 0.34)),
+                  ),
+                ),
                 for (var i = 0; i < cells.length; i++)
                   Positioned(
                     left: cells[i].dx * side,

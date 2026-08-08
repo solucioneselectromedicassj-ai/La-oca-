@@ -11,6 +11,7 @@ import '../models/partida.dart';
 import '../models/sesion_activa.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
+import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
 import '../utils/uuid.dart';
 import 'audio_service.dart';
@@ -72,6 +73,12 @@ class SoloGameController extends ChangeNotifier {
   bool diceRodando = false;
   int? diceValorMostrado;
   bool botPensando = false;
+
+  /// Igual que [diceRodando]/[diceValorMostrado] pero para la tirada del
+  /// bot — así se ve en pantalla qué le salió, en vez de que el turno del
+  /// bot sea una caja negra.
+  bool botDiceRodando = false;
+  int? botDiceValorMostrado;
   bool cargando = true;
 
   String? animatingPlayerId;
@@ -349,9 +356,19 @@ class SoloGameController extends ChangeNotifier {
     _msg('🤖 El bot está pensando...');
     notifyListeners();
     await _wait(Pacing.botThink);
-    final valor = 1 + Random().nextInt(6);
     botPensando = false;
+    botDiceRodando = true;
+    AudioService.diceRoll();
+    notifyListeners();
+    await _wait(Pacing.diceRoll);
+    final valor = 1 + Random().nextInt(6);
+    botDiceValorMostrado = valor;
+    botDiceRodando = false;
+    _msg('🤖 El bot tiró un $valor.');
     await _resolverMovimiento(bot.id, bot.posicion, valor, bot.edadBracket ?? myEdadBracket, true, bot.pais ?? myPais);
+    await _wait(Pacing.diceResultHold);
+    botDiceValorMostrado = null;
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------
@@ -811,28 +828,27 @@ class SoloGameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static const List<Map<String, String>> _wheelPrizes = [
-    {'id': 'ventaja3', 'label': '+3 casillas de ventaja'},
-    {'id': 'doble_tiempo', 'label': 'Doble tiempo en tu próxima Cuestionados'},
-    {'id': 'nada', 'label': 'Nada esta vez'},
-    {'id': 'tirada_extra', 'label': '+1 tirada extra al empezar'},
-    {'id': 'inmunidad', 'label': 'Inmunidad a una trampa'},
-    {'id': 'nada', 'label': 'Nada esta vez'},
-  ];
+  /// A qué división apunta el giro actual — se fija ANTES de arrancar a
+  /// girar, para que la rueda pueda animarse hasta frenar justo ahí (y no
+  /// mostrar un giro genérico desconectado del premio real).
+  int? wheelPremioIdx;
 
   void _irAFaseRuleta() {
     wheelResultLabel = '';
     wheelGirando = false;
     wheelListaParaContinuar = false;
+    wheelPremioIdx = null;
     overlay = GameOverlay.transicionRuleta;
     notifyListeners();
   }
 
   Future<void> girarRuleta() async {
     if (wheelGirando) return;
+    final idx = Random().nextInt(wheelPrizes.length);
+    wheelPremioIdx = idx;
     wheelGirando = true;
     notifyListeners();
-    final premio = _wheelPrizes[Random().nextInt(_wheelPrizes.length)];
+    final premio = wheelPrizes[idx];
     await _wait(const Duration(milliseconds: 3600));
     wheelResultLabel = '🎁 ¡Premio: ${premio['label']}!';
     wheelGirando = false;

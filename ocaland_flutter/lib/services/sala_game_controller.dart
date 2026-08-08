@@ -11,6 +11,7 @@ import '../models/partida.dart';
 import '../models/sesion_activa.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
+import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
 import 'join_room_result.dart';
@@ -712,28 +713,24 @@ class SalaGameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static const List<Map<String, String>> _wheelPrizes = [
-    {'id': 'ventaja3', 'label': '+3 casillas de ventaja'},
-    {'id': 'doble_tiempo', 'label': 'Doble tiempo en tu próxima Cuestionados'},
-    {'id': 'nada', 'label': 'Nada esta vez'},
-    {'id': 'tirada_extra', 'label': '+1 tirada extra al empezar'},
-    {'id': 'inmunidad', 'label': 'Inmunidad a una trampa'},
-    {'id': 'nada', 'label': 'Nada esta vez'},
-  ];
+  int? wheelPremioIdx;
 
   void _irAFaseRuletaGanador() {
     wheelResultLabel = '';
     wheelGirando = false;
     wheelListaParaContinuar = false;
+    wheelPremioIdx = null;
     overlay = MpOverlay.transicionRuleta;
     notifyListeners();
   }
 
   Future<void> girarRuletaGanador() async {
     if (wheelGirando) return;
+    final idx = Random().nextInt(wheelPrizes.length);
+    wheelPremioIdx = idx;
     wheelGirando = true;
     notifyListeners();
-    final premio = _wheelPrizes[Random().nextInt(_wheelPrizes.length)];
+    final premio = wheelPrizes[idx];
     await _wait(const Duration(milliseconds: 3600));
     wheelResultLabel = '🎁 ¡Premio: ${premio['label']}!';
     wheelGirando = false;

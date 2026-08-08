@@ -10,6 +10,7 @@ import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_perdiste_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/jugadores_status_row.dart';
+import 'widgets/message_bubble.dart';
 import 'widgets/minijuego_overlay.dart';
 import 'widgets/ruleta_overlay.dart';
 import 'widgets/sorteo_overlay.dart';
@@ -98,13 +99,30 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                             animatingPos: _c.animatingPos,
                             sufriendoPlayerId: _c.sufriendoPlayerId,
                           ),
-                          DiceWidget(
-                            habilitado: _c.diceHabilitado,
-                            rodando: _c.diceRodando,
-                            valorFinal: _c.diceValorMostrado,
-                            onTap: _c.tirarDado,
-                          ),
-                          Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(_c.gameMsg, textAlign: TextAlign.center)),
+                          if (_c.jugadorEnTurno?.esBot == true && (_c.botPensando || _c.botDiceRodando || _c.botDiceValorMostrado != null))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Column(
+                                children: [
+                                  const Text('🤖 el bot tira:', style: TextStyle(fontSize: 12, color: Color(0xFF9B8AB5))),
+                                  DiceWidget(
+                                    habilitado: false,
+                                    rodando: _c.botDiceRodando,
+                                    valorFinal: _c.botDiceValorMostrado,
+                                    onTap: () {},
+                                    size: 56,
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            DiceWidget(
+                              habilitado: _c.diceHabilitado,
+                              rodando: _c.diceRodando,
+                              valorFinal: _c.diceValorMostrado,
+                              onTap: _c.tirarDado,
+                            ),
+                          MessageBubble(mensaje: _c.gameMsg),
                           const SizedBox(height: 8),
                           OutlinedButton(
                             onPressed: () => _salir(context),
@@ -168,6 +186,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
           girando: _c.wheelGirando,
           listaParaContinuar: _c.wheelListaParaContinuar,
           resultado: _c.wheelResultLabel,
+          premioIdx: _c.wheelPremioIdx,
           onGirar: _c.girarRuleta,
           onContinuar: _c.continuarDesdeRuleta,
         );

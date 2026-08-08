@@ -151,6 +151,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
           girando: c.wheelGirando,
           listaParaContinuar: c.wheelListaParaContinuar,
           resultado: c.wheelResultLabel,
+          premioIdx: c.wheelPremioIdx,
           onGirar: c.girarRuletaGanador,
           onContinuar: c.cerrarRuletaGanador,
         );

@@ -13,8 +13,9 @@ class DiceWidget extends StatefulWidget {
   final bool rodando;
   final int? valorFinal;
   final VoidCallback onTap;
+  final double size;
 
-  const DiceWidget({super.key, required this.habilitado, required this.rodando, required this.valorFinal, required this.onTap});
+  const DiceWidget({super.key, required this.habilitado, required this.rodando, required this.valorFinal, required this.onTap, this.size = 92});
 
   @override
   State<DiceWidget> createState() => _DiceWidgetState();
@@ -50,19 +51,19 @@ class _DiceWidgetState extends State<DiceWidget> {
     return GestureDetector(
       onTap: activo ? widget.onTap : null,
       child: Container(
-        width: 60,
-        height: 60,
+        width: widget.size,
+        height: widget.size,
         margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.violetDark, width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.violetDark, width: 3),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
         ),
         alignment: Alignment.center,
         child: Opacity(
           opacity: activo || widget.rodando ? 1 : 0.35,
-          child: Text(texto, style: const TextStyle(fontSize: 28)),
+          child: Text(texto, style: TextStyle(fontSize: widget.size * 0.5)),
         ),
       ),
     );
