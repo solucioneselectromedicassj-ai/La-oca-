@@ -214,14 +214,18 @@ class TriviaBank {
 
   static String _resolverBracket(String bracket) => _herencia[bracket] ?? bracket;
 
+  // Devuelven una copia (List.of) en vez de la lista const original: los
+  // que llaman a estos métodos le hacen .shuffle() al resultado, y una
+  // lista const es inmutable — sin la copia, .shuffle() tira una excepción
+  // (silenciosa en release) y la Cuestionados nunca llega a mostrarse.
   static List<TriviaQuestion> bancoPorPais(String pais, String bracket) {
     final set = porPais[pais] ?? porPais['otros']!;
     final b = _resolverBracket(bracket);
-    return set[b] ?? set['adultos']!;
+    return List.of(set[b] ?? set['adultos']!);
   }
 
   static List<TriviaQuestion> bancoDificil(String bracket) {
     final b = _resolverBracket(bracket);
-    return dificil[b] ?? dificil['adultos']!;
+    return List.of(dificil[b] ?? dificil['adultos']!);
   }
 }
