@@ -79737,7 +79737,7 @@ agf(){this.m5(new A.anb(this))},
 tr(){var s=0,r=A.o(t.H),q,p=2,o,n=this,m,l,k
 var $async$tr=A.p(function(a,b){if(a===1){o=b
 s=p}while(true)switch(s){case 0:s=3
-return A.d(A.Mg("\ud83c\udfb2 \xa1Prob\xe1 Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos."),$async$tr)
+return A.d(A.Mg("\ud83c\udfb2 \xa1Prob\xe1 Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.\nhttps://solucioneselectromedicassj-ai.github.io/La-oca-/"),$async$tr)
 case 3:p=5
 s=8
 return A.d(A.a_t(n.a.c.a),$async$tr)
@@ -80311,7 +80311,7 @@ A.aoF.prototype={
 $0(){return this.a.f=this.b},
 $S:0}
 A.aoI.prototype={
-$0(){return A.Mg("\ud83c\udfb2 \xa1Jug\xe1 Ocaland conmigo! Us\xe1 mi c\xf3digo "+A.k(this.a.ax)+" al entrar.")},
+$0(){return A.Mg("\ud83c\udfb2 \xa1Jug\xe1 Ocaland conmigo! Us\xe1 mi c\xf3digo "+A.k(this.a.ax)+" al entrar.\nhttps://solucioneselectromedicassj-ai.github.io/La-oca-/")},
 $S:0}
 A.pF.prototype={
 a7(){return new A.Se()}}
@@ -80545,7 +80545,7 @@ A.ase.prototype={
 $0(){return A.wX(new A.o9(this.a))},
 $S:0}
 A.asf.prototype={
-$0(){return A.Mg("\ud83c\udfb2 \xa1Jug\xe1 conmigo a Ocaland! Entr\xe1 con el c\xf3digo: "+this.a)},
+$0(){return A.Mg("\ud83c\udfb2 \xa1Jug\xe1 conmigo a Ocaland! Entr\xe1 con el c\xf3digo: "+this.a+"\nhttps://solucioneselectromedicassj-ai.github.io/La-oca-/")},
 $S:0}
 A.k3.prototype={
 a7(){return new A.O9()}}
