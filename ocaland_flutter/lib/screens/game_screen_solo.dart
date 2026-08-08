@@ -99,7 +99,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                             sufriendoPlayerId: _c.sufriendoPlayerId,
                           ),
                           DiceWidget(
-                            habilitado: _c.diceHabilitado && _c.overlay == GameOverlay.none,
+                            habilitado: _c.diceHabilitado,
                             rodando: _c.diceRodando,
                             valorFinal: _c.diceValorMostrado,
                             onTap: _c.tirarDado,

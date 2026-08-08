@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ocaland_flutter/models/jugador.dart';
+import 'package:ocaland_flutter/models/partida.dart';
 import 'package:ocaland_flutter/models/sesion_activa.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/solo_game_controller.dart';
@@ -92,6 +94,85 @@ void main() {
       );
       final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
       expect(() => c.reanudar(sesion), throwsException);
+    });
+  });
+
+  group('SoloGameController.diceHabilitado', () {
+    // Regresión: antes era un campo que había que acordarse de resetear en
+    // cada lugar del código; si algún camino se olvidaba, el dado quedaba
+    // trabado en false aunque fuera mi turno (el título "¡Tu turno!" usa
+    // esMiTurno, que sí está siempre al día). Ahora es un getter calculado
+    // en vivo a partir del mismo estado, así no puede desincronizarse.
+    JugadorPartida jugador({required String id, required int ordenTurno, bool esBot = false, bool saltaTurno = false}) => JugadorPartida.fromJson({
+          'id': id,
+          'partida_id': 'p1',
+          'nombre': id,
+          'es_bot': esBot,
+          'posicion': 0,
+          'orden_turno': ordenTurno,
+          'salta_turno': saltaTurno,
+          'victorias': 0,
+        });
+
+    SoloGameController controller() => SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+
+    test('habilitado cuando es mi turno y la partida está en curso', () {
+      final c = controller();
+      c.myPlayerId = 'yo';
+      c.jugadores = [jugador(id: 'yo', ordenTurno: 0), jugador(id: 'bot', ordenTurno: 1, esBot: true)];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+
+      expect(c.diceHabilitado, isTrue);
+    });
+
+    test('deshabilitado cuando le toca al bot', () {
+      final c = controller();
+      c.myPlayerId = 'yo';
+      c.jugadores = [jugador(id: 'yo', ordenTurno: 0), jugador(id: 'bot', ordenTurno: 1, esBot: true)];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 1, etapaActual: 1));
+
+      expect(c.diceHabilitado, isFalse);
+    });
+
+    test('deshabilitado si estoy preso (salta_turno)', () {
+      final c = controller();
+      c.myPlayerId = 'yo';
+      c.jugadores = [jugador(id: 'yo', ordenTurno: 0, saltaTurno: true), jugador(id: 'bot', ordenTurno: 1, esBot: true)];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+
+      expect(c.diceHabilitado, isFalse);
+    });
+
+    test('deshabilitado mientras hay un overlay abierto o el dado está rodando', () {
+      final c = controller();
+      c.myPlayerId = 'yo';
+      c.jugadores = [jugador(id: 'yo', ordenTurno: 0), jugador(id: 'bot', ordenTurno: 1, esBot: true)];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+
+      for (final ov in [GameOverlay.trivia, GameOverlay.sorteo, GameOverlay.minijuegoCasilla, GameOverlay.transicionRuleta]) {
+        c.overlay = ov;
+        expect(c.diceHabilitado, isFalse, reason: 'overlay=$ov');
+      }
+      c.overlay = GameOverlay.none;
+      expect(c.diceHabilitado, isTrue);
+
+      c.diceRodando = true;
+      expect(c.diceHabilitado, isFalse);
+    });
+
+    test('habilitado justo después de que el bot resuelve una trampa y me vuelve a tocar a mí', () {
+      // Reproduce el escenario reportado: el bot cae en la cárcel, se salva,
+      // termina su turno (turno_actual pasa a mí, estado_turno vuelve a
+      // null) y no queda ningún overlay abierto.
+      final c = controller();
+      c.myPlayerId = 'yo';
+      c.jugadores = [jugador(id: 'yo', ordenTurno: 0), jugador(id: 'bot', ordenTurno: 1, esBot: true)];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 1, etapaActual: 2)); // turno del bot
+      c.overlay = GameOverlay.none;
+      expect(c.diceHabilitado, isFalse, reason: 'todavía es el turno del bot');
+
+      c.partida!.applyPatch({'turno_actual': 0, 'estado_turno': null}); // termina el turno del bot
+      expect(c.diceHabilitado, isTrue);
     });
   });
 }

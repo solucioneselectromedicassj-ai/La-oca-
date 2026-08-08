@@ -69,7 +69,6 @@ class SoloGameController extends ChangeNotifier {
   // ---- estado visible para la UI ----
   String gameMsg = '';
   GameOverlay overlay = GameOverlay.none;
-  bool diceHabilitado = false;
   bool diceRodando = false;
   int? diceValorMostrado;
   bool botPensando = false;
@@ -103,6 +102,19 @@ class SoloGameController extends ChangeNotifier {
   bool get esMiTurno {
     final j = _jugadorEnTurno;
     return j != null && j.id == myPlayerId;
+  }
+
+  /// Calculado en vivo (no un campo que haya que acordarse de resetear en
+  /// cada lugar) — evita que quede "trabado" en false por algún camino que
+  /// se haya olvidado de volver a habilitarlo.
+  bool get diceHabilitado {
+    if (partida?.estado != 'en_curso') return false;
+    if (overlay != GameOverlay.none) return false;
+    if (diceRodando) return false;
+    final j = jugadorEnTurno;
+    if (j == null || j.id != myPlayerId) return false;
+    if (j.saltaTurno) return false;
+    return true;
   }
 
   JugadorPartida? get jugadorEnTurno {
@@ -314,18 +326,15 @@ class SoloGameController extends ChangeNotifier {
     if (j == null) return;
 
     if (j.saltaTurno) {
-      diceHabilitado = false;
       notifyListeners();
       _saltarTurnoAutomatico(j);
       return;
     }
     if (j.esBot) {
-      diceHabilitado = false;
       notifyListeners();
       _jugarTurnoBot(j);
       return;
     }
-    diceHabilitado = true;
     notifyListeners();
   }
 
@@ -350,7 +359,6 @@ class SoloGameController extends ChangeNotifier {
   // ---------------------------------------------------------------------
   Future<void> tirarDado() async {
     if (!diceHabilitado || partida == null) return;
-    diceHabilitado = false;
     diceRodando = true;
     AudioService.diceRoll();
     notifyListeners();
@@ -722,7 +730,6 @@ class SoloGameController extends ChangeNotifier {
     final msEtapa = ahora.difference(_etapaInicioTs ?? ahora).inMilliseconds;
     final etapaActual = partida!.etapaActual;
     _historialEtapas.add({'etapa': etapaActual, 'ms': msEtapa});
-    diceHabilitado = false;
     notifyListeners();
 
     if (etapaActual >= 10) {
