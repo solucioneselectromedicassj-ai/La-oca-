@@ -9,6 +9,7 @@ import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/campana_terminada_overlay.dart';
 import 'widgets/dice_widget.dart';
+import 'widgets/eleccion_comodin_overlay.dart';
 import 'widgets/eleccion_perdiste_overlay.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/espectador_overlay.dart';
@@ -240,6 +241,12 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
         );
       case GameOverlay.anuncioSimulado:
         return AnuncioSimuladoOverlay(onContinuar: _c.continuarDesdeAnuncio);
+      case GameOverlay.eleccionComodin:
+        return EleccionComodinOverlay(
+          comodines: _c.comodines,
+          onElegir: _c.elegirComodinParaEtapa,
+          onSaltar: () => _c.elegirComodinParaEtapa(null),
+        );
       case GameOverlay.sorteo:
       case GameOverlay.none:
         return const SizedBox.shrink();

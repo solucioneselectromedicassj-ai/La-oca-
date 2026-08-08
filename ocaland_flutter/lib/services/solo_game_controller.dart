@@ -15,6 +15,7 @@ import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
 import '../utils/uuid.dart';
 import 'audio_service.dart';
+import 'comodines_service.dart';
 import 'economy_service.dart';
 import 'identity_service.dart';
 import 'pending_rewards_service.dart';
@@ -36,6 +37,7 @@ enum GameOverlay {
   campanaTerminada,
   eleccionVideoMonedas,
   anuncioSimulado,
+  eleccionComodin,
 }
 
 /// Motor del modo solo (campaña de 10 etapas contra un bot), portado 1 a 1
@@ -126,6 +128,13 @@ class SoloGameController extends ChangeNotifier {
   /// nuevo respecto del prototipo. Se guarda localmente ([SellosService]).
   int sellos = 0;
 
+  /// Inventario de comodines ganados en la ruleta de premio de etapa
+  /// (ventaja3/doble_tiempo/tirada_extra/inmunidad → cantidad). Se guarda
+  /// localmente ([ComodinesService]) — ver el comentario ahí sobre por qué
+  /// esto es solo para el modo solo.
+  Map<String, int> comodines = {};
+  Completer<String?>? _comodinCompleter;
+
   /// Pista de la trivia actual: qué opción quedó eliminada (o null si no
   /// se pidió pista todavía) y si ya se usó (para no permitir pedir dos).
   int? pistaOpcionEliminada;
@@ -186,6 +195,7 @@ class SoloGameController extends ChangeNotifier {
     cargando = true;
     notifyListeners();
     sellos = await SellosService.obtener();
+    comodines = await ComodinesService.obtener();
 
     final partidaId = uuidV4();
     final layout = BoardEngine.generarLayoutAleatorio();
@@ -249,6 +259,7 @@ class SoloGameController extends ChangeNotifier {
     cargando = true;
     notifyListeners();
     sellos = await SellosService.obtener();
+    comodines = await ComodinesService.obtener();
 
     final snap = sesion.snapshot;
     if (snap == null) {
@@ -1101,8 +1112,9 @@ class SoloGameController extends ChangeNotifier {
     wheelResultLabel = '🎁 ¡Premio: ${premio['label']}!';
     wheelGirando = false;
     wheelListaParaContinuar = true;
-    if (premio['id'] != 'nada' && myPlayerId != null) {
-      await _updateJugador(myPlayerId!, {'comodin_pendiente': premio['id']});
+    final premioId = premio['id'];
+    if (premioId != null && premioId != 'nada') {
+      comodines = await ComodinesService.agregar(premioId, 1);
     }
     notifyListeners();
   }
@@ -1110,10 +1122,27 @@ class SoloGameController extends ChangeNotifier {
   Future<void> continuarDesdeRuleta() async {
     overlay = GameOverlay.none;
     notifyListeners();
-    await _continuarSiguienteEtapaCampana();
+    String? comodinElegido;
+    if (comodines.isNotEmpty) {
+      overlay = GameOverlay.eleccionComodin;
+      notifyListeners();
+      _comodinCompleter = Completer<String?>();
+      comodinElegido = await _comodinCompleter!.future;
+    }
+    await _continuarSiguienteEtapaCampana(comodinElegido);
   }
 
-  Future<void> _continuarSiguienteEtapaCampana() async {
+  /// Llamado por la UI cuando el jugador elige qué comodín usar en la
+  /// nueva etapa (o `null` si toca "No usar ninguno").
+  void elegirComodinParaEtapa(String? tipo) {
+    final c = _comodinCompleter;
+    if (c == null || c.isCompleted) return;
+    overlay = GameOverlay.none;
+    notifyListeners();
+    c.complete(tipo);
+  }
+
+  Future<void> _continuarSiguienteEtapaCampana(String? comodinElegido) async {
     final etapaActual = partida!.etapaActual;
     final nuevaEtapa = etapaActual + 1;
     _etapaInicioTs = DateTime.now();
@@ -1121,24 +1150,24 @@ class SoloGameController extends ChangeNotifier {
     etapaConfig = Campana.generarConfigEtapa(nuevaEtapa);
     final layout = BoardEngine.generarLayoutAleatorio();
 
-    final mio = yo;
-    final comodin = mio?.comodinPendiente;
-
     await _updateTodosLosJugadores({'posicion': 0, 'salta_turno': false, 'comodin_pendiente': null});
 
     var mensajeComodin = '';
-    if (comodin == 'ventaja3') {
-      await _updateJugador(myPlayerId!, {'posicion': 3});
-      mensajeComodin = ' 🎁 ¡Arrancás con 3 casillas de ventaja!';
-    } else if (comodin == 'tirada_extra') {
-      await _updateJugador(myPlayerId!, {'comodin_pendiente': 'tirada_extra_activa'});
-      mensajeComodin = ' 🎁 Tu primera tirada de esta etapa te da un turno extra.';
-    } else if (comodin == 'inmunidad') {
-      await _updateJugador(myPlayerId!, {'comodin_pendiente': 'inmunidad'});
-      mensajeComodin = ' 🛡️ Tenés inmunidad para la próxima trampa que te toque.';
-    } else if (comodin == 'doble_tiempo') {
-      await _updateJugador(myPlayerId!, {'comodin_pendiente': 'doble_tiempo'});
-      mensajeComodin = ' ⏳ Tu próxima Cuestionados tiene el doble de tiempo.';
+    if (comodinElegido != null) {
+      comodines = await ComodinesService.agregar(comodinElegido, -1);
+      if (comodinElegido == 'ventaja3') {
+        await _updateJugador(myPlayerId!, {'posicion': 3});
+        mensajeComodin = ' 🎁 ¡Arrancás con 3 casillas de ventaja!';
+      } else if (comodinElegido == 'tirada_extra') {
+        await _updateJugador(myPlayerId!, {'comodin_pendiente': 'tirada_extra_activa'});
+        mensajeComodin = ' 🎁 Tu primera tirada de esta etapa te da un turno extra.';
+      } else if (comodinElegido == 'inmunidad') {
+        await _updateJugador(myPlayerId!, {'comodin_pendiente': 'inmunidad'});
+        mensajeComodin = ' 🛡️ Tenés inmunidad para la próxima trampa que te toque.';
+      } else if (comodinElegido == 'doble_tiempo') {
+        await _updateJugador(myPlayerId!, {'comodin_pendiente': 'doble_tiempo'});
+        mensajeComodin = ' ⏳ Tu próxima Cuestionados tiene el doble de tiempo.';
+      }
     }
 
     await _updatePartida({

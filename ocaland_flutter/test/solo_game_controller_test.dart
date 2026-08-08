@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocaland_flutter/models/jugador.dart';
 import 'package:ocaland_flutter/models/partida.dart';
 import 'package:ocaland_flutter/models/sesion_activa.dart';
 import 'package:ocaland_flutter/models/trivia_bank.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
+import 'package:ocaland_flutter/services/comodines_service.dart';
 import 'package:ocaland_flutter/services/solo_game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,6 +241,66 @@ void main() {
       expect(c.triviaActual, isNotNull);
       expect(c.pistaUsada, isFalse);
       expect(c.pistaOpcionEliminada, isNull);
+    });
+  });
+
+  group('SoloGameController — comodines', () {
+    // Regresión: antes un comodín ganado en la ruleta se guardaba en un
+    // solo "cupo" del jugador y se pisaba si ganabas otro antes de usarlo.
+    // Ahora se acumulan en un inventario local y se elige cuál usar al
+    // empezar la próxima etapa.
+    test('los comodines ganados se acumulan en el inventario en vez de pisarse', () async {
+      SharedPreferences.setMockInitialValues({});
+      final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+      c.comodines = await ComodinesService.agregar('inmunidad', 1);
+      c.comodines = await ComodinesService.agregar('doble_tiempo', 1);
+
+      expect(c.comodines['inmunidad'], 1);
+      expect(c.comodines['doble_tiempo'], 1);
+    });
+
+    test('continuarDesdeRuleta ofrece elegir un comodín del inventario y lo consume al elegirlo', () async {
+      SharedPreferences.setMockInitialValues({'comodines_inventario': '{"ventaja3":2}'});
+      final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+      c.myPlayerId = 'yo';
+      c.jugadores = [
+        JugadorPartida.fromJson(_jugadorJson(id: 'yo', ordenTurno: 0, esBot: false)),
+        JugadorPartida.fromJson(_jugadorJson(id: 'bot', ordenTurno: 1, esBot: true)),
+      ];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+      c.comodines = await ComodinesService.obtener();
+      expect(c.comodines['ventaja3'], 2);
+
+      final pedido = c.continuarDesdeRuleta();
+      expect(c.overlay, GameOverlay.eleccionComodin, reason: 'tiene comodines guardados, así que pregunta cuál usar');
+
+      c.elegirComodinParaEtapa('ventaja3');
+      // No hace falta esperar a que termine (dispara sorteo/turno del bot
+      // en segundo plano); alcanza con que se haya gastado el comodín.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(c.comodines['ventaja3'], 1, reason: 'se gastó uno de los dos que tenía');
+      expect(c.yo?.posicion, 3, reason: 'ventaja3 = arranca la etapa en la casilla 3');
+      unawaited(pedido);
+    });
+
+    test('continuarDesdeRuleta avanza directo a la etapa si el inventario está vacío', () async {
+      SharedPreferences.setMockInitialValues({});
+      final c = SoloGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+      c.myPlayerId = 'yo';
+      c.jugadores = [
+        JugadorPartida.fromJson(_jugadorJson(id: 'yo', ordenTurno: 0, esBot: false)),
+        JugadorPartida.fromJson(_jugadorJson(id: 'bot', ordenTurno: 1, esBot: true)),
+      ];
+      c.partida = Partida.fromJson(_partidaJson(turnoActual: 0, etapaActual: 1));
+      c.comodines = await ComodinesService.obtener();
+      expect(c.comodines, isEmpty);
+
+      final pedido = c.continuarDesdeRuleta();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(c.overlay, isNot(GameOverlay.eleccionComodin), reason: 'sin comodines no hay nada que elegir');
+      unawaited(pedido);
     });
   });
 }

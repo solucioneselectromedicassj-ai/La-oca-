@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../app_config.dart';
 import '../models/usuario.dart';
+import '../models/wheel_prizes.dart';
 import '../services/audio_service.dart';
+import '../services/comodines_service.dart';
 import '../services/economy_service.dart';
 import '../services/sellos_service.dart';
 import '../services/supabase_service.dart';
@@ -21,6 +23,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Usuario? _usuario;
   bool _cargando = true;
   int _sellos = 0;
+  Map<String, int> _comodines = {};
 
   @override
   void initState() {
@@ -28,6 +31,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
     _cargar();
     SellosService.obtener().then((s) {
       if (mounted) setState(() => _sellos = s);
+    });
+    ComodinesService.obtener().then((c) {
+      if (mounted) setState(() => _comodines = c);
     });
   }
 
@@ -168,6 +174,29 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                   width: double.infinity,
                                   child: ElevatedButton(onPressed: _abrirCanjeSellos, child: const Text('Canjear sellos')),
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('🎒 Mis comodines', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+                                const SizedBox(height: 4),
+                                const Text('Se ganan en la ruleta de premio al superar una etapa en modo solo. Elegís cuál usar al empezar la próxima.', style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
+                                const SizedBox(height: 8),
+                                if (_comodines.isEmpty)
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 4),
+                                    child: Text('Todavía no tenés ninguno.', style: TextStyle(fontSize: 13, color: Color(0xFF9B8AB5))),
+                                  )
+                                else
+                                  for (final e in _comodines.entries.where((e) => e.value > 0))
+                                    _fila('${comodinInfo[e.key]?.$1 ?? '🎁'} ${comodinInfo[e.key]?.$2 ?? e.key}', 'x${e.value}'),
                               ],
                             ),
                           ),

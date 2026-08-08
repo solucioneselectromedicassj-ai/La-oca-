@@ -9,3 +9,13 @@ const wheelPrizes = <Map<String, String>>[
   {'id': 'inmunidad', 'icon': '🛡️', 'label': 'Inmunidad a una trampa'},
   {'id': 'nada', 'icon': '❌', 'label': 'Nada esta vez'},
 ];
+
+/// Ícono + nombre corto de cada tipo de comodín, por id — para mostrar el
+/// inventario (perfil) y el selector de "qué comodín usar" sin repetir la
+/// lista de arriba (que además tiene entradas duplicadas de 'nada').
+const comodinInfo = <String, (String, String)>{
+  'ventaja3': ('⏩', '+3 casillas de ventaja'),
+  'doble_tiempo': ('⏳', 'Doble tiempo en Cuestionados'),
+  'tirada_extra': ('🎁', 'Tirada extra al empezar'),
+  'inmunidad': ('🛡️', 'Inmunidad a una trampa'),
+};
