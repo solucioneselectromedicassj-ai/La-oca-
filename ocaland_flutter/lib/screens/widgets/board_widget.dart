@@ -162,12 +162,30 @@ class BoardWidget extends StatelessWidget {
                   ),
                 ),
                 for (var i = 0; i < cells.length; i++)
+                  if (i != trampaCellIndex)
+                    Positioned(
+                      key: ValueKey('celda_$i'),
+                      left: cells[i].dx * side,
+                      top: cells[i].dy * side,
+                      width: cellSize * side,
+                      height: cellSize * side,
+                      child: _CellBox(index: i, tipo: BoardEngine.tipoCasilla(i, layoutCasillas)),
+                    ),
+                // La casilla temblando se dibuja al final (encima de todo) para
+                // que al agrandarse no quede tapada por las casillas vecinas —
+                // el efecto de "salirse del plano" pedido por el usuario. Con
+                // la misma key que tenía en el loop de arriba, así Flutter la
+                // reconoce como LA MISMA casilla (no una nueva) y dispara
+                // didUpdateWidget — si no, la animación nunca arranca porque
+                // "shaking" ya nace en true en el primer build de este widget.
+                if (trampaCellIndex != null && trampaCellIndex! < cells.length)
                   Positioned(
-                    left: cells[i].dx * side,
-                    top: cells[i].dy * side,
+                    key: ValueKey('celda_$trampaCellIndex'),
+                    left: cells[trampaCellIndex!].dx * side,
+                    top: cells[trampaCellIndex!].dy * side,
                     width: cellSize * side,
                     height: cellSize * side,
-                    child: _CellBox(index: i, tipo: BoardEngine.tipoCasilla(i, layoutCasillas), shaking: i == trampaCellIndex),
+                    child: _CellBox(index: trampaCellIndex!, tipo: BoardEngine.tipoCasilla(trampaCellIndex!, layoutCasillas), shaking: true),
                   ),
                 for (var idx = 0; idx < jugadores.length; idx++) _tokenFor(idx, jugadores[idx], cells, side, cellSize),
               ],
@@ -214,7 +232,7 @@ class _CellBox extends StatefulWidget {
 }
 
 class _CellBoxState extends State<_CellBox> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
+  late final AnimationController _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
 
   @override
   void didUpdateWidget(covariant _CellBox oldWidget) {
@@ -228,29 +246,49 @@ class _CellBoxState extends State<_CellBox> with SingleTickerProviderStateMixin 
     super.dispose();
   }
 
+  // Pop grande y sostenido (como si la casilla se despegara del tablero),
+  // con temblor mientras está arriba, y recién al final vuelve al plano.
+  double _escalaPara(double t) {
+    if (t < 0.12) {
+      final u = t / 0.12;
+      return 1 + 0.7 * Curves.easeOut.transform(u); // 1.0 -> 1.7
+    } else if (t < 0.75) {
+      final u = (t - 0.12) / 0.63;
+      return 1.6 + 0.08 * sin(u * 5 * 2 * pi); // tiembla arriba, alrededor de 1.6
+    } else {
+      final u = (t - 0.75) / 0.25;
+      return 1.6 - 0.6 * Curves.easeIn.transform(u); // 1.6 -> 1.0
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
         final t = _ctrl.value;
-        final decae = 1 - t;
-        final escala = 1 + 0.35 * decae;
-        final angulo = sin(t * 40) * decae * (8 * pi / 180);
+        final escala = widget.shaking && t < 1 ? _escalaPara(t) : 1.0;
+        final angulo = widget.shaking && t < 1 && t > 0.12 && t < 0.75 ? sin(t * 45) * (7 * pi / 180) : 0.0;
         return Transform.scale(
           scale: escala,
-          child: Transform.rotate(angle: angulo, child: child),
+          child: Transform.rotate(angle: angulo, child: _contenido(escala)),
         );
       },
-      child: _contenido(),
     );
   }
 
-  Widget _contenido() {
+  Widget _contenido(double escala) {
     final color = widget.tipo != null ? AppColors.cellColors[widget.tipo] : AppColors.parchment;
+    // sombra más grande cuanto más "levantada" está — refuerza la sensación
+    // de que se despega del plano del tablero.
+    final elevacion = ((escala - 1) / 0.7).clamp(0.0, 1.0);
     return Container(
       margin: const EdgeInsets.all(2.5),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))]),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.26 + 0.3 * elevacion), blurRadius: 3 + 14 * elevacion, offset: Offset(0, 2 + 10 * elevacion))],
+      ),
       child: Stack(
         children: [
           Positioned(top: 1, left: 2, child: Text('${widget.index}', style: const TextStyle(fontSize: 7, color: Color(0xFF7A6A99)))),

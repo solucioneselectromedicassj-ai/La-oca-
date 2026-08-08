@@ -26,7 +26,7 @@ class _TriviaEspectadorOverlayState extends State<TriviaEspectadorOverlay> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1800), () {
+    _timer = Timer(const Duration(milliseconds: 2800), () {
       if (mounted) setState(() => _revelado = true);
     });
   }
@@ -101,7 +101,7 @@ class _MinijuegoEspectadorOverlayState extends State<MinijuegoEspectadorOverlay>
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1200), () {
+    _timer = Timer(const Duration(milliseconds: 1800), () {
       if (mounted) setState(() => _revelado = true);
     });
   }

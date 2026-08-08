@@ -479,7 +479,7 @@ class SalaGameController extends ChangeNotifier {
         trampaCasillaIdx = rawNewPos;
         AudioService.trampa();
         notifyListeners();
-        await _wait(const Duration(milliseconds: 1800));
+        await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
         notifyListeners();
       }
