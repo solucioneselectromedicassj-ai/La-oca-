@@ -486,6 +486,7 @@ class SoloGameController extends ChangeNotifier {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       if (!esBot) {
         sellos = await SellosService.agregar(1);
+        AudioService.sello();
         _msg('🎖️ ¡Casilla de suerte! Ganaste un sello.');
       } else {
         _msg('🎖️ El bot cayó en la casilla de suerte.');

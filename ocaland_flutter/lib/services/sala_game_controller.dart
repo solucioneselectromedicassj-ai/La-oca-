@@ -496,6 +496,7 @@ class SalaGameController extends ChangeNotifier {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       await _refreshJugadores();
       sellos = await SellosService.agregar(1);
+      AudioService.sello();
       _msg('🎖️ ¡Casilla de suerte! Ganaste un sello.');
       await _terminarTurno(false);
       return;

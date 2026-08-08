@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/usuario.dart';
+import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/sellos_service.dart';
 import '../services/supabase_service.dart';
@@ -67,6 +68,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       final restantes = await SellosService.agregar(-5);
       final nuevoTotal = await EconomyService.agregarMonedas(widget.usuario.id, 15);
       if (!mounted) return;
+      AudioService.coin();
       setState(() {
         _sellos = restantes;
         if (nuevoTotal != null) _usuario = (_usuario ?? widget.usuario).copyWith(monedas: nuevoTotal);
@@ -80,6 +82,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       }
       final restantes = await SellosService.agregar(5);
       if (!mounted) return;
+      AudioService.sello();
       setState(() {
         _sellos = restantes;
         _usuario = (_usuario ?? widget.usuario).copyWith(monedas: r.monedasRestantes);
@@ -91,7 +94,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
         builder: (dialogContext) => AnuncioSimuladoOverlay(onContinuar: () => Navigator.of(dialogContext).pop()),
       );
       final restantes = await SellosService.agregar(2);
-      if (mounted) setState(() => _sellos = restantes);
+      if (!mounted) return;
+      AudioService.sello();
+      setState(() => _sellos = restantes);
     }
   }
 

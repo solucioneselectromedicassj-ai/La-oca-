@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/cell_descriptions.dart';
+import '../services/audio_service.dart';
 import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
@@ -26,7 +27,14 @@ class GameScreenMulti extends StatefulWidget {
 
 class _GameScreenMultiState extends State<GameScreenMulti> {
   @override
+  void initState() {
+    super.initState();
+    AudioService.iniciarMusica();
+  }
+
+  @override
   void dispose() {
+    AudioService.detenerMusica();
     widget.controller.dispose();
     super.dispose();
   }

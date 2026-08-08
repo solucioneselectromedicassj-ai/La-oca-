@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/cell_descriptions.dart';
 import '../models/sesion_activa.dart';
+import '../services/audio_service.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
@@ -36,6 +37,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
   @override
   void initState() {
     super.initState();
+    AudioService.iniciarMusica();
     final futuro = widget.sesionAReanudar != null ? _c.reanudar(widget.sesionAReanudar!) : _c.iniciar();
     futuro.catchError((e) {
       if (mounted) setState(() => _errorInicio = 'No pudimos conectar con el servidor para arrancar la partida.');
@@ -44,6 +46,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
 
   @override
   void dispose() {
+    AudioService.detenerMusica();
     _c.dispose();
     super.dispose();
   }

@@ -64,7 +64,7 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
     if (acierto && _correctasSeguidas % _preguntasPorSello == 0) {
       final restantes = await SellosService.agregar(1);
       if (!mounted) return;
-      AudioService.coin();
+      AudioService.sello();
       setState(() {
         _sellosGanadosAca++;
         _sellos = restantes;
