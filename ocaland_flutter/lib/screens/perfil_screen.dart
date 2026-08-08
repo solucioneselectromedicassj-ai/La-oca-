@@ -41,6 +41,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   /// Sellos: coleccionable que se puede usar para pedir pistas o reintentar
   /// en Cuestionados. Se consiguen viendo videos, o canjeados acá.
   Future<void> _abrirCanjeSellos() async {
+    final u = _usuario ?? widget.usuario;
     final accion = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -49,8 +50,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
         content: Text('Tenés $_sellos sello${_sellos == 1 ? '' : 's'}. Los podés usar para pedir pistas o reintentar en Cuestionados.'),
         actions: [
           TextButton(
-            onPressed: _sellos >= 5 ? () => Navigator.of(dialogContext).pop('monedas') : null,
+            onPressed: _sellos >= 5 ? () => Navigator.of(dialogContext).pop('sellos_a_monedas') : null,
             child: const Text('🪙 Cambiar 5 sellos por 15 monedas'),
+          ),
+          TextButton(
+            onPressed: u.monedas >= 15 ? () => Navigator.of(dialogContext).pop('monedas_a_sellos') : null,
+            child: const Text('🎖️ Cambiar 15 monedas por 5 sellos'),
           ),
           TextButton(onPressed: () => Navigator.of(dialogContext).pop('video'), child: const Text('📺 Ver un video (+2 sellos gratis)')),
           TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cerrar')),
@@ -58,13 +63,26 @@ class _PerfilScreenState extends State<PerfilScreen> {
       ),
     );
     if (!mounted) return;
-    if (accion == 'monedas' && _sellos >= 5) {
+    if (accion == 'sellos_a_monedas' && _sellos >= 5) {
       final restantes = await SellosService.agregar(-5);
       final nuevoTotal = await EconomyService.agregarMonedas(widget.usuario.id, 15);
       if (!mounted) return;
       setState(() {
         _sellos = restantes;
         if (nuevoTotal != null) _usuario = (_usuario ?? widget.usuario).copyWith(monedas: nuevoTotal);
+      });
+    } else if (accion == 'monedas_a_sellos' && u.monedas >= 15) {
+      final r = await EconomyService.gastarMonedas(widget.usuario.id, 15);
+      if (!mounted) return;
+      if (r == null || !r.exito) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No te alcanzan las monedas.')));
+        return;
+      }
+      final restantes = await SellosService.agregar(5);
+      if (!mounted) return;
+      setState(() {
+        _sellos = restantes;
+        _usuario = (_usuario ?? widget.usuario).copyWith(monedas: r.monedasRestantes);
       });
     } else if (accion == 'video') {
       await showDialog(

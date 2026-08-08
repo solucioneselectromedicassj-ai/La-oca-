@@ -492,6 +492,15 @@ class SalaGameController extends ChangeNotifier {
       return;
     }
 
+    if (tipo == 'sello') {
+      await _updateJugador(jugadorId, {'posicion': rawNewPos});
+      await _refreshJugadores();
+      sellos = await SellosService.agregar(1);
+      _msg('🎖️ ¡Casilla de suerte! Ganaste un sello.');
+      await _terminarTurno(false);
+      return;
+    }
+
     if (tipo == 'oca' || tipo == 'carcel' || tipo == 'calavera') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       await _refreshJugadores();

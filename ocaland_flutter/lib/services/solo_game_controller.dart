@@ -482,6 +482,18 @@ class SoloGameController extends ChangeNotifier {
       return;
     }
 
+    if (tipo == 'sello') {
+      await _updateJugador(jugadorId, {'posicion': rawNewPos});
+      if (!esBot) {
+        sellos = await SellosService.agregar(1);
+        _msg('🎖️ ¡Casilla de suerte! Ganaste un sello.');
+      } else {
+        _msg('🎖️ El bot cayó en la casilla de suerte.');
+      }
+      await _terminarTurno(false);
+      return;
+    }
+
     if (tipo == 'oca' || tipo == 'carcel' || tipo == 'calavera') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       if (tipo == 'carcel' || tipo == 'calavera') {

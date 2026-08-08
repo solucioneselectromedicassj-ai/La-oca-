@@ -36,6 +36,7 @@ class AppColors {
     'carcel': indigo,
     'calavera': coral,
     'minijuego': sky,
+    'sello': gold,
   };
 
   static const cellIcons = <String, String>{
@@ -45,6 +46,7 @@ class AppColors {
     'calavera': '💀',
     'meta': '🏆',
     'minijuego': '🎮',
+    'sello': '🎖️',
   };
 
   static ThemeData theme() {

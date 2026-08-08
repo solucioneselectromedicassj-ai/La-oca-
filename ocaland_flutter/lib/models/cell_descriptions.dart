@@ -7,4 +7,5 @@ const Map<String, String> cellDescriptions = {
   'calavera': 'Pregunta difícil: si acertás no pasa nada, si fallás volvés a la salida.',
   'minijuego': 'Superalo y avanzás 2 casillas extra. Si fallás, no pasa nada.',
   'puente': 'Te lleva directo a otra casilla, sin pregunta.',
+  'sello': '¡Casilla de suerte! Ganás un sello para safar en Cuestionados.',
 };

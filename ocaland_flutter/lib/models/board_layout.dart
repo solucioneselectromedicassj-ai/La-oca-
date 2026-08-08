@@ -22,8 +22,14 @@ class BoardEngine {
 
   /// Genera un layout aleatorio nuevo: qué casillas son de qué tipo,
   /// y a dónde salta cada puente. Nunca toca la salida (0) ni la meta (29).
+  ///
+  /// Además, con 50% de probabilidad agrega UNA casilla de "sello" (casilla
+  /// de suerte que regala un sello, sin pregunta) — así "algunas etapas"
+  /// la tienen y otras no, en vez de estar siempre presente.
   static ({Map<int, String> layoutCasillas, Map<int, int> layoutPuentes}) generarLayoutAleatorio() {
     final rnd = Random();
+    final incluirSello = rnd.nextBool();
+    final cantidadEspeciales = cantidadTrampas + (incluirSello ? 1 : 0);
     final disponibles = <int>[for (var i = 1; i < totalCells - 1; i++) i];
     for (var i = disponibles.length - 1; i > 0; i--) {
       final j = rnd.nextInt(i + 1);
@@ -31,7 +37,7 @@ class BoardEngine {
       disponibles[i] = disponibles[j];
       disponibles[j] = tmp;
     }
-    final elegidas = disponibles.take(cantidadTrampas).toList();
+    final elegidas = disponibles.take(cantidadEspeciales).toList();
 
     final tipos = <String>[];
     reparto.forEach((tipo, cant) {
@@ -39,6 +45,7 @@ class BoardEngine {
         tipos.add(tipo);
       }
     });
+    if (incluirSello) tipos.add('sello');
     for (var i = tipos.length - 1; i > 0; i--) {
       final j = rnd.nextInt(i + 1);
       final tmp = tipos[i];

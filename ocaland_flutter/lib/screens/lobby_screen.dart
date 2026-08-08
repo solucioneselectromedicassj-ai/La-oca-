@@ -16,6 +16,7 @@ import 'mis_partidas_screen.dart';
 import 'pais_screen.dart';
 import 'perfil_screen.dart';
 import 'ranking_screen.dart';
+import 'tanda_cuestionados_screen.dart';
 import 'waiting_room_screen.dart';
 import 'widgets/ruleta_bonus_dialog.dart';
 
@@ -156,6 +157,12 @@ class _LobbyScreenState extends State<LobbyScreen> {
     showDialog(context: context, builder: (_) => RuletaBonusDialog(usuarioId: widget.usuario.id));
   }
 
+  void _tandaCuestionados() {
+    _conEdadYPais(() {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => TandaCuestionadosScreen(edadBracket: _edadBracket!, pais: _pais!)));
+    });
+  }
+
   Future<void> _compartirApp() async {
     await Share.share('🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.');
     try {
@@ -268,6 +275,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _girarRuletaBonus, child: const Text('🎰 Ruleta de bonus diaria (multiplicador)'))),
                   const SizedBox(height: 8),
                   SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _compartirApp, child: const Text('📲 Compartir Ocaland (+15 🪙 hoy)'))),
+                  const SizedBox(height: 8),
+                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _tandaCuestionados, child: const Text('🎯 Tanda de cuestionados (ganá sellos)'))),
                 ],
               ),
             ),
