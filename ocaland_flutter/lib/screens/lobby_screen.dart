@@ -13,6 +13,7 @@ import 'desafio_grupal_screen.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
 import 'join_sala_screen.dart';
+import 'minijuegos_bonus_screen.dart';
 import 'mis_partidas_screen.dart';
 import 'pais_screen.dart';
 import 'perfil_screen.dart';
@@ -164,6 +165,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
     });
   }
 
+  void _minijuegosBonus() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MinijuegosBonusScreen(usuario: widget.usuario)));
+  }
+
   Future<void> _compartirApp() async {
     await Share.share('🎲 ¡Probá Ocaland conmigo! El juego de la oca con Cuestionados y minijuegos.\n${AppConfig.appUrl}');
     try {
@@ -248,6 +253,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', onTap: _girarRuletaBonus),
           _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', onTap: _compartirApp),
           _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', destacado: true, onTap: _tandaCuestionados),
+          _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', destacado: true, onTap: _minijuegosBonus),
         ]);
       default:
         return _panelAcciones([
