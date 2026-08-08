@@ -8,9 +8,12 @@ if (!window._flutter) {
 }
 _flutter.buildConfig = {"engineRevision":"cb4b5fff73850b2e42bd4de7cb9a4310a78ac40d","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"}]};
 
-
 _flutter.loader.load({
-  serviceWorkerSettings: {
-    serviceWorkerVersion: "661538735"
-  }
+  config: {
+    // Usar la copia de CanvasKit incluida en la build en vez del CDN de
+    // Google (gstatic.com) — si ese dominio no es alcanzable en la red del
+    // usuario (bloqueos de red, DNS, etc.) la app se queda en blanco para
+    // siempre esperando un archivo que nunca va a llegar.
+    canvasKitBaseUrl: "canvaskit/",
+  },
 });
