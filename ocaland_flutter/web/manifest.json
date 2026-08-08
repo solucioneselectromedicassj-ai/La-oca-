@@ -1,11 +1,11 @@
 {
-    "name": "ocaland_flutter",
-    "short_name": "ocaland_flutter",
+    "name": "Ocaland",
+    "short_name": "Ocaland",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFF3FA",
+    "theme_color": "#5E35B1",
+    "description": "El juego de la oca con Cuestionados y minijuegos.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
