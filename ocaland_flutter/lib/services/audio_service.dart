@@ -38,7 +38,7 @@ class AudioService {
     }
   }
 
-  static void tick() => _play(440, 0.07, type: 'square', vol: 0.05);
+  static void tick() => _play(720, 0.045, type: 'sine', vol: 0.06);
 
   static void diceRoll() => _play(300, 0.15, type: 'triangle', vol: 0.07);
 
@@ -50,6 +50,15 @@ class AudioService {
   static void wrong() => _play(180, 0.25, type: 'sawtooth', vol: 0.09);
 
   static void suffer() => _play(150, 0.3, type: 'sawtooth', vol: 0.11);
+
+  /// "Womp womp" burlón — al caer en cárcel o calavera, antes incluso de
+  /// mostrar la trivia (distinto del sonido de [wrong]/[suffer], que es
+  /// por fallar la pregunta).
+  static void trampa() {
+    _play(392, 0.12, type: 'sawtooth', vol: 0.1);
+    Future.delayed(const Duration(milliseconds: 110), () => _play(330, 0.12, type: 'sawtooth', vol: 0.1));
+    Future.delayed(const Duration(milliseconds: 220), () => _play(262, 0.24, type: 'sawtooth', vol: 0.11));
+  }
 
   static void win() {
     _play(523, 0.12);

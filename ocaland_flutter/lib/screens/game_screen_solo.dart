@@ -8,6 +8,7 @@ import 'widgets/board_widget.dart';
 import 'widgets/campana_terminada_overlay.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_perdiste_overlay.dart';
+import 'widgets/espectador_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/jugadores_status_row.dart';
 import 'widgets/message_bubble.dart';
@@ -88,7 +89,13 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                           const SizedBox(height: 6),
                           EtapaBanner(etapa: _c.partida!.etapaActual),
                           if (_c.overlay == GameOverlay.sorteo && _c.sorteoTiradas != null)
-                            SorteoPanel(jugadores: _c.jugadores, tiradas: _c.sorteoTiradas!, ganadorId: _c.sorteoGanadorId),
+                            SorteoPanel(
+                              jugadores: _c.jugadores,
+                              tiradas: _c.sorteoTiradas!,
+                              ganadorId: _c.sorteoGanadorId,
+                              esperandoTapDeId: _c.sorteoEsperandoTapDeId,
+                              onTirar: _c.tirarDadoSorteo,
+                            ),
                           JugadoresStatusRow(jugadores: _c.jugadores),
                           const SizedBox(height: 8),
                           BoardWidget(
@@ -98,6 +105,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                             animatingPlayerId: _c.animatingPlayerId,
                             animatingPos: _c.animatingPos,
                             sufriendoPlayerId: _c.sufriendoPlayerId,
+                            trampaCellIndex: _c.trampaCasillaIdx,
                           ),
                           if (_c.jugadorEnTurno?.esBot == true && (_c.botPensando || _c.botDiceRodando || _c.botDiceValorMostrado != null))
                             Padding(
@@ -160,6 +168,18 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
           pregunta: _c.triviaActual!,
           segundos: _c.triviaSegundosRestantes,
           onResponder: _c.responderTrivia,
+        );
+      case GameOverlay.triviaEspectador:
+        return TriviaEspectadorOverlay(
+          nombre: _c.triviaEspectadorNombre,
+          pregunta: _c.triviaActual!,
+          acierto: _c.triviaEspectadorAcierto,
+        );
+      case GameOverlay.minijuegoEspectador:
+        return MinijuegoEspectadorOverlay(
+          nombre: _c.triviaEspectadorNombre,
+          tipo: _c.minijuegoTipo ?? 'reflejos',
+          exito: _c.triviaEspectadorAcierto,
         );
       case GameOverlay.tresCuestionados:
         return TriviaOverlay(

@@ -108,6 +108,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             animatingPlayerId: c.animatingPlayerId,
                             animatingPos: c.animatingPos,
                             sufriendoPlayerId: c.sufriendoPlayerId,
+                            trampaCellIndex: c.trampaCasillaIdx,
                           ),
                           DiceWidget(
                             habilitado: c.diceHabilitado,

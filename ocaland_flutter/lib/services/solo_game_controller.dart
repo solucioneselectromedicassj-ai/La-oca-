@@ -24,7 +24,9 @@ enum GameOverlay {
   none,
   sorteo,
   trivia,
+  triviaEspectador,
   minijuegoCasilla,
+  minijuegoEspectador,
   transicionMinijuego,
   transicionRuleta,
   eleccionPerdiste,
@@ -86,6 +88,10 @@ class SoloGameController extends ChangeNotifier {
 
   String? sufriendoPlayerId;
 
+  /// Índice de la casilla que tiene que "temblar" (cárcel/calavera recién
+  /// pisadas, antes incluso de mostrar la trivia) — null = ninguna.
+  int? trampaCasillaIdx;
+
   Map<String, int>? sorteoTiradas;
   String? sorteoGanadorId;
 
@@ -93,6 +99,12 @@ class SoloGameController extends ChangeNotifier {
   String? triviaTipo;
   int triviaSegundosRestantes = 0;
   Timer? _triviaTimer;
+
+  /// Para GameOverlay.triviaEspectador: qué pregunta le "tocó" al bot y si
+  /// la supo — de solo lectura, para que el jugador humano tenga algo que
+  /// mirar mientras espera su turno en vez de una caja negra.
+  String triviaEspectadorNombre = '';
+  bool triviaEspectadorAcierto = false;
   bool _modoTresCuestionados = false;
   int _tresCuestionadosRespondidas = 0;
   int _tresCuestionadosCorrectas = 0;
@@ -287,17 +299,53 @@ class SoloGameController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------
-  // Sorteo de quién empieza (dados visibles, con empates que vuelven a tirar)
+  // Sorteo de quién empieza (dados visibles, con empates que vuelven a tirar).
+  // La primera tirada del jugador humano es interactiva (toca para tirar
+  // su propio dado) — pedido del usuario: "el juego de dados déjanos tirar
+  // a cada uno, eso ayuda a ser entretenido". El bot (y las rondas de
+  // desempate, si hay) tiran solos.
   // ---------------------------------------------------------------------
+  String? sorteoEsperandoTapDeId;
+  Completer<int>? _sorteoTapCompleter;
+
+  /// Llamado por la UI cuando el jugador toca su fila en el sorteo.
+  void tirarDadoSorteo() {
+    final c = _sorteoTapCompleter;
+    if (c == null || c.isCompleted) return;
+    c.complete(1 + Random().nextInt(6));
+  }
+
+  Future<int> _tiradaSorteo(JugadorPartida j, bool interactiva) async {
+    if (interactiva) {
+      sorteoEsperandoTapDeId = j.id;
+      _sorteoTapCompleter = Completer<int>();
+      notifyListeners();
+      final valor = await _sorteoTapCompleter!.future;
+      sorteoEsperandoTapDeId = null;
+      return valor;
+    }
+    if (j.esBot) await _wait(const Duration(milliseconds: 550));
+    return 1 + Random().nextInt(6);
+  }
+
   Future<void> _sortearTurnoInicial() async {
     var candidatos = jugadores.map((j) => j.id).toList();
     final tiradas = <String, int>{};
+    sorteoTiradas = tiradas;
+    sorteoGanadorId = null;
+    overlay = GameOverlay.sorteo;
+    notifyListeners();
+
     String? ganadorId;
     var vueltas = 0;
-    final rnd = Random();
     while (ganadorId == null && vueltas < 5) {
       for (final id in candidatos) {
-        tiradas[id] = 1 + rnd.nextInt(6);
+        final j = jugadores.firstWhere((x) => x.id == id);
+        final interactiva = vueltas == 0 && !j.esBot && id == myPlayerId;
+        final valor = await _tiradaSorteo(j, interactiva);
+        tiradas[id] = valor;
+        AudioService.sorteo();
+        notifyListeners();
       }
       final maxVal = candidatos.map((id) => tiradas[id]!).reduce(max);
       final empatados = candidatos.where((id) => tiradas[id] == maxVal).toList();
@@ -313,10 +361,7 @@ class SoloGameController extends ChangeNotifier {
 
     await _updatePartida({'turno_actual': turnoInicial, 'sorteo_tiradas': tiradas});
 
-    sorteoTiradas = tiradas;
     sorteoGanadorId = ganadorId;
-    overlay = GameOverlay.sorteo;
-    AudioService.sorteo();
     notifyListeners();
 
     await _wait(Pacing.sorteoDisplay);
@@ -416,6 +461,14 @@ class SoloGameController extends ChangeNotifier {
 
     if (tipo == 'oca' || tipo == 'carcel' || tipo == 'calavera') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
+      if (tipo == 'carcel' || tipo == 'calavera') {
+        trampaCasillaIdx = rawNewPos;
+        AudioService.trampa();
+        notifyListeners();
+        await _wait(const Duration(milliseconds: 1800));
+        trampaCasillaIdx = null;
+        notifyListeners();
+      }
       if (esBot) {
         final probAcierto = tipo == 'calavera'
             ? etapaConfig!.botAciertoCalavera
@@ -423,7 +476,7 @@ class SoloGameController extends ChangeNotifier {
                 ? etapaConfig!.botAciertoCarcel
                 : etapaConfig!.botAciertoOca;
         final acierto = Random().nextDouble() < probAcierto;
-        await _aplicarResultadoTrivia(jugadorId, tipo!, rawNewPos, acierto, true, false);
+        await _mostrarTriviaEspectador(tipo!, rawNewPos, jugadorId, edadBracket, pais, acierto);
       } else {
         await _mostrarTriviaCasilla(tipo!, rawNewPos, jugadorId, edadBracket, pais);
       }
@@ -434,7 +487,7 @@ class SoloGameController extends ChangeNotifier {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       if (esBot) {
         final exito = Random().nextDouble() < etapaConfig!.botAciertoMinijuego;
-        await _aplicarResultadoMinijuego(jugadorId, rawNewPos, exito, true);
+        await _mostrarMinijuegoEspectador(rawNewPos, jugadorId, exito);
       } else {
         _mostrarMinijuegoCasilla(rawNewPos, jugadorId);
       }
@@ -489,6 +542,44 @@ class SoloGameController extends ChangeNotifier {
     overlay = GameOverlay.trivia;
     notifyListeners();
     _iniciarTimerTrivia();
+  }
+
+  /// Cuando le toca al bot: muestra la misma pregunta que "le tocaría" (de
+  /// solo lectura, sin botones habilitados) para que el jugador tenga algo
+  /// para mirar mientras espera su turno, en vez de que el turno del bot
+  /// sea una caja negra — y después revela si la supo o no.
+  Future<void> _mostrarTriviaEspectador(String tipo, int posActual, String jugadorId, String edadBracket, String pais, bool acierto) async {
+    final usaDificil = tipo == 'calavera' || etapaConfig!.ocaCarcelUsanBancoDificil;
+    final pregunta = usaDificil
+        ? (TriviaBank.bancoDificil(edadBracket)..shuffle()).first
+        : (TriviaBank.bancoPorPais(pais, edadBracket)..shuffle()).first;
+
+    triviaActual = pregunta;
+    triviaTipo = tipo;
+    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El bot';
+    triviaEspectadorAcierto = acierto;
+    overlay = GameOverlay.triviaEspectador;
+    notifyListeners();
+    await _wait(const Duration(milliseconds: 3200));
+    overlay = GameOverlay.none;
+    triviaActual = null;
+    notifyListeners();
+    await _aplicarResultadoTrivia(jugadorId, tipo, posActual, acierto, true, false);
+  }
+
+  /// Igual que [_mostrarTriviaEspectador] pero para la casilla de
+  /// minijuego: muestra qué minijuego "le tocó" al bot antes de revelar
+  /// si lo superó.
+  Future<void> _mostrarMinijuegoEspectador(int posActual, String jugadorId, bool exito) async {
+    minijuegoTipo = Random().nextBool() ? 'reflejos' : 'memoria';
+    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El bot';
+    triviaEspectadorAcierto = exito;
+    overlay = GameOverlay.minijuegoEspectador;
+    notifyListeners();
+    await _wait(const Duration(milliseconds: 2400));
+    overlay = GameOverlay.none;
+    notifyListeners();
+    await _aplicarResultadoMinijuego(jugadorId, posActual, exito, true);
   }
 
   int _triviaCallbackPos = 0;

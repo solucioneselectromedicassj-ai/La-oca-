@@ -10,7 +10,13 @@ class SorteoPanel extends StatelessWidget {
   final Map<String, int> tiradas;
   final String? ganadorId;
 
-  const SorteoPanel({super.key, required this.jugadores, required this.tiradas, required this.ganadorId});
+  /// Si no es null, ese jugador tiene que tocar su fila para tirar su
+  /// propio dado (en vez de que el sorteo salga ya resuelto) — pedido del
+  /// usuario para que el sorteo sea más entretenido.
+  final String? esperandoTapDeId;
+  final VoidCallback? onTirar;
+
+  const SorteoPanel({super.key, required this.jugadores, required this.tiradas, required this.ganadorId, this.esperandoTapDeId, this.onTirar});
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +30,22 @@ class SorteoPanel extends StatelessWidget {
           const Text('🎲 Sorteo de turno', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
           const SizedBox(height: 6),
           for (final j in jugadores)
-            Text(
-              '${j.id == ganadorId ? "👑" : "🎲"} ${j.nombre}: ${tiradas[j.id] ?? "..."} ${j.id == ganadorId ? "¡empieza!" : ""}',
-              style: TextStyle(fontWeight: j.id == ganadorId ? FontWeight.bold : FontWeight.normal),
-            ),
+            if (j.id == esperandoTapDeId)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: onTirar,
+                    child: Text('🎲 ¡Tocá para tirar tu dado, ${j.nombre}!'),
+                  ),
+                ),
+              )
+            else
+              Text(
+                '${j.id == ganadorId ? "👑" : "🎲"} ${j.nombre}: ${tiradas[j.id] ?? "..."} ${j.id == ganadorId ? "¡empieza!" : ""}',
+                style: TextStyle(fontWeight: j.id == ganadorId ? FontWeight.bold : FontWeight.normal),
+              ),
         ],
       ),
     );

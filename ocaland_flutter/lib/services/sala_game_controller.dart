@@ -57,6 +57,7 @@ class SalaGameController extends ChangeNotifier {
   String? animatingPlayerId;
   int? animatingPos;
   String? sufriendoPlayerId;
+  int? trampaCasillaIdx;
   Map<String, int>? sorteoTiradas;
   String? sorteoGanadorId;
   bool _sorteoMostrado = false;
@@ -474,6 +475,14 @@ class SalaGameController extends ChangeNotifier {
     if (tipo == 'oca' || tipo == 'carcel' || tipo == 'calavera') {
       await _updateJugador(jugadorId, {'posicion': rawNewPos});
       await _refreshJugadores();
+      if (tipo == 'carcel' || tipo == 'calavera') {
+        trampaCasillaIdx = rawNewPos;
+        AudioService.trampa();
+        notifyListeners();
+        await _wait(const Duration(milliseconds: 1800));
+        trampaCasillaIdx = null;
+        notifyListeners();
+      }
       await _mostrarTriviaCasilla(tipo!, rawNewPos, jugadorId);
       return;
     }

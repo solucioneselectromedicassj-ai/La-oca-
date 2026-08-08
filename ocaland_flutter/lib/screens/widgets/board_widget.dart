@@ -122,6 +122,7 @@ class BoardWidget extends StatelessWidget {
   final String? animatingPlayerId;
   final int? animatingPos;
   final String? sufriendoPlayerId;
+  final int? trampaCellIndex;
 
   const BoardWidget({
     super.key,
@@ -131,6 +132,7 @@ class BoardWidget extends StatelessWidget {
     this.animatingPlayerId,
     this.animatingPos,
     this.sufriendoPlayerId,
+    this.trampaCellIndex,
   });
 
   @override
@@ -165,7 +167,7 @@ class BoardWidget extends StatelessWidget {
                     top: cells[i].dy * side,
                     width: cellSize * side,
                     height: cellSize * side,
-                    child: _CellBox(index: i, tipo: BoardEngine.tipoCasilla(i, layoutCasillas)),
+                    child: _CellBox(index: i, tipo: BoardEngine.tipoCasilla(i, layoutCasillas), shaking: i == trampaCellIndex),
                   ),
                 for (var idx = 0; idx < jugadores.length; idx++) _tokenFor(idx, jugadores[idx], cells, side, cellSize),
               ],
@@ -197,22 +199,63 @@ class BoardWidget extends StatelessWidget {
   }
 }
 
-class _CellBox extends StatelessWidget {
+/// Casilla del tablero. Cuando [shaking] pasa a true (recién se cayó ahí
+/// en cárcel o calavera) se agranda y tiembla un par de segundos, y vuelve
+/// sola a la normalidad — para que se note más que una casilla trampa
+/// además de sacarle el sonido burlón.
+class _CellBox extends StatefulWidget {
   final int index;
   final String? tipo;
-  const _CellBox({required this.index, required this.tipo});
+  final bool shaking;
+  const _CellBox({required this.index, required this.tipo, this.shaking = false});
+
+  @override
+  State<_CellBox> createState() => _CellBoxState();
+}
+
+class _CellBoxState extends State<_CellBox> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
+
+  @override
+  void didUpdateWidget(covariant _CellBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.shaking && !oldWidget.shaking) _ctrl.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = tipo != null ? AppColors.cellColors[tipo] : AppColors.parchment;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        final t = _ctrl.value;
+        final decae = 1 - t;
+        final escala = 1 + 0.35 * decae;
+        final angulo = sin(t * 40) * decae * (8 * pi / 180);
+        return Transform.scale(
+          scale: escala,
+          child: Transform.rotate(angle: angulo, child: child),
+        );
+      },
+      child: _contenido(),
+    );
+  }
+
+  Widget _contenido() {
+    final color = widget.tipo != null ? AppColors.cellColors[widget.tipo] : AppColors.parchment;
     return Container(
       margin: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))]),
       child: Stack(
         children: [
-          Positioned(top: 1, left: 2, child: Text('$index', style: const TextStyle(fontSize: 7, color: Color(0xFF7A6A99)))),
-          if (tipo != null)
-            Center(child: Text(AppColors.cellIcons[tipo] ?? '', style: const TextStyle(fontSize: 15))),
+          Positioned(top: 1, left: 2, child: Text('${widget.index}', style: const TextStyle(fontSize: 7, color: Color(0xFF7A6A99)))),
+          if (widget.tipo != null)
+            Center(child: Text(AppColors.cellIcons[widget.tipo] ?? '', style: const TextStyle(fontSize: 15))),
         ],
       ),
     );
