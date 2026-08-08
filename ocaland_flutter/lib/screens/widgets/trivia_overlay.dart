@@ -9,7 +9,23 @@ class TriviaOverlay extends StatefulWidget {
   final int segundos; // 0 = sin límite (desafío de 3 Cuestionados)
   final ValueChanged<int> onResponder;
 
-  const TriviaOverlay({super.key, required this.titulo, this.subtitulo, required this.pregunta, required this.segundos, required this.onResponder});
+  /// Pista: elimina una opción incorrecta. Si es null, no se muestra el
+  /// botón de pista (ej. en el desafío de 3 Cuestionados).
+  final VoidCallback? onPedirPista;
+  final bool pistaUsada;
+  final int? opcionEliminada;
+
+  const TriviaOverlay({
+    super.key,
+    required this.titulo,
+    this.subtitulo,
+    required this.pregunta,
+    required this.segundos,
+    required this.onResponder,
+    this.onPedirPista,
+    this.pistaUsada = false,
+    this.opcionEliminada,
+  });
 
   @override
   State<TriviaOverlay> createState() => _TriviaOverlayState();
@@ -19,7 +35,7 @@ class _TriviaOverlayState extends State<TriviaOverlay> {
   int? _elegida;
 
   void _tap(int idx) {
-    if (_elegida != null) return;
+    if (_elegida != null || idx == widget.opcionEliminada) return;
     setState(() => _elegida = idx);
     Future.delayed(const Duration(milliseconds: 500), () => widget.onResponder(idx));
   }
@@ -50,10 +66,21 @@ class _TriviaOverlayState extends State<TriviaOverlay> {
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(backgroundColor: _colorFor(i)),
-                  onPressed: () => _tap(i),
-                  child: Text(widget.pregunta.options[i]),
+                  style: OutlinedButton.styleFrom(backgroundColor: _colorFor(i), disabledBackgroundColor: _colorFor(i)),
+                  onPressed: i == widget.opcionEliminada ? null : () => _tap(i),
+                  child: Text(
+                    widget.pregunta.options[i],
+                    style: i == widget.opcionEliminada ? const TextStyle(decoration: TextDecoration.lineThrough, color: Color(0xFFAA9BC4)) : null,
+                  ),
                 ),
+              ),
+            ),
+          if (widget.onPedirPista != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: TextButton(
+                onPressed: (widget.pistaUsada || _elegida != null) ? null : widget.onPedirPista,
+                child: Text(widget.pistaUsada ? '💡 Pista usada' : '💡 Pedir una pista'),
               ),
             ),
         ],

@@ -15,8 +15,10 @@ import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
 import '../utils/uuid.dart';
 import 'audio_service.dart';
+import 'economy_service.dart';
 import 'identity_service.dart';
 import 'pending_rewards_service.dart';
+import 'sellos_service.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
 
@@ -32,6 +34,8 @@ enum GameOverlay {
   eleccionPerdiste,
   tresCuestionados,
   campanaTerminada,
+  eleccionVideoMonedas,
+  anuncioSimulado,
 }
 
 /// Motor del modo solo (campaña de 10 etapas contra un bot), portado 1 a 1
@@ -118,6 +122,23 @@ class SoloGameController extends ChangeNotifier {
   String perdidaMsg = '';
   String campanaFinTexto = '';
 
+  /// Sellos: coleccionable ganado al caer en trampa (cárcel/calavera),
+  /// nuevo respecto del prototipo. Se guarda localmente ([SellosService]).
+  int sellos = 0;
+
+  /// Pista de la trivia actual: qué opción quedó eliminada (o null si no
+  /// se pidió pista todavía) y si ya se usó (para no permitir pedir dos).
+  int? pistaOpcionEliminada;
+  bool pistaUsada = false;
+
+  /// Estado del diálogo "elegí cómo conseguirlo" (video / monedas / sellos).
+  String eleccionDescripcion = '';
+  int eleccionCostoMonedas = 0;
+  int eleccionCostoSellos = 0;
+  Completer<String>? _eleccionCompleter;
+
+  Completer<void>? _anuncioCompleter;
+
   bool get esMiTurno {
     final j = _jugadorEnTurno;
     return j != null && j.id == myPlayerId;
@@ -164,6 +185,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> iniciar() async {
     cargando = true;
     notifyListeners();
+    sellos = await SellosService.obtener();
 
     final partidaId = uuidV4();
     final layout = BoardEngine.generarLayoutAleatorio();
@@ -226,6 +248,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> reanudar(SesionActiva sesion) async {
     cargando = true;
     notifyListeners();
+    sellos = await SellosService.obtener();
 
     final snap = sesion.snapshot;
     if (snap == null) {
@@ -464,6 +487,9 @@ class SoloGameController extends ChangeNotifier {
       if (tipo == 'carcel' || tipo == 'calavera') {
         trampaCasillaIdx = rawNewPos;
         AudioService.trampa();
+        if (!esBot) {
+          sellos = await SellosService.agregar(1);
+        }
         notifyListeners();
         await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
@@ -531,6 +557,8 @@ class SoloGameController extends ChangeNotifier {
 
     triviaActual = pregunta;
     triviaTipo = tipo;
+    pistaOpcionEliminada = null;
+    pistaUsada = false;
     _triviaCallbackPos = posActual;
     _triviaCallbackJugador = jugadorId;
     triviaSegundosRestantes = etapaConfig!.tiempoLimiteTrivia;
@@ -619,9 +647,104 @@ class SoloGameController extends ChangeNotifier {
     }
     if (porTimeout) await _wait(const Duration(milliseconds: 900));
     overlay = GameOverlay.none;
+    notifyListeners();
+
+    if (!acierto) {
+      final otraOportunidad = await _ofrecerVideoOMonedas(
+        descripcion: '¿Querés otra oportunidad para responder antes de la penitencia?',
+        costoMonedas: 15,
+        costoSellos: 5,
+      );
+      if (otraOportunidad) {
+        await _mostrarTriviaCasilla(triviaTipo!, _triviaCallbackPos, _triviaCallbackJugador, myEdadBracket, myPais);
+        return;
+      }
+    }
     triviaActual = null;
     notifyListeners();
     await _aplicarResultadoTrivia(_triviaCallbackJugador, triviaTipo!, _triviaCallbackPos, acierto, false, porTimeout);
+  }
+
+  /// Pedir una pista en la trivia actual: elimina una opción incorrecta.
+  /// Cuesta monedas o sellos, o se puede conseguir gratis viendo un video.
+  Future<void> pedirPista() async {
+    if (pistaUsada || triviaActual == null) return;
+    final conseguida = await _ofrecerVideoOMonedas(
+      descripcion: 'Una pista elimina una opción incorrecta. ¿Cómo la conseguís?',
+      costoMonedas: 10,
+      costoSellos: 3,
+    );
+    if (!conseguida || triviaActual == null || pistaUsada) return;
+    final pregunta = triviaActual!;
+    final incorrectas = List.generate(pregunta.options.length, (i) => i).where((i) => i != pregunta.correct).toList();
+    incorrectas.shuffle();
+    pistaOpcionEliminada = incorrectas.first;
+    pistaUsada = true;
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------
+  // Video / monedas / sellos — port de `ofrecerVideoOMonedas` y
+  // `showAdSimulada` del prototipo. Devuelve true si el jugador consiguió
+  // lo que ofrecía el diálogo (vio el video o pagó), false si canceló.
+  // ---------------------------------------------------------------------
+  Future<bool> _ofrecerVideoOMonedas({required String descripcion, required int costoMonedas, required int costoSellos}) async {
+    eleccionDescripcion = descripcion;
+    eleccionCostoMonedas = costoMonedas;
+    eleccionCostoSellos = costoSellos;
+    overlay = GameOverlay.eleccionVideoMonedas;
+    notifyListeners();
+    _eleccionCompleter = Completer<String>();
+    final eleccion = await _eleccionCompleter!.future;
+
+    if (eleccion == 'video') {
+      await _mostrarAnuncioSimulado();
+      return true;
+    }
+    if (eleccion == 'monedas') {
+      final r = await EconomyService.gastarMonedas(usuario.id, costoMonedas);
+      if (r == null || !r.exito) {
+        _msg('🪙 No te alcanzan las monedas.');
+        return false;
+      }
+      usuario = usuario.copyWith(monedas: r.monedasRestantes);
+      notifyListeners();
+      return true;
+    }
+    if (eleccion == 'sellos') {
+      sellos = await SellosService.agregar(-costoSellos);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _mostrarAnuncioSimulado() {
+    overlay = GameOverlay.anuncioSimulado;
+    notifyListeners();
+    _anuncioCompleter = Completer<void>();
+    return _anuncioCompleter!.future;
+  }
+
+  void elegirVideo() => _resolverEleccion('video');
+  void elegirMonedasParaEleccion() => _resolverEleccion('monedas');
+  void elegirSellosParaEleccion() => _resolverEleccion('sellos');
+  void cancelarEleccionVideoMonedas() => _resolverEleccion('cancelar');
+
+  void _resolverEleccion(String eleccion) {
+    final c = _eleccionCompleter;
+    if (c == null || c.isCompleted) return;
+    overlay = GameOverlay.none;
+    notifyListeners();
+    c.complete(eleccion);
+  }
+
+  void continuarDesdeAnuncio() {
+    final c = _anuncioCompleter;
+    if (c == null || c.isCompleted) return;
+    overlay = GameOverlay.none;
+    notifyListeners();
+    c.complete();
   }
 
   static const _triviaOutcomeExtraTurn = {'oca'};
@@ -719,6 +842,9 @@ class SoloGameController extends ChangeNotifier {
     if (nuevaPos >= BoardEngine.meta) {
       await _manejarVictoria(jugadorId);
       return;
+    }
+    if (!esBot && !exito) {
+      await _mostrarAnuncioSimulado();
     }
     await _terminarTurno(false);
   }

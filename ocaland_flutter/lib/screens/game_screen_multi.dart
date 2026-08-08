@@ -3,9 +3,11 @@ import '../models/cell_descriptions.dart';
 import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
+import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/desempate_panel.dart';
 import 'widgets/dice_widget.dart';
+import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/fin_partida_panel.dart';
 import 'widgets/jugadores_status_row.dart';
@@ -142,6 +144,9 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
           pregunta: c.triviaActual!,
           segundos: c.triviaSegundosRestantes,
           onResponder: c.responderTrivia,
+          onPedirPista: c.pedirPista,
+          pistaUsada: c.pistaUsada,
+          opcionEliminada: c.pistaOpcionEliminada,
         );
       case MpOverlay.minijuego:
         return MinijuegoOverlay(titulo: '🎮 ¡Casilla de minijuego!', subtitulo: cellDescriptions['minijuego'], tipo: c.minijuegoTipo ?? 'reflejos', onDone: c.resolverMinijuegoActual);
@@ -158,6 +163,20 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
         );
       case MpOverlay.sorteo:
         return _sorteoOverlay(c);
+      case MpOverlay.eleccionVideoMonedas:
+        return EleccionVideoMonedasOverlay(
+          descripcion: c.eleccionDescripcion,
+          costoMonedas: c.eleccionCostoMonedas,
+          monedasActuales: c.usuario.monedas,
+          costoSellos: c.eleccionCostoSellos,
+          sellosActuales: c.sellos,
+          onVideo: c.elegirVideo,
+          onMonedas: c.elegirMonedasParaEleccion,
+          onSellos: c.elegirSellosParaEleccion,
+          onCancelar: c.cancelarEleccionVideoMonedas,
+        );
+      case MpOverlay.anuncioSimulado:
+        return AnuncioSimuladoOverlay(onContinuar: c.continuarDesdeAnuncio);
       case MpOverlay.none:
         return const SizedBox.shrink();
     }

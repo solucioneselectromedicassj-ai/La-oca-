@@ -4,6 +4,7 @@ import 'package:ocaland_flutter/models/partida.dart';
 import 'package:ocaland_flutter/models/sesion_activa.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/solo_game_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Usuario _usuario() => Usuario(
       id: '',
@@ -46,6 +47,9 @@ Map<String, dynamic> _jugadorJson({required String id, required int ordenTurno, 
     };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('SoloGameController — modo offline', () {
     test('reanudar() restaura la partida y jugadores desde el snapshot local, sin red', () async {
       final sesion = SesionActiva(

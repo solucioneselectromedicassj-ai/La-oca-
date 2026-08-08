@@ -4,10 +4,12 @@ import '../models/sesion_activa.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
+import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/campana_terminada_overlay.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_perdiste_overlay.dart';
+import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/espectador_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/jugadores_status_row.dart';
@@ -168,6 +170,9 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
           pregunta: _c.triviaActual!,
           segundos: _c.triviaSegundosRestantes,
           onResponder: _c.responderTrivia,
+          onPedirPista: _c.pedirPista,
+          pistaUsada: _c.pistaUsada,
+          opcionEliminada: _c.pistaOpcionEliminada,
         );
       case GameOverlay.triviaEspectador:
         return TriviaEspectadorOverlay(
@@ -218,6 +223,20 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
         );
       case GameOverlay.campanaTerminada:
         return CampanaTerminadaOverlay(texto: _c.campanaFinTexto, onVolverAlLobby: () => _salir(context));
+      case GameOverlay.eleccionVideoMonedas:
+        return EleccionVideoMonedasOverlay(
+          descripcion: _c.eleccionDescripcion,
+          costoMonedas: _c.eleccionCostoMonedas,
+          monedasActuales: _c.usuario.monedas,
+          costoSellos: _c.eleccionCostoSellos,
+          sellosActuales: _c.sellos,
+          onVideo: _c.elegirVideo,
+          onMonedas: _c.elegirMonedasParaEleccion,
+          onSellos: _c.elegirSellosParaEleccion,
+          onCancelar: _c.cancelarEleccionVideoMonedas,
+        );
+      case GameOverlay.anuncioSimulado:
+        return AnuncioSimuladoOverlay(onContinuar: _c.continuarDesdeAnuncio);
       case GameOverlay.sorteo:
       case GameOverlay.none:
         return const SizedBox.shrink();

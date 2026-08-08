@@ -14,11 +14,13 @@ import '../models/usuario.dart';
 import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
+import 'economy_service.dart';
 import 'join_room_result.dart';
+import 'sellos_service.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
 
-enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta }
+enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta, eleccionVideoMonedas, anuncioSimulado }
 
 const _horasPlazoTurno = 6;
 const _tiempoLimiteTriviaTanda = 15; // segundos, fijo (sin escalado de dificultad, a diferencia de la campaña)
@@ -29,7 +31,7 @@ const _totalPartidasTanda = 3; // mejor de 3
 /// 6hs, Cuestionados, minijuegos, mejor-de-3 con desempate por trivia.
 /// Portado del prototipo HTML, reutilizando el mismo backend Supabase.
 class SalaGameController extends ChangeNotifier {
-  final Usuario usuario;
+  Usuario usuario;
   final String myNombre;
   final String myEdadBracket;
   final String myPais;
@@ -84,6 +86,20 @@ class SalaGameController extends ChangeNotifier {
   String finLabelRevancha = '';
   bool finMostrarNuevaTanda = false;
   bool finMostrarJugarOtra = false;
+
+  /// Sellos: coleccionable ganado al caer en trampa (cárcel/calavera).
+  int sellos = 0;
+  int? pistaOpcionEliminada;
+  bool pistaUsada = false;
+  String eleccionDescripcion = '';
+  int eleccionCostoMonedas = 0;
+  int eleccionCostoSellos = 0;
+  Completer<String>? _eleccionCompleter;
+  Completer<void>? _anuncioCompleter;
+
+  Future<void> _cargarSellos() async {
+    sellos = await SellosService.obtener();
+  }
 
   bool get esCampanaGrupal => partida?.esCampanaGrupal ?? false;
   int get _totalRondas => esCampanaGrupal ? 10 : _totalPartidasTanda;
@@ -142,6 +158,7 @@ class SalaGameController extends ChangeNotifier {
   Future<void> crearSala() async {
     cargando = true;
     notifyListeners();
+    await _cargarSellos();
     Map<String, dynamic>? row;
     for (var attempt = 0; attempt < 5 && row == null; attempt++) {
       try {
@@ -164,6 +181,7 @@ class SalaGameController extends ChangeNotifier {
   Future<void> crearSalaCampanaGrupal() async {
     cargando = true;
     notifyListeners();
+    await _cargarSellos();
     Map<String, dynamic>? row;
     for (var attempt = 0; attempt < 5 && row == null; attempt++) {
       try {
@@ -184,6 +202,7 @@ class SalaGameController extends ChangeNotifier {
   Future<JoinRoomResult> unirseSala(String codigo) async {
     cargando = true;
     notifyListeners();
+    await _cargarSellos();
     Map<String, dynamic>? row;
     try {
       row = await SupabaseService.from('partidas').select().eq('codigo', codigo.toUpperCase()).single();
@@ -237,6 +256,7 @@ class SalaGameController extends ChangeNotifier {
   Future<void> reconectarComo(Partida p, JugadorPartida jugador) async {
     partida = p;
     myPlayerId = jugador.id;
+    await _cargarSellos();
     if (esCampanaGrupal) etapaConfig = Campana.generarConfigEtapa(p.etapaActual);
     await _refreshJugadores();
     await _guardarSesion();
@@ -478,6 +498,9 @@ class SalaGameController extends ChangeNotifier {
       if (tipo == 'carcel' || tipo == 'calavera') {
         trampaCasillaIdx = rawNewPos;
         AudioService.trampa();
+        if (jugadorId == myPlayerId) {
+          sellos = await SellosService.agregar(1);
+        }
         notifyListeners();
         await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
@@ -534,6 +557,8 @@ class SalaGameController extends ChangeNotifier {
 
     triviaActual = pregunta;
     triviaTipo = tipo;
+    pistaOpcionEliminada = null;
+    pistaUsada = false;
     _esDesempateTrivia = false;
     _triviaCallbackPos = posActual;
     _triviaCallbackJugador = jugadorId;
@@ -576,14 +601,108 @@ class SalaGameController extends ChangeNotifier {
     }
     if (porTimeout) await _wait(const Duration(milliseconds: 900));
     overlay = MpOverlay.none;
-    triviaActual = null;
     notifyListeners();
 
     if (_esDesempateTrivia) {
+      triviaActual = null;
+      notifyListeners();
       await _resolverDesempate(_triviaCallbackJugador, acierto, partida!.desempatePendientes);
       return;
     }
+
+    if (!acierto) {
+      final otraOportunidad = await _ofrecerVideoOMonedas(
+        descripcion: '¿Querés otra oportunidad para responder antes de la penitencia?',
+        costoMonedas: 15,
+        costoSellos: 5,
+      );
+      if (otraOportunidad) {
+        await _mostrarTriviaCasilla(triviaTipo!, _triviaCallbackPos, _triviaCallbackJugador);
+        return;
+      }
+    }
+    triviaActual = null;
+    notifyListeners();
     await _aplicarResultadoTrivia(_triviaCallbackJugador, triviaTipo!, _triviaCallbackPos, acierto, porTimeout);
+  }
+
+  /// Pedir una pista en la trivia actual: elimina una opción incorrecta.
+  Future<void> pedirPista() async {
+    if (pistaUsada || triviaActual == null) return;
+    final conseguida = await _ofrecerVideoOMonedas(
+      descripcion: 'Una pista elimina una opción incorrecta. ¿Cómo la conseguís?',
+      costoMonedas: 10,
+      costoSellos: 3,
+    );
+    if (!conseguida || triviaActual == null || pistaUsada) return;
+    final pregunta = triviaActual!;
+    final incorrectas = List.generate(pregunta.options.length, (i) => i).where((i) => i != pregunta.correct).toList();
+    incorrectas.shuffle();
+    pistaOpcionEliminada = incorrectas.first;
+    pistaUsada = true;
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------
+  // Video / monedas / sellos — ver comentario equivalente en SoloGameController.
+  // ---------------------------------------------------------------------
+  Future<bool> _ofrecerVideoOMonedas({required String descripcion, required int costoMonedas, required int costoSellos}) async {
+    eleccionDescripcion = descripcion;
+    eleccionCostoMonedas = costoMonedas;
+    eleccionCostoSellos = costoSellos;
+    overlay = MpOverlay.eleccionVideoMonedas;
+    notifyListeners();
+    _eleccionCompleter = Completer<String>();
+    final eleccion = await _eleccionCompleter!.future;
+
+    if (eleccion == 'video') {
+      await _mostrarAnuncioSimulado();
+      return true;
+    }
+    if (eleccion == 'monedas') {
+      final r = await EconomyService.gastarMonedas(usuario.id, costoMonedas);
+      if (r == null || !r.exito) {
+        _msg('🪙 No te alcanzan las monedas.');
+        return false;
+      }
+      usuario = usuario.copyWith(monedas: r.monedasRestantes);
+      notifyListeners();
+      return true;
+    }
+    if (eleccion == 'sellos') {
+      sellos = await SellosService.agregar(-costoSellos);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _mostrarAnuncioSimulado() {
+    overlay = MpOverlay.anuncioSimulado;
+    notifyListeners();
+    _anuncioCompleter = Completer<void>();
+    return _anuncioCompleter!.future;
+  }
+
+  void elegirVideo() => _resolverEleccion('video');
+  void elegirMonedasParaEleccion() => _resolverEleccion('monedas');
+  void elegirSellosParaEleccion() => _resolverEleccion('sellos');
+  void cancelarEleccionVideoMonedas() => _resolverEleccion('cancelar');
+
+  void _resolverEleccion(String eleccion) {
+    final c = _eleccionCompleter;
+    if (c == null || c.isCompleted) return;
+    overlay = MpOverlay.none;
+    notifyListeners();
+    c.complete(eleccion);
+  }
+
+  void continuarDesdeAnuncio() {
+    final c = _anuncioCompleter;
+    if (c == null || c.isCompleted) return;
+    overlay = MpOverlay.none;
+    notifyListeners();
+    c.complete();
   }
 
   static const _tiposConTiroExtra = {'oca'};
@@ -672,6 +791,9 @@ class SalaGameController extends ChangeNotifier {
     if (nuevaPos >= BoardEngine.meta) {
       await _manejarVictoria(jugadorId);
       return;
+    }
+    if (!exito) {
+      await _mostrarAnuncioSimulado();
     }
     await _terminarTurno(false);
   }
