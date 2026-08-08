@@ -38,16 +38,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  /// Sellos: coleccionable que se gana al caer en trampa (cárcel/calavera)
-  /// durante una partida. Se pueden canjear por monedas o conseguir más
-  /// viendo un video.
+  /// Sellos: coleccionable que se puede usar para pedir pistas o reintentar
+  /// en Cuestionados. Se consiguen viendo videos, o canjeados acá.
   Future<void> _abrirCanjeSellos() async {
     final accion = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.parchment,
         title: const Text('🎖️ Mis sellos'),
-        content: Text('Tenés $_sellos sello${_sellos == 1 ? '' : 's'}. Los ganás cada vez que caés en una casilla trampa (cárcel o calavera), y los podés usar para pedir pistas o reintentar en Cuestionados.'),
+        content: Text('Tenés $_sellos sello${_sellos == 1 ? '' : 's'}. Los podés usar para pedir pistas o reintentar en Cuestionados.'),
         actions: [
           TextButton(
             onPressed: _sellos >= 5 ? () => Navigator.of(dialogContext).pop('monedas') : null,
@@ -137,7 +136,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               children: [
                                 const Text('🎖️ Mis sellos', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
                                 const SizedBox(height: 4),
-                                const Text('Se ganan al caer en una casilla trampa (cárcel o calavera) durante una partida.', style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
+                                const Text('Te ayudan a safar en Cuestionados: pedir pistas o reintentar antes de la penitencia.', style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
                                 const SizedBox(height: 8),
                                 _fila('Sellos acumulados', '$_sellos'),
                                 const SizedBox(height: 10),

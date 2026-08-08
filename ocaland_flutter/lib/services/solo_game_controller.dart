@@ -487,9 +487,6 @@ class SoloGameController extends ChangeNotifier {
       if (tipo == 'carcel' || tipo == 'calavera') {
         trampaCasillaIdx = rawNewPos;
         AudioService.trampa();
-        if (!esBot) {
-          sellos = await SellosService.agregar(1);
-        }
         notifyListeners();
         await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
