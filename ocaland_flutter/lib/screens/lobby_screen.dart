@@ -159,7 +159,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   void _tandaCuestionados() {
     _conEdadYPais(() {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => TandaCuestionadosScreen(edadBracket: _edadBracket!, pais: _pais!)));
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => TandaCuestionadosScreen(edadBracket: _edadBracket!)));
     });
   }
 
@@ -178,31 +178,38 @@ class _LobbyScreenState extends State<LobbyScreen> {
     return Scaffold(
       backgroundColor: AppColors.parchment,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const Text('Ocaland', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
-                  Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 16),
-                  Row(
+        child: Stack(
+          children: [
+            const _FondoDecorado(),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
                     children: [
-                      _tabButton('🎲 Jugar', 0),
-                      const SizedBox(width: 6),
-                      _tabButton('🎰 Bonus', 1),
-                      const SizedBox(width: 6),
-                      _tabButton('👤 Cuenta', 2),
+                      const SizedBox(height: 6),
+                      const _TituloDecorado(),
+                      const SizedBox(height: 4),
+                      Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          _tabButton('🎲 Jugar', 0),
+                          const SizedBox(width: 6),
+                          _tabButton('🎁 Bonus', 1),
+                          const SizedBox(width: 6),
+                          _tabButton('👤 Cuenta', 2),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(child: _tabContent()),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Expanded(child: _tabContent()),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -216,6 +223,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
           backgroundColor: active ? AppColors.violet : Colors.white,
           foregroundColor: active ? Colors.white : AppColors.violetDark,
           side: const BorderSide(color: AppColors.violet, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         ),
         onPressed: () => setState(() => _tab = idx),
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -226,84 +235,145 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Widget _tabContent() {
     switch (_tab) {
       case 0:
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(onPressed: _jugarSolo, child: const Text('🤖 Jugar solo (contra la bot)')),
-                  ),
-                ),
-              ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _crearSala, child: const Text('Crear sala nueva (tanda)'))),
-                      const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _unirseSala, child: const Text('¿Ya tenés un código? Unirme'))),
-                    ],
-                  ),
-                ),
-              ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _crearCampanaGrupal, child: const Text('🏆 Crear campaña grupal (10 etapas, en vivo)'))),
-                ),
-              ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _desafioGrupal, child: const Text('🎯 Desafío grupal (campañas por separado)'))),
-                ),
-              ),
-            ],
-          ),
-        );
+        return _panelAcciones([
+          _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', onTap: _jugarSolo),
+          _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', destacado: true, onTap: _crearSala),
+          _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', onTap: _unirseSala),
+          _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', onTap: _crearCampanaGrupal),
+          _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', onTap: _desafioGrupal),
+        ]);
       case 1:
-        return SingleChildScrollView(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _girarRuletaBonus, child: const Text('🎰 Ruleta de bonus diaria (multiplicador)'))),
-                  const SizedBox(height: 8),
-                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _compartirApp, child: const Text('📲 Compartir Ocaland (+15 🪙 hoy)'))),
-                  const SizedBox(height: 8),
-                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _tandaCuestionados, child: const Text('🎯 Tanda de cuestionados (ganá sellos)'))),
-                ],
-              ),
-            ),
-          ),
-        );
+        return _panelAcciones([
+          _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', onTap: _girarRuletaBonus),
+          _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', onTap: _compartirApp),
+          _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', destacado: true, onTap: _tandaCuestionados),
+        ]);
       default:
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario))), child: const Text('📊 Mi perfil'))),
-                      const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario))), child: const Text('🏆 Ranking'))),
-                      const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario))), child: const Text('🎮 Mis partidas'))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+        return _panelAcciones([
+          _AccionRow(label: '📊 Mi perfil', emoji: '📊', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
+          _AccionRow(label: '🏆 Ranking', emoji: '🏆', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
+          _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
+        ]);
     }
   }
 
+  /// Panel único con borde redondeado que agrupa todas las acciones de la
+  /// pestaña actual (antes era una `Card` separada por botón).
+  Widget _panelAcciones(List<Widget> filas) {
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.violet, width: 3),
+        ),
+        child: Column(children: filas),
+      ),
+    );
+  }
+
+}
+
+/// Fila de acción del lobby: texto a la izquierda, una "medallita" con
+/// emoji decorativo a la derecha. [destacado] resalta la opción principal
+/// de cada pestaña con relleno violeta sólido en vez de blanco con borde.
+class _AccionRow extends StatelessWidget {
+  final String label;
+  final String emoji;
+  final bool destacado;
+  final VoidCallback onTap;
+  const _AccionRow({required this.label, required this.emoji, required this.onTap, this.destacado = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Material(
+        color: destacado ? AppColors.violet : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: destacado ? null : Border.all(color: AppColors.violet.withValues(alpha: 0.4), width: 1.5),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: destacado ? Colors.white : AppColors.violetDark),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: destacado ? Colors.white.withValues(alpha: 0.2) : AppColors.parchmentDark,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(emoji, style: const TextStyle(fontSize: 17)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Ocaland" con adornitos alrededor (dado, ficha, cintita, estrella) para
+/// que la pantalla de entrada se sienta más festiva.
+class _TituloDecorado extends StatelessWidget {
+  const _TituloDecorado();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: const [
+          Positioned(left: 4, top: 2, child: Text('🎲', style: TextStyle(fontSize: 20))),
+          Positioned(right: 2, top: -4, child: Text('🏅', style: TextStyle(fontSize: 18))),
+          Positioned(right: 26, bottom: -2, child: Text('⭐', style: TextStyle(fontSize: 14))),
+          Positioned(left: 28, bottom: -4, child: Text('🎉', style: TextStyle(fontSize: 16))),
+          Center(child: Text('Ocaland', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.violetDark))),
+        ],
+      ),
+    );
+  }
+}
+
+/// Elementos decorativos sueltos en las esquinas de la pantalla (dados,
+/// fichas, confeti) para darle un marco más festivo al lobby, sin estorbar
+/// el contenido — muy sutiles (opacidad baja) para no distraer.
+class _FondoDecorado extends StatelessWidget {
+  const _FondoDecorado();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Opacity(
+        opacity: 0.16,
+        child: Stack(
+          children: const [
+            Positioned(left: -6, top: 40, child: Text('🎲', style: TextStyle(fontSize: 36))),
+            Positioned(right: -4, top: 30, child: Text('🔺', style: TextStyle(fontSize: 30))),
+            Positioned(left: 10, bottom: 90, child: Text('🎉', style: TextStyle(fontSize: 32))),
+            Positioned(right: 14, bottom: 100, child: Text('♟️', style: TextStyle(fontSize: 34))),
+          ],
+        ),
+      ),
+    );
+  }
 }

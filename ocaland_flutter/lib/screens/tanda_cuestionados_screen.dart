@@ -12,8 +12,7 @@ import 'widgets/trivia_overlay.dart';
 /// canje por monedas/video del perfil.
 class TandaCuestionadosScreen extends StatefulWidget {
   final String edadBracket;
-  final String pais;
-  const TandaCuestionadosScreen({super.key, required this.edadBracket, required this.pais});
+  const TandaCuestionadosScreen({super.key, required this.edadBracket});
 
   @override
   State<TandaCuestionadosScreen> createState() => _TandaCuestionadosScreenState();
@@ -45,7 +44,7 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
 
   void _elegirPregunta() {
     if (_cola.isEmpty) {
-      _cola.addAll(List<TriviaQuestion>.from(TriviaBank.bancoPorPais(widget.pais, widget.edadBracket))..shuffle());
+      _cola.addAll(List<TriviaQuestion>.from(TriviaBank.bancoBonus(widget.edadBracket))..shuffle());
     }
     _pregunta = _cola.removeAt(0);
   }
