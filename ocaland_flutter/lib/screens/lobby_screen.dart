@@ -38,7 +38,6 @@ class LobbyScreen extends StatefulWidget {
 }
 
 class _LobbyScreenState extends State<LobbyScreen> {
-  int _tab = 0;
   String? _edadBracket;
   String? _pais;
   Timer? _heartbeat;
@@ -179,6 +178,60 @@ class _LobbyScreenState extends State<LobbyScreen> {
     } catch (_) {}
   }
 
+  void _abrirJugar() {
+    _pushPanel('🎲 Jugar', [
+      _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', onTap: _jugarSolo),
+      _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', destacado: true, onTap: _crearSala),
+      _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', onTap: _unirseSala),
+      _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', onTap: _crearCampanaGrupal),
+      _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', onTap: _desafioGrupal),
+    ]);
+  }
+
+  void _abrirBonus() {
+    _pushPanel('🎁 Bonus', [
+      _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', onTap: _girarRuletaBonus),
+      _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', onTap: _compartirApp),
+      _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', destacado: true, onTap: _tandaCuestionados),
+      _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', destacado: true, onTap: _minijuegosBonus),
+    ]);
+  }
+
+  void _abrirCuenta() {
+    _pushPanel('👤 Cuenta', [
+      _AccionRow(label: '📊 Mi perfil', emoji: '📊', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '🏆 Ranking', emoji: '🏆', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
+    ]);
+  }
+
+  /// Empuja una pantalla chica con su propia AppBar (con botón de volver)
+  /// mostrando el mismo panel de acciones que antes vivía en una pestaña.
+  void _pushPanel(String titulo, List<Widget> filas) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        backgroundColor: AppColors.parchment,
+        appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: Text(titulo)),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              const _FondoDecorado(),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: _panelAcciones(filas),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,29 +240,45 @@ class _LobbyScreenState extends State<LobbyScreen> {
         child: Stack(
           children: [
             const _FondoDecorado(),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: AppColors.violetDark, size: 28),
+                onSelected: (v) {
+                  if (v == 'bonus') _abrirBonus();
+                  if (v == 'cuenta') _abrirCuenta();
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'bonus', child: Text('🎁 Bonus')),
+                  PopupMenuItem(value: 'cuenta', child: Text('👤 Cuenta')),
+                ],
+              ),
+            ),
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 6),
                       const _TituloDecorado(),
                       const SizedBox(height: 4),
                       Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          _tabButton('🎲 Jugar', 0),
-                          const SizedBox(width: 6),
-                          _tabButton('🎁 Bonus', 1),
-                          const SizedBox(width: 6),
-                          _tabButton('👤 Cuenta', 2),
-                        ],
+                      const SizedBox(height: 44),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.violet,
+                            padding: const EdgeInsets.symmetric(vertical: 22),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          onPressed: _abrirJugar,
+                          child: const Text('🎲 Jugar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Expanded(child: _tabContent()),
                     ],
                   ),
                 ),
@@ -221,51 +290,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
-  Widget _tabButton(String label, int idx) {
-    final active = _tab == idx;
-    return Expanded(
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: active ? AppColors.violet : Colors.white,
-          foregroundColor: active ? Colors.white : AppColors.violetDark,
-          side: const BorderSide(color: AppColors.violet, width: 2),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        ),
-        onPressed: () => setState(() => _tab = idx),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  Widget _tabContent() {
-    switch (_tab) {
-      case 0:
-        return _panelAcciones([
-          _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', onTap: _jugarSolo),
-          _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', destacado: true, onTap: _crearSala),
-          _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', onTap: _unirseSala),
-          _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', onTap: _crearCampanaGrupal),
-          _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', onTap: _desafioGrupal),
-        ]);
-      case 1:
-        return _panelAcciones([
-          _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', onTap: _girarRuletaBonus),
-          _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', onTap: _compartirApp),
-          _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', destacado: true, onTap: _tandaCuestionados),
-          _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', destacado: true, onTap: _minijuegosBonus),
-        ]);
-      default:
-        return _panelAcciones([
-          _AccionRow(label: '📊 Mi perfil', emoji: '📊', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
-          _AccionRow(label: '🏆 Ranking', emoji: '🏆', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
-          _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
-        ]);
-    }
-  }
-
-  /// Panel único con borde redondeado que agrupa todas las acciones de la
-  /// pestaña actual (antes era una `Card` separada por botón).
+  /// Panel único con borde redondeado que agrupa todas las acciones de una
+  /// sección (antes eran pestañas; ahora cada una es su propia pantalla).
   Widget _panelAcciones(List<Widget> filas) {
     return SingleChildScrollView(
       child: Container(
