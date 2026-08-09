@@ -88,6 +88,14 @@ class AudioService {
 
   static void sorteo() => _play(220, 0.06, type: 'square', vol: 0.05);
 
+  /// Sonido tierno para las interacciones con la mascota (darle de comer,
+  /// despertarla) — un par de tonos cortos y suaves, distinto de [coin] y
+  /// [sello] para no confundirse con ganar algo.
+  static void carino() {
+    _play(523, 0.09, type: 'triangle', vol: 0.09);
+    Future.delayed(const Duration(milliseconds: 100), () => _play(659, 0.13, type: 'triangle', vol: 0.09));
+  }
+
   static void notificacion() {
     _play(740, 0.1, vol: 0.08);
     Future.delayed(const Duration(milliseconds: 100), () => _play(988, 0.14, vol: 0.08));

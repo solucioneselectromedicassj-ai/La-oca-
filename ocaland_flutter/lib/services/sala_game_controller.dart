@@ -16,6 +16,7 @@ import '../utils/iterable_ext.dart';
 import 'audio_service.dart';
 import 'economy_service.dart';
 import 'join_room_result.dart';
+import 'mascota_service.dart';
 import 'sellos_service.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
@@ -841,6 +842,7 @@ class SalaGameController extends ChangeNotifier {
   // ---------------------------------------------------------------------
   Future<void> _manejarVictoria(String jugadorGanadorId) async {
     if (jugadorGanadorId == myPlayerId) AudioService.win();
+    unawaited(MascotaService.registrarJuego());
     final ganador = jugadores.firstWhere((j) => j.id == jugadorGanadorId);
     final rachaPrevia = partida!.rachaGanador;
     final nuevaRacha = partida!.ultimoGanadorId == jugadorGanadorId ? rachaPrevia + 1 : 1;

@@ -18,6 +18,7 @@ import 'audio_service.dart';
 import 'comodines_service.dart';
 import 'economy_service.dart';
 import 'identity_service.dart';
+import 'mascota_service.dart';
 import 'pending_rewards_service.dart';
 import 'sellos_service.dart';
 import 'session_service.dart';
@@ -915,6 +916,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _manejarVictoria(String jugadorGanadorId) async {
     final gane = jugadorGanadorId == myPlayerId;
     if (gane) AudioService.win();
+    unawaited(MascotaService.registrarJuego());
     if (usuario.id.isNotEmpty) {
       try {
         final data = await SupabaseService.client.schema('la_vuelta').rpc('registrar_resultado_partida', params: {

@@ -5,6 +5,7 @@ import '../app_config.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
+import '../services/mascota_service.dart';
 import '../services/pending_rewards_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
@@ -13,6 +14,7 @@ import 'desafio_grupal_screen.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
 import 'join_sala_screen.dart';
+import 'mascota_screen.dart';
 import 'minijuegos_bonus_screen.dart';
 import 'mis_partidas_screen.dart';
 import 'pais_screen.dart';
@@ -41,12 +43,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
   String? _edadBracket;
   String? _pais;
   Timer? _heartbeat;
+  EstadoMascota? _mascota;
 
   @override
   void initState() {
     super.initState();
     _edadBracket = widget.edadBracket;
     _pais = widget.pais;
+    _cargarMascota();
     // Si había recompensas de partidas jugadas offline, las sincroniza apenas hay red.
     PendingRewardsService.flush();
     if (widget.offline) {
@@ -77,6 +81,16 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   String get _nombre => widget.nombre ?? widget.usuario.nombre;
+
+  Future<void> _cargarMascota() async {
+    final e = await MascotaService.obtenerEstado();
+    if (mounted) setState(() => _mascota = e);
+  }
+
+  Future<void> _abrirMascota() async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MascotaScreen(usuario: widget.usuario)));
+    _cargarMascota();
+  }
 
   /// Asegura tener edad/país elegidos (pidiéndolos si hace falta) y recién
   /// entonces ejecuta la acción real. Se reutiliza para solo, sala nueva y
@@ -266,7 +280,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
                       const _TituloDecorado(),
                       const SizedBox(height: 4),
                       Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 44),
+                      const SizedBox(height: 18),
+                      if (_mascota != null) _MascotaMiniCard(estado: _mascota!, onTap: _abrirMascota),
+                      const SizedBox(height: 26),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -359,6 +375,68 @@ class _AccionRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Tarjeta chica con el estado de la Oca-mascota, tocable para ir a su
+/// pantalla completa — vive en el lobby para invitar a volver todos los
+/// días sin bloquear nada (ver `mascota_service.dart`).
+class _MascotaMiniCard extends StatelessWidget {
+  final EstadoMascota estado;
+  final VoidCallback onTap;
+  const _MascotaMiniCard({required this.estado, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.6),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.violet.withValues(alpha: 0.35), width: 1.5)),
+          child: Row(
+            children: [
+              Text(estado.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 30)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: estado.durmiendo
+                    ? const Text('Tu Oca está durmiendo la siesta...', style: TextStyle(fontSize: 12.5, color: AppColors.violetDark, fontWeight: FontWeight.w600))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _miniBarra('🍽️', estado.hambre),
+                          const SizedBox(height: 3),
+                          _miniBarra('💤', estado.sueno),
+                          const SizedBox(height: 3),
+                          _miniBarra('🎾', estado.diversion),
+                        ],
+                      ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.violetDark),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniBarra(String emoji, double valor) {
+    final color = valor >= 60 ? const Color(0xFF6FBE6A) : (valor >= 30 ? const Color(0xFFE0A83A) : const Color(0xFFD9534F));
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 11)),
+        const SizedBox(width: 5),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(value: valor / 100, minHeight: 6, backgroundColor: Colors.white, valueColor: AlwaysStoppedAnimation(color)),
+          ),
+        ),
+      ],
     );
   }
 }
