@@ -20,14 +20,21 @@ class _OcaComiendoVideoState extends State<OcaComiendoVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset('assets/mascota/oca_comiendo.mp4')
-      ..setVolume(0)
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {});
-        _controller.play();
-      });
+    _controller = VideoPlayerController.asset('assets/mascota/oca_comiendo.mp4');
     _controller.addListener(_chequearFin);
+    _iniciar();
+  }
+
+  // El volumen solo se puede fijar después de que termina initialize(); si
+  // se llama antes, la llamada no tiene efecto y el video queda sin mutear
+  // — entonces el navegador bloquea el autoplay (política de autoplay con
+  // sonido) y la animación nunca arranca.
+  Future<void> _iniciar() async {
+    await _controller.initialize();
+    await _controller.setVolume(0);
+    if (!mounted) return;
+    setState(() {});
+    await _controller.play();
   }
 
   void _chequearFin() {
