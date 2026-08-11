@@ -4,6 +4,7 @@ import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
 import '../theme/app_colors.dart';
+import 'widgets/oca_comiendo_video.dart';
 
 /// Pantalla de la Oca-mascota: darle de comer, dejarla dormir, y ver sus
 /// tres barras. Nunca bloquea nada del resto del juego — es una invitación
@@ -20,6 +21,7 @@ class _MascotaScreenState extends State<MascotaScreen> {
   EstadoMascota? _estado;
   int _monedas = 0;
   bool _ocupado = false;
+  bool _mostrandoComer = false;
 
   @override
   void initState() {
@@ -52,7 +54,12 @@ class _MascotaScreenState extends State<MascotaScreen> {
       _estado = nuevo;
       _monedas = r.monedasRestantes;
       _ocupado = false;
+      _mostrandoComer = true;
     });
+  }
+
+  void _terminarAnimacionComer() {
+    if (mounted) setState(() => _mostrandoComer = false);
   }
 
   Future<void> _alternarDormir() async {
@@ -84,10 +91,13 @@ class _MascotaScreenState extends State<MascotaScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        Text(e.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 96)),
+                        if (_mostrandoComer)
+                          OcaComiendoVideo(onTerminado: _terminarAnimacionComer)
+                        else
+                          Text(e.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 96)),
                         const SizedBox(height: 8),
                         Text(
-                          e.durmiendo ? 'Zzz... está durmiendo la siesta.' : '¡Hola! ¿Cómo estás hoy?',
+                          _mostrandoComer ? '¡Ñam, ñam! Gracias por la comida 🌾' : (e.durmiendo ? 'Zzz... está durmiendo la siesta.' : '¡Hola! ¿Cómo estás hoy?'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
                         ),
