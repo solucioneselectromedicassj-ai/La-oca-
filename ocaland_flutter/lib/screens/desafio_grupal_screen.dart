@@ -1,7 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../models/amigo.dart';
 import '../models/desafio_resultado.dart';
+import '../models/grupo.dart';
 import '../models/usuario.dart';
+import '../services/amigos_service.dart';
+import '../services/grupos_service.dart';
+import '../services/mensajes_service.dart';
 import '../services/solo_game_controller.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_colors.dart';
@@ -18,7 +23,11 @@ class DesafioGrupalScreen extends StatefulWidget {
   final String edadBracket;
   final String pais;
 
-  const DesafioGrupalScreen({super.key, required this.usuario, required this.nombre, required this.edadBracket, required this.pais});
+  /// Si se abre desde una invitación del buzón, ya viene con el código
+  /// puesto y se une automáticamente sin tener que tipearlo.
+  final String? codigoInicial;
+
+  const DesafioGrupalScreen({super.key, required this.usuario, required this.nombre, required this.edadBracket, required this.pais, this.codigoInicial});
 
   @override
   State<DesafioGrupalScreen> createState() => _DesafioGrupalScreenState();
@@ -30,6 +39,15 @@ class _DesafioGrupalScreenState extends State<DesafioGrupalScreen> {
   String? _desafioCodigo;
   List<DesafioResultado>? _resultados;
   bool _cargando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.codigoInicial != null) {
+      _codeCtrl.text = widget.codigoInicial!;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _unirseDesafio());
+    }
+  }
 
   String _genCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -94,6 +112,40 @@ class _DesafioGrupalScreenState extends State<DesafioGrupalScreen> {
     }
   }
 
+  Future<void> _invitarAmigos() async {
+    final codigo = _desafioCodigo;
+    if (codigo == null) return;
+    final amigos = await AmigosService.listar(widget.usuario.id);
+    final grupos = await GruposService.listar(widget.usuario.id);
+    if (!mounted) return;
+    if (amigos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Todavía no tenés amigos agregados. Andá a "Mis amigos" para sumar alguno.')));
+      return;
+    }
+    final elegidos = await showModalBottomSheet<Set<String>>(
+      context: context,
+      backgroundColor: AppColors.parchment,
+      isScrollControlled: true,
+      builder: (sheetContext) => _SelectorInvitados(amigos: amigos, grupos: grupos),
+    );
+    if (elegidos == null || elegidos.isEmpty || !mounted) return;
+    var enviados = 0;
+    for (final a in amigos.where((a) => elegidos.contains(a.amigoUsuarioId))) {
+      try {
+        await MensajesService.enviarInvitacion(
+          destinatarioUsuarioId: a.amigoUsuarioId,
+          remitenteUsuarioId: widget.usuario.id,
+          remitenteNombre: widget.nombre,
+          texto: '🎯 ${widget.nombre} te invitó a un desafío grupal. ¡Jugá tu campaña y competí por el ranking!',
+          payload: {'desafio_codigo': codigo},
+        );
+        enviados++;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(enviados > 0 ? 'Invitación enviada a $enviados amigo${enviados == 1 ? '' : 's'}.' : 'No se pudo enviar la invitación.')));
+  }
+
   void _jugarMiCampana() {
     final controller = SoloGameController(
       usuario: widget.usuario,
@@ -151,6 +203,8 @@ class _DesafioGrupalScreenState extends State<DesafioGrupalScreen> {
                             Text(_desafioCodigo ?? '----', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 6, color: AppColors.violetDark)),
                             const SizedBox(height: 10),
                             SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _jugarMiCampana, child: const Text('Jugar mi campaña para este desafío'))),
+                            const SizedBox(height: 8),
+                            SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _invitarAmigos, child: const Text('📬 Invitar amigos'))),
                             const SizedBox(height: 14),
                             _rankingContenido(),
                           ],
@@ -186,6 +240,93 @@ class _DesafioGrupalScreenState extends State<DesafioGrupalScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Selector de a quién invitar: amigos sueltos + grupos enteros (que
+/// simplemente marcan a todos sus miembros). Devuelve el set de
+/// `amigo_usuario_id` elegidos.
+class _SelectorInvitados extends StatefulWidget {
+  final List<Amigo> amigos;
+  final List<Grupo> grupos;
+  const _SelectorInvitados({required this.amigos, required this.grupos});
+
+  @override
+  State<_SelectorInvitados> createState() => _SelectorInvitadosState();
+}
+
+class _SelectorInvitadosState extends State<_SelectorInvitados> {
+  final Set<String> _elegidos = {};
+  final Map<String, List<GrupoMiembro>> _miembrosPorGrupo = {};
+
+  Future<void> _tocarGrupo(Grupo g) async {
+    var miembros = _miembrosPorGrupo[g.id];
+    if (miembros == null) {
+      miembros = await GruposService.miembros(g.id);
+      if (!mounted) return;
+      _miembrosPorGrupo[g.id] = miembros;
+    }
+    final ids = miembros.map((m) => m.amigoUsuarioId);
+    final todosAdentro = ids.every(_elegidos.contains);
+    setState(() {
+      if (todosAdentro) {
+        _elegidos.removeAll(ids);
+      } else {
+        _elegidos.addAll(ids);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('¿A quién invitás?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    if (widget.grupos.isNotEmpty) ...[
+                      const Text('Grupos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF9B8AB5))),
+                      for (final g in widget.grupos)
+                        ListTile(
+                          leading: const Text('👨‍👩‍👧‍👦', style: TextStyle(fontSize: 20)),
+                          title: Text(g.nombre),
+                          trailing: const Icon(Icons.group_add),
+                          onTap: () => _tocarGrupo(g),
+                        ),
+                      const Divider(),
+                    ],
+                    const Text('Amigos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF9B8AB5))),
+                    for (final a in widget.amigos)
+                      CheckboxListTile(
+                        value: _elegidos.contains(a.amigoUsuarioId),
+                        title: Text(a.apodo),
+                        onChanged: (v) => setState(() => v == true ? _elegidos.add(a.amigoUsuarioId) : _elegidos.remove(a.amigoUsuarioId)),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: _elegidos.isEmpty ? null : () => Navigator.of(context).pop(_elegidos),
+                child: Text(_elegidos.isEmpty ? 'Elegí al menos uno' : 'Invitar (${_elegidos.length})'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

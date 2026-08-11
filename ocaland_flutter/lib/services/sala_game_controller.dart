@@ -842,7 +842,7 @@ class SalaGameController extends ChangeNotifier {
   // ---------------------------------------------------------------------
   Future<void> _manejarVictoria(String jugadorGanadorId) async {
     if (jugadorGanadorId == myPlayerId) AudioService.win();
-    unawaited(MascotaService.registrarJuego());
+    unawaited(MascotaService.registrarJuego(usuarioId: usuario.id));
     final ganador = jugadores.firstWhere((j) => j.id == jugadorGanadorId);
     final rachaPrevia = partida!.rachaGanador;
     final nuevaRacha = partida!.ultimoGanadorId == jugadorGanadorId ? rachaPrevia + 1 : 1;

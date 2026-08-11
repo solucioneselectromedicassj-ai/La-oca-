@@ -1,17 +1,22 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
 import '../theme/app_colors.dart';
+import 'rescate_mascota_screen.dart';
+import 'widgets/minijuego_overlay.dart';
 import 'widgets/oca_comiendo_video.dart';
 
-/// Pantalla de la Oca-mascota: darle de comer, dejarla dormir, y ver sus
-/// tres barras. Nunca bloquea nada del resto del juego — es una invitación
-/// a volver, no una obligación.
+/// Pantalla de la Oca-mascota: darle de comer, jugar con ella, dejarla
+/// dormir, y ver sus tres barras. Nunca bloquea nada del resto del juego —
+/// es una invitación a volver, no una obligación.
 class MascotaScreen extends StatefulWidget {
   final Usuario usuario;
-  const MascotaScreen({super.key, required this.usuario});
+  final String edadBracket;
+  final String pais;
+  const MascotaScreen({super.key, required this.usuario, required this.edadBracket, required this.pais});
 
   @override
   State<MascotaScreen> createState() => _MascotaScreenState();
@@ -31,7 +36,7 @@ class _MascotaScreenState extends State<MascotaScreen> {
   }
 
   Future<void> _cargar() async {
-    final e = await MascotaService.obtenerEstado();
+    final e = await MascotaService.obtenerEstado(usuarioId: widget.usuario.id);
     if (mounted) setState(() => _estado = e);
   }
 
@@ -47,7 +52,7 @@ class _MascotaScreenState extends State<MascotaScreen> {
       }
       return;
     }
-    final nuevo = await MascotaService.alimentar();
+    final nuevo = await MascotaService.alimentar(usuarioId: widget.usuario.id);
     if (!mounted) return;
     AudioService.carino();
     setState(() {
@@ -66,13 +71,38 @@ class _MascotaScreenState extends State<MascotaScreen> {
     final e = _estado;
     if (e == null || _ocupado) return;
     setState(() => _ocupado = true);
-    final nuevo = await MascotaService.alternarDormir(!e.durmiendo);
+    final nuevo = await MascotaService.alternarDormir(usuarioId: widget.usuario.id, durmiendo: !e.durmiendo);
     if (!mounted) return;
     if (!nuevo.durmiendo) AudioService.carino();
     setState(() {
       _estado = nuevo;
       _ocupado = false;
     });
+  }
+
+  Future<void> _jugarConElla() async {
+    if (_ocupado) return;
+    final tipo = Random().nextBool() ? 'reflejos' : 'memoria';
+    final gano = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (dialogContext) => MinijuegoOverlay(
+        titulo: '🎾 Jugá con tu Oca',
+        tipo: tipo,
+        onDone: (exito) => Navigator.of(dialogContext).pop(exito),
+      ),
+    ));
+    if (gano != true) return;
+    final nuevo = await MascotaService.registrarJuego(usuarioId: widget.usuario.id, suba: 20);
+    if (!mounted) return;
+    AudioService.carino();
+    setState(() => _estado = nuevo);
+  }
+
+  Future<void> _irABuscarla() async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => RescateMascotaScreen(usuario: widget.usuario, edadBracket: widget.edadBracket, pais: widget.pais),
+    ));
+    _cargar();
   }
 
   @override
@@ -89,57 +119,87 @@ class _MascotaScreenState extends State<MascotaScreen> {
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        if (_mostrandoComer)
-                          OcaComiendoVideo(onTerminado: _terminarAnimacionComer)
-                        else
-                          Text(e.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 96)),
-                        const SizedBox(height: 8),
-                        Text(
-                          _mostrandoComer ? '¡Ñam, ñam! Gracias por la comida 🌾' : (e.durmiendo ? 'Zzz... está durmiendo la siesta.' : '¡Hola! ¿Cómo estás hoy?'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
-                        ),
-                        const SizedBox(height: 24),
-                        if (!e.durmiendo) ...[
-                          _BarraNecesidad(emoji: '🍽️', label: 'Hambre', valor: e.hambre),
-                          const SizedBox(height: 12),
-                          _BarraNecesidad(emoji: '💤', label: 'Sueño', valor: e.sueno),
-                          const SizedBox(height: 12),
-                          _BarraNecesidad(emoji: '🎾', label: 'Diversión', valor: e.diversion),
-                          const SizedBox(height: 28),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: (_ocupado || e.hambre >= 100) ? null : _alimentar,
-                              child: Text(e.hambre >= 100 ? 'Ya no tiene hambre 🍽️' : 'Darle de comer (10 🪙)'),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ] else
-                          const SizedBox(height: 28),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: _ocupado ? null : _alternarDormir,
-                            child: Text(e.durmiendo ? 'Despertarla' : 'Dejarla dormir un rato 💤'),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text('Tenés $_monedas 🪙', style: const TextStyle(fontSize: 13, color: Color(0xFF9B8AB5))),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Jugar cualquier partida la pone contenta. Si la dejás dormir un rato recupera el sueño.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Color(0xFF9B8AB5)),
-                        ),
-                      ],
-                    ),
+                    child: e.secuestrada ? _contenidoSecuestrada() : _contenidoNormal(e),
                   ),
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _contenidoSecuestrada() {
+    return Column(
+      children: [
+        const Text('🏹', style: TextStyle(fontSize: 96)),
+        const SizedBox(height: 8),
+        const Text(
+          'El cazador se la llevó porque la extrañaste mucho tiempo.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
+        ),
+        const SizedBox(height: 8),
+        const Text('No es un castigo: cuando quieras, jugá un desafío de Cuestionados y la traés de vuelta.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
+        const SizedBox(height: 24),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _irABuscarla, child: const Text('Ir a buscarla'))),
+      ],
+    );
+  }
+
+  Widget _contenidoNormal(EstadoMascota e) {
+    return Column(
+      children: [
+        if (_mostrandoComer)
+          OcaComiendoVideo(onTerminado: _terminarAnimacionComer)
+        else
+          Text(e.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 96)),
+        const SizedBox(height: 8),
+        Text(
+          _mostrandoComer ? '¡Ñam, ñam! Gracias por la comida 🌾' : (e.durmiendo ? 'Zzz... está durmiendo la siesta.' : '¡Hola! ¿Cómo estás hoy?'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
+        ),
+        const SizedBox(height: 24),
+        if (!e.durmiendo) ...[
+          _BarraNecesidad(emoji: '🍽️', label: 'Hambre', valor: e.hambre),
+          const SizedBox(height: 12),
+          _BarraNecesidad(emoji: '💤', label: 'Sueño', valor: e.sueno),
+          const SizedBox(height: 12),
+          _BarraNecesidad(emoji: '🎾', label: 'Diversión', valor: e.diversion),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: (_ocupado || e.hambre >= 100) ? null : _alimentar,
+              child: Text(e.hambre >= 100 ? 'Ya no tiene hambre 🍽️' : 'Darle de comer (10 🪙)'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _ocupado ? null : _jugarConElla,
+              child: Text(e.diversion >= 100 ? 'Ya está súper contenta 🎾' : 'Jugar con ella 🎾'),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ] else
+          const SizedBox(height: 28),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _ocupado ? null : _alternarDormir,
+            child: Text(e.durmiendo ? 'Despertarla' : 'Dejarla dormir un rato 💤'),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Tenés $_monedas 🪙', style: const TextStyle(fontSize: 13, color: Color(0xFF9B8AB5))),
+        const SizedBox(height: 8),
+        const Text(
+          'Jugar cualquier partida también la pone contenta. Si la dejás dormir un rato recupera el sueño.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: Color(0xFF9B8AB5)),
+        ),
+      ],
     );
   }
 }

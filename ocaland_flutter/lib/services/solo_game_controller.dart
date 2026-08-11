@@ -916,7 +916,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _manejarVictoria(String jugadorGanadorId) async {
     final gane = jugadorGanadorId == myPlayerId;
     if (gane) AudioService.win();
-    unawaited(MascotaService.registrarJuego());
+    unawaited(MascotaService.registrarJuego(usuarioId: usuario.id));
     if (usuario.id.isNotEmpty) {
       try {
         final data = await SupabaseService.client.schema('la_vuelta').rpc('registrar_resultado_partida', params: {

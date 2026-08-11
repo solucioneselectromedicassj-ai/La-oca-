@@ -6,10 +6,13 @@ import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
+import '../services/mensajes_service.dart';
 import '../services/pending_rewards_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
+import 'amigos_screen.dart';
+import 'buzon_screen.dart';
 import 'desafio_grupal_screen.dart';
 import 'edad_screen.dart';
 import 'game_screen_solo.dart';
@@ -44,6 +47,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   String? _pais;
   Timer? _heartbeat;
   EstadoMascota? _mascota;
+  int _noLeidos = 0;
 
   @override
   void initState() {
@@ -51,6 +55,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     _edadBracket = widget.edadBracket;
     _pais = widget.pais;
     _cargarMascota();
+    _cargarNoLeidos();
     // Si había recompensas de partidas jugadas offline, las sincroniza apenas hay red.
     PendingRewardsService.flush();
     if (widget.offline) {
@@ -83,13 +88,27 @@ class _LobbyScreenState extends State<LobbyScreen> {
   String get _nombre => widget.nombre ?? widget.usuario.nombre;
 
   Future<void> _cargarMascota() async {
-    final e = await MascotaService.obtenerEstado();
+    final e = await MascotaService.obtenerEstado(usuarioId: widget.usuario.id);
     if (mounted) setState(() => _mascota = e);
   }
 
-  Future<void> _abrirMascota() async {
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MascotaScreen(usuario: widget.usuario)));
-    _cargarMascota();
+  Future<void> _cargarNoLeidos() async {
+    final n = await MensajesService.contarNoLeidos(widget.usuario.id);
+    if (mounted) setState(() => _noLeidos = n);
+  }
+
+  void _abrirMascota() {
+    _conEdadYPais(() async {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MascotaScreen(usuario: widget.usuario, edadBracket: _edadBracket!, pais: _pais!)));
+      _cargarMascota();
+    });
+  }
+
+  void _abrirBuzon() {
+    _conEdadYPais(() async {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => BuzonScreen(usuario: widget.usuario, edadBracket: _edadBracket!, pais: _pais!)));
+      _cargarNoLeidos();
+    });
   }
 
   /// Asegura tener edad/país elegidos (pidiéndolos si hace falta) y recién
@@ -214,6 +233,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   void _abrirCuenta() {
     _pushPanel('👤 Cuenta', [
       _AccionRow(label: '📊 Mi perfil', emoji: '📊', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '👥 Mis amigos', emoji: '👥', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AmigosScreen(usuario: widget.usuario)))),
       _AccionRow(label: '🏆 Ranking', emoji: '🏆', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
       _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
     ]);
@@ -257,15 +277,35 @@ class _LobbyScreenState extends State<LobbyScreen> {
             Positioned(
               top: 4,
               right: 4,
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: AppColors.violetDark, size: 28),
-                onSelected: (v) {
-                  if (v == 'bonus') _abrirBonus();
-                  if (v == 'cuenta') _abrirCuenta();
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'bonus', child: Text('🎁 Bonus')),
-                  PopupMenuItem(value: 'cuenta', child: Text('👤 Cuenta')),
+              child: Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(icon: const Icon(Icons.mail_outline, color: AppColors.violetDark, size: 26), onPressed: _abrirBuzon),
+                      if (_noLeidos > 0)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                            child: Text('$_noLeidos', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                    ],
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: AppColors.violetDark, size: 28),
+                    onSelected: (v) {
+                      if (v == 'bonus') _abrirBonus();
+                      if (v == 'cuenta') _abrirCuenta();
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'bonus', child: Text('🎁 Bonus')),
+                      PopupMenuItem(value: 'cuenta', child: Text('👤 Cuenta')),
+                    ],
+                  ),
                 ],
               ),
             ),
