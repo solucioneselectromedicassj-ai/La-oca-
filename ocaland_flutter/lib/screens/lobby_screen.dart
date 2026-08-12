@@ -8,6 +8,7 @@ import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
 import '../services/mensajes_service.dart';
 import '../services/pending_rewards_service.dart';
+import '../services/push_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
 import '../theme/app_colors.dart';
@@ -56,6 +57,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     _pais = widget.pais;
     _cargarMascota();
     _cargarNoLeidos();
+    PushService.iniciar(usuarioId: widget.usuario.id);
     // Si había recompensas de partidas jugadas offline, las sincroniza apenas hay red.
     PendingRewardsService.flush();
     if (widget.offline) {

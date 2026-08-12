@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../models/mensaje.dart';
 import 'supabase_service.dart';
 
@@ -39,6 +40,7 @@ class MensajesService {
       'texto': texto,
       'payload': payload,
     });
+    unawaited(_dispararPush(destinatarioUsuarioId, texto));
   }
 
   /// Invitación de un usuario a otro (ej: a un desafío grupal).
@@ -57,5 +59,17 @@ class MensajesService {
       'texto': texto,
       'payload': payload,
     });
+    unawaited(_dispararPush(destinatarioUsuarioId, texto));
+  }
+
+  /// Dispara la notificación push por la Edge Function `enviar_push` (que
+  /// es la que tiene la REST API Key de OneSignal). Si todavía no está
+  /// configurado OneSignal, o el destinatario no tiene push activado, la
+  /// función responde `enviado:false` sin romper nada — el mensaje ya
+  /// quedó guardado en el buzón de todos modos.
+  static Future<void> _dispararPush(String usuarioId, String texto) async {
+    try {
+      await SupabaseService.client.functions.invoke('enviar_push', body: {'usuario_id': usuarioId, 'texto': texto});
+    } catch (_) {}
   }
 }

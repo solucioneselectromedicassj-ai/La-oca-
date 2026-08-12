@@ -5,4 +5,8 @@ class AppConfig {
   AppConfig._();
 
   static const String appUrl = 'https://solucioneselectromedicassj-ai.github.io/La-oca-/';
+
+  /// App ID de OneSignal (público, no es secreto). Vacío = notificaciones
+  /// push desactivadas — `PushService` no hace nada hasta que se complete.
+  static const String oneSignalAppId = '';
 }
