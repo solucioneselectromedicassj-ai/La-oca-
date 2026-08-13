@@ -8,5 +8,5 @@ class AppConfig {
 
   /// App ID de OneSignal (público, no es secreto). Vacío = notificaciones
   /// push desactivadas — `PushService` no hace nada hasta que se complete.
-  static const String oneSignalAppId = '';
+  static const String oneSignalAppId = 'f92eac63-daaf-43e6-a9b2-ef2977fbc853';
 }
