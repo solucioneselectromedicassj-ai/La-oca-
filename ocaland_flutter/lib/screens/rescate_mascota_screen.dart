@@ -185,11 +185,19 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
 
   Widget _botonPagarSellos() {
     final alcanza = _sellos >= _costoSellosRescate;
+    if (!alcanza) {
+      return Text(
+        'Te faltan sellos para esta alternativa ($_sellos/$_costoSellosRescate) — se ganan jugando Cuestionados o los minijuegos de Bonus. '
+        'Mientras tanto podés reintentar las preguntas las veces que quieras, gratis, o volver más tarde cuando juntes más.',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: Color(0xFF9B8AB5)),
+      );
+    }
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: alcanza ? _pagarConSellos : null,
-        child: Text(alcanza ? '🎖️ Usar $_costoSellosRescate sellos y traerla directo' : '🎖️ Te faltan sellos ($_sellos/$_costoSellosRescate)'),
+        onPressed: _pagarConSellos,
+        child: Text('🎖️ Usar $_costoSellosRescate sellos y traerla directo'),
       ),
     );
   }
