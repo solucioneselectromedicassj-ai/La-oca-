@@ -34,6 +34,18 @@ class TriviaOverlay extends StatefulWidget {
 class _TriviaOverlayState extends State<TriviaOverlay> {
   int? _elegida;
 
+  @override
+  void didUpdateWidget(covariant TriviaOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Cuando cambia la pregunta (siguiente ronda de una secuencia, como el
+    // rescate de la mascota o el desafío de 3 Cuestionados) hay que
+    // reiniciar la selección — si no, este widget queda "pensando" que ya
+    // se respondió y ningún toque vuelve a reaccionar.
+    if (!identical(oldWidget.pregunta, widget.pregunta)) {
+      _elegida = null;
+    }
+  }
+
   void _tap(int idx) {
     if (_elegida != null || idx == widget.opcionEliminada) return;
     setState(() => _elegida = idx);
