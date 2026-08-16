@@ -3,15 +3,22 @@ import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/mascota_service.dart';
+import '../services/sellos_service.dart';
 import '../theme/app_colors.dart';
 import 'widgets/trivia_overlay.dart';
 
 enum _Fase { intro, jugando, exito, fracaso }
 
+/// Costo en sellos para traerla de vuelta directo, sin depender de acertar
+/// las preguntas — la garantía de que nunca queda sin salida (además de
+/// poder reintentar los Cuestionados las veces que hagan falta, gratis).
+const _costoSellosRescate = 10;
+
 /// El cazador se llevó a la Oca por descuido — para recuperarla hay que
 /// ganarle un duelo de Cuestionados (mejor de 3, banco normal según edad y
 /// país). Se puede reintentar las veces que hagan falta, sin límite: no es
-/// un castigo, es una invitación a volver a jugar.
+/// un castigo, es una invitación a volver a jugar. Y si no hay caso con las
+/// preguntas, también se puede pagar con sellos para traerla directo.
 class RescateMascotaScreen extends StatefulWidget {
   final Usuario usuario;
   final String edadBracket;
@@ -28,6 +35,29 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
   int _correctas = 0;
   TriviaQuestion? _pregunta;
   final Set<String> _usadas = {};
+  int _sellos = 0;
+  EstadoMascota? _ultimoEstado;
+
+  @override
+  void initState() {
+    super.initState();
+    SellosService.obtener().then((s) {
+      if (mounted) setState(() => _sellos = s);
+    });
+  }
+
+  Future<void> _pagarConSellos() async {
+    if (_sellos < _costoSellosRescate) return;
+    final restantes = await SellosService.agregar(-_costoSellosRescate);
+    final nuevo = await MascotaService.intentarRescate(usuarioId: widget.usuario.id, gano: true);
+    if (!mounted) return;
+    AudioService.win();
+    setState(() {
+      _sellos = restantes;
+      _ultimoEstado = nuevo;
+      _fase = _Fase.exito;
+    });
+  }
 
   void _empezar() {
     setState(() {
@@ -50,8 +80,6 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
     _usadas.add(pregunta.q);
     setState(() => _pregunta = pregunta);
   }
-
-  EstadoMascota? _ultimoEstado;
 
   Future<void> _responder(int idx) async {
     final acierto = idx == _pregunta!.correct;
@@ -109,6 +137,8 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
             const Text('Si no te sale, no pasa nada: podés volver a intentarlo cuando quieras.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _empezar, child: const Text('Empezar a buscarla'))),
+            const SizedBox(height: 10),
+            _botonPagarSellos(),
           ],
         );
       case _Fase.jugando:
@@ -145,9 +175,22 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _empezar, child: const Text('Intentar de nuevo'))),
             const SizedBox(height: 10),
+            _botonPagarSellos(),
+            const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Volver'))),
           ],
         );
     }
+  }
+
+  Widget _botonPagarSellos() {
+    final alcanza = _sellos >= _costoSellosRescate;
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: alcanza ? _pagarConSellos : null,
+        child: Text(alcanza ? '🎖️ Usar $_costoSellosRescate sellos y traerla directo' : '🎖️ Te faltan sellos ($_sellos/$_costoSellosRescate)'),
+      ),
+    );
   }
 }
