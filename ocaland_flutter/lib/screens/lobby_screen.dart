@@ -26,6 +26,7 @@ import 'perfil_screen.dart';
 import 'ranking_screen.dart';
 import 'tanda_cuestionados_screen.dart';
 import 'waiting_room_screen.dart';
+import 'widgets/oca_face.dart';
 import 'widgets/ruleta_bonus_dialog.dart';
 
 /// Lobby: todos los modos (solo, sala normal, campaña grupal en vivo,
@@ -442,7 +443,7 @@ class _MascotaMiniCard extends StatelessWidget {
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.violet.withValues(alpha: 0.35), width: 1.5)),
           child: Row(
             children: [
-              Text(estado.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 30)),
+              OcaFace(estado: estado, size: 40),
               const SizedBox(width: 10),
               Expanded(
                 child: estado.durmiendo

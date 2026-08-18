@@ -7,7 +7,8 @@ import '../services/mascota_service.dart';
 import '../theme/app_colors.dart';
 import 'rescate_mascota_screen.dart';
 import 'widgets/minijuego_overlay.dart';
-import 'widgets/oca_comiendo_video.dart';
+import 'widgets/oca_comiendo_sprite.dart';
+import 'widgets/oca_face.dart';
 
 /// Pantalla de la Oca-mascota: darle de comer, jugar con ella, dejarla
 /// dormir, y ver sus tres barras. Nunca bloquea nada del resto del juego —
@@ -145,16 +146,25 @@ class _MascotaScreenState extends State<MascotaScreen> {
     );
   }
 
+  String _mensaje(EstadoMascota e) {
+    if (_mostrandoComer) return '¡Ñam, ñam! Gracias por la comida 🌾';
+    if (e.durmiendo) return 'Zzz... está durmiendo la siesta.';
+    if (e.hambre < 30) return 'Tiene hambre... ¿le das de comer?';
+    if (e.diversion < 30) return 'Está un poco aburrida, ¿jugamos con ella?';
+    if (e.sueno < 30) return 'Tiene sueño... capaz quiere dormir un rato.';
+    return '¡Hola! ¿Cómo estás hoy?';
+  }
+
   Widget _contenidoNormal(EstadoMascota e) {
     return Column(
       children: [
         if (_mostrandoComer)
-          OcaComiendoVideo(onTerminado: _terminarAnimacionComer)
+          OcaComiendoSprite(onTerminado: _terminarAnimacionComer, size: 140)
         else
-          Text(e.durmiendo ? '💤' : '🪿', style: const TextStyle(fontSize: 96)),
+          OcaFace(estado: e, size: 140),
         const SizedBox(height: 8),
         Text(
-          _mostrandoComer ? '¡Ñam, ñam! Gracias por la comida 🌾' : (e.durmiendo ? 'Zzz... está durmiendo la siesta.' : '¡Hola! ¿Cómo estás hoy?'),
+          _mensaje(e),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
         ),
