@@ -324,15 +324,15 @@ class _LobbyScreenState extends State<LobbyScreen> {
                       const SizedBox(height: 4),
                       Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 18),
-                      if (_mascota != null) _MascotaMiniCard(estado: _mascota!, onTap: _abrirMascota),
+                      if (_mascota != null) _MascotaFaceCaption(estado: _mascota!, onTap: _abrirMascota),
                       const SizedBox(height: 26),
                       SizedBox(
-                        width: double.infinity,
+                        width: 220,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.violet,
-                            padding: const EdgeInsets.symmetric(vertical: 22),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            shape: const StadiumBorder(),
                           ),
                           onPressed: _abrirJugar,
                           child: const Text('🎲 Jugar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
@@ -422,64 +422,39 @@ class _AccionRow extends StatelessWidget {
   }
 }
 
-/// Tarjeta chica con el estado de la Oca-mascota, tocable para ir a su
-/// pantalla completa — vive en el lobby para invitar a volver todos los
-/// días sin bloquear nada (ver `mascota_service.dart`).
-class _MascotaMiniCard extends StatelessWidget {
+/// Solo la cara de la Oca (sin caja ni barras) y, debajo, una leyenda
+/// corta si necesita algo — nada si está contenta. Tocable para ir a su
+/// pantalla completa (ver `mascota_service.dart`).
+class _MascotaFaceCaption extends StatelessWidget {
   final EstadoMascota estado;
   final VoidCallback onTap;
-  const _MascotaMiniCard({required this.estado, required this.onTap});
+  const _MascotaFaceCaption({required this.estado, required this.onTap});
+
+  String? get _leyenda {
+    final e = estado;
+    if (e.secuestrada) return 'El cazador se la llevó 🏹';
+    if (e.durmiendo) return 'Está durmiendo la siesta 💤';
+    if (e.hambre < 30) return 'Tiene hambre 🍽️';
+    if (e.diversion < 30) return 'Está aburrida 🎾';
+    if (e.sueno < 30) return 'Tiene sueño 💤';
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.violet.withValues(alpha: 0.35), width: 1.5)),
-          child: Row(
-            children: [
-              OcaFace(estado: estado, size: 40),
-              const SizedBox(width: 10),
-              Expanded(
-                child: estado.durmiendo
-                    ? const Text('Tu Oca está durmiendo la siesta...', style: TextStyle(fontSize: 12.5, color: AppColors.violetDark, fontWeight: FontWeight.w600))
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _miniBarra('🍽️', estado.hambre),
-                          const SizedBox(height: 3),
-                          _miniBarra('💤', estado.sueno),
-                          const SizedBox(height: 3),
-                          _miniBarra('🎾', estado.diversion),
-                        ],
-                      ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.violetDark),
-            ],
-          ),
-        ),
+    final leyenda = _leyenda;
+    return InkWell(
+      borderRadius: BorderRadius.circular(60),
+      onTap: onTap,
+      child: Column(
+        children: [
+          estado.secuestrada ? const Text('🏹', style: TextStyle(fontSize: 68)) : OcaFace(estado: estado, size: 88),
+          if (leyenda != null) ...[
+            const SizedBox(height: 4),
+            Text(leyenda, style: const TextStyle(fontSize: 12.5, color: AppColors.violetDark, fontWeight: FontWeight.w600)),
+          ],
+        ],
       ),
-    );
-  }
-
-  Widget _miniBarra(String emoji, double valor) {
-    final color = valor >= 60 ? const Color(0xFF6FBE6A) : (valor >= 30 ? const Color(0xFFE0A83A) : const Color(0xFFD9534F));
-    return Row(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 11)),
-        const SizedBox(width: 5),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: valor / 100, minHeight: 6, backgroundColor: Colors.white, valueColor: AlwaysStoppedAnimation(color)),
-          ),
-        ),
-      ],
     );
   }
 }
