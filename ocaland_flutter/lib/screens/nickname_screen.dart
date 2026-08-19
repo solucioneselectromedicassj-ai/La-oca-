@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../services/identity_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 import 'edad_screen.dart';
 import 'lobby_screen.dart';
@@ -33,7 +34,10 @@ class _NicknameScreenState extends State<NicknameScreen> {
       // se reemplazara, ese context quedaría desmontado y el Navigator.of(context)
       // posterior explota con un null check en tiempo de ejecución.
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => EdadScreen(onSelected: (bracket) => _irAPais(context, usuario, nombre, bracket))),
+        MaterialPageRoute(builder: (_) => EdadScreen(onSelected: (bracket) {
+          PreferenciasService.guardarEdad(bracket);
+          _irAPais(context, usuario, nombre, bracket);
+        })),
       );
     } catch (_) {
       if (!mounted) return;
@@ -46,10 +50,13 @@ class _NicknameScreenState extends State<NicknameScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PaisScreen(
-          onSelected: (pais) => Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => LobbyScreen(usuario: usuario, nombre: nombre, edadBracket: edadBracket, pais: pais)),
-            (route) => false,
-          ),
+          onSelected: (pais) {
+            PreferenciasService.guardarPais(pais);
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => LobbyScreen(usuario: usuario, nombre: nombre, edadBracket: edadBracket, pais: pais)),
+              (route) => false,
+            );
+          },
         ),
       ),
     );

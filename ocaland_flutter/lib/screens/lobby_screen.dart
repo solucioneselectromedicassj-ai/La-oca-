@@ -8,6 +8,7 @@ import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
 import '../services/mensajes_service.dart';
 import '../services/pending_rewards_service.dart';
+import '../services/preferencias_service.dart';
 import '../services/push_service.dart';
 import '../services/sala_game_controller.dart';
 import '../services/solo_game_controller.dart';
@@ -121,6 +122,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     if (_edadBracket == null) {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => EdadScreen(onSelected: (b) {
         setState(() => _edadBracket = b);
+        PreferenciasService.guardarEdad(b);
         Navigator.of(context).pop();
         _conEdadYPais(then);
       })));
@@ -129,6 +131,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     if (_pais == null) {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaisScreen(onSelected: (p) {
         setState(() => _pais = p);
+        PreferenciasService.guardarPais(p);
         Navigator.of(context).pop();
         _conEdadYPais(then);
       })));

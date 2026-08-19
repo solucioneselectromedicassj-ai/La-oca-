@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/audio_service.dart';
 import '../services/identity_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
 import 'nickname_screen.dart';
@@ -37,8 +38,12 @@ class _RootScreenState extends State<RootScreen> {
         builder: (_) => PremioDiarioDialog(usuario: resultado.usuario, premio: resultado.premio!),
       );
     }
+    final edadBracket = await PreferenciasService.obtenerEdad();
+    final pais = await PreferenciasService.obtenerPais();
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => LobbyScreen(usuario: resultado.usuario, offline: resultado.offline)));
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (_) => LobbyScreen(usuario: resultado.usuario, edadBracket: edadBracket, pais: pais, offline: resultado.offline),
+    ));
   }
 
   @override
