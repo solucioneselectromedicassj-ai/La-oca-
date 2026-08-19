@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 /// Mini-juego de memoria: se iluminan 3 fichas de colores en secuencia,
 /// hay que repetirla tocando en el mismo orden.
@@ -72,7 +73,11 @@ class _MemoriaWidgetState extends State<MemoriaWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Mini-juego de memoria: van a brillar 3 fichas de colores, una por una. Cuando terminen, tocalas en el mismo orden en que brillaron.'),
+        const Text(
+          'Mini-juego de memoria: van a brillar 3 fichas de colores, una por una. Cuando terminen, tocalas en el mismo orden en que brillaron.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: AppColors.violetDark),
+        ),
         const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

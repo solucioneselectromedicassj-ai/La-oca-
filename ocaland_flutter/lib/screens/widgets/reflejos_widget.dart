@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 /// Mini-juego de reflejos: hay que tocar el botón apenas se pone verde.
 /// Falla si se toca antes de tiempo o si se tarda demasiado (>900ms) una vez
@@ -72,7 +73,11 @@ class _ReflejosWidgetState extends State<ReflejosWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Mini-juego de reflejos: tocá el botón apenas se ponga verde.'),
+        const Text(
+          'Mini-juego de reflejos: tocá el botón apenas se ponga verde.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: AppColors.violetDark),
+        ),
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
