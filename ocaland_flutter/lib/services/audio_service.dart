@@ -101,6 +101,20 @@ class AudioService {
     Future.delayed(const Duration(milliseconds: 100), () => _play(988, 0.14, vol: 0.08));
   }
 
+  /// Graznido alegre — dos "honk" cortos y ascendentes. Se usa cuando la
+  /// Oca pasa a un ánimo contento y al caer en una casilla de oca.
+  static void graznidoAlegre() {
+    _play(520, 0.09, type: 'sawtooth', vol: 0.13);
+    Future.delayed(const Duration(milliseconds: 90), () => _play(640, 0.12, type: 'sawtooth', vol: 0.13));
+  }
+
+  /// Graznido triste — un solo "honk" más grave y apagado, para cuando la
+  /// Oca pasa a un ánimo de hambre o aburrimiento.
+  static void graznidoTriste() {
+    _play(340, 0.14, type: 'sawtooth', vol: 0.1);
+    Future.delayed(const Duration(milliseconds: 120), () => _play(260, 0.18, type: 'sawtooth', vol: 0.09));
+  }
+
   // ---------------------------------------------------------------------
   // Música de fondo — una melodía corta generada en memoria (igual que los
   // efectos, sin archivos de audio), en loop mientras se está jugando una
@@ -110,17 +124,32 @@ class AudioService {
   static Uint8List? _musicaBytes;
   static AudioPlayer? _musicaPlayer;
 
-  static const List<(double, double)> _melodia = [
-    (261.63, 0.26), (329.63, 0.26), (392.00, 0.26), (523.25, 0.26),
-    (392.00, 0.26), (329.63, 0.26), (349.23, 0.26), (440.00, 0.26),
-    (523.25, 0.26), (440.00, 0.26), (349.23, 0.26), (293.66, 0.26),
-    (392.00, 0.26), (493.88, 0.26), (587.33, 0.26), (392.00, 0.34),
+  /// Melodía principal con ritmo "swing" (corta-larga) en vez de notas
+  /// todas iguales — eso, más la línea de bajo de abajo sonando a la vez,
+  /// es lo que le saca el aire de secuencia de beeps robótica y lo acerca
+  /// a algo con más rebote, tipo circo/carnaval.
+  static const List<(double, double)> _melodiaPrincipal = [
+    (261.63, 0.30), (329.63, 0.18), (392.00, 0.30), (523.25, 0.18),
+    (392.00, 0.30), (329.63, 0.18), (349.23, 0.30), (440.00, 0.18),
+    (523.25, 0.30), (440.00, 0.18), (349.23, 0.30), (293.66, 0.18),
+    (392.00, 0.30), (493.88, 0.18), (587.33, 0.30), (392.00, 0.34),
+  ];
+
+  /// Línea de bajo: progresión I-V-vi-IV-I-V-IV-I en Do mayor, una nota
+  /// por cada par de la melodía principal (misma duración total).
+  static const List<(double, double)> _melodiaBajo = [
+    (130.81, 0.48), (196.00, 0.48), (220.00, 0.48), (174.61, 0.48),
+    (130.81, 0.48), (196.00, 0.48), (174.61, 0.48), (130.81, 0.64),
   ];
 
   static Future<void> iniciarMusica() async {
     if (!enabled) return;
     try {
-      _musicaBytes ??= MelodyWav.generate(_melodia, type: 'triangle', volume: 0.05);
+      _musicaBytes ??= MelodyWav.generateMulti(
+        [_melodiaPrincipal, _melodiaBajo],
+        types: ['triangle', 'triangle'],
+        volumes: [0.055, 0.045],
+      );
       final player = _musicaPlayer ??= AudioPlayer(playerId: 'ocaland_musica');
       await player.setReleaseMode(ReleaseMode.loop);
       await player.play(BytesSource(_musicaBytes!, mimeType: 'audio/wav'));

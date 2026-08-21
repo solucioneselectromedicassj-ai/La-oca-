@@ -516,6 +516,8 @@ class SoloGameController extends ChangeNotifier {
         await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
         notifyListeners();
+      } else {
+        AudioService.graznidoAlegre();
       }
       if (esBot) {
         final probAcierto = tipo == 'calavera'

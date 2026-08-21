@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../services/audio_service.dart';
 import '../../services/mascota_service.dart';
 
 /// Cara de la Oca según su estado de ánimo actual, con un ciclo de 2
@@ -38,9 +39,18 @@ class _OcaFaceState extends State<OcaFace> {
   @override
   void didUpdateWidget(covariant OcaFace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_moodKey(oldWidget.estado) != _moodKey(widget.estado)) {
+    final antes = _moodKey(oldWidget.estado);
+    final ahora = _moodKey(widget.estado);
+    if (antes != ahora) {
       _cuadro = 0;
       _iniciarCiclo();
+      // Un graznido cortito al cambiar de ánimo — solo en las transiciones
+      // más claras (a contenta, o a hambre/aburrida), no en cada parpadeo.
+      if (ahora == 'feliz' && antes != 'feliz') {
+        AudioService.graznidoAlegre();
+      } else if ((ahora == 'hambre' || ahora == 'aburrida') && antes != ahora) {
+        AudioService.graznidoTriste();
+      }
     }
   }
 

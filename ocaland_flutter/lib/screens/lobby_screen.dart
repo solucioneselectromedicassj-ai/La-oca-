@@ -352,16 +352,22 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
-  /// Panel único con borde redondeado que agrupa todas las acciones de una
-  /// sección (antes eran pestañas; ahora cada una es su propia pantalla).
+  /// Panel único que agrupa todas las acciones de una sección (antes eran
+  /// pestañas; ahora cada una es su propia pantalla). Bordes bien
+  /// redondeados y sombra suave en vez de un marco grueso, para que no se
+  /// sienta como una caja.
   Widget _panelAcciones(List<Widget> filas) {
     return SingleChildScrollView(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.violet, width: 3),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white.withValues(alpha: 0.75), AppColors.violet.withValues(alpha: 0.08)],
+          ),
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [BoxShadow(color: AppColors.violet.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 8))],
         ),
         child: Column(children: filas),
       ),
@@ -386,14 +392,14 @@ class _AccionRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Material(
         color: destacado ? AppColors.violet : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: destacado ? null : Border.all(color: AppColors.violet.withValues(alpha: 0.4), width: 1.5),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))],
             ),

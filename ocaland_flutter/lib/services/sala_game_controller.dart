@@ -513,6 +513,8 @@ class SalaGameController extends ChangeNotifier {
         await _wait(const Duration(milliseconds: 2200));
         trampaCasillaIdx = null;
         notifyListeners();
+      } else {
+        AudioService.graznidoAlegre();
       }
       await _mostrarTriviaCasilla(tipo!, rawNewPos, jugadorId);
       return;

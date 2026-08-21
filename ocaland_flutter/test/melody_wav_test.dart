@@ -32,6 +32,18 @@ void main() {
       }
     });
 
+    test('generateMulti mezcla varias voces en un WAV bien formado, del largo de la voz más larga', () {
+      final voz1 = [(440.0, 0.1)];
+      final voz2 = [(220.0, 0.05)]; // más corta que voz1
+      final bytes = MelodyWav.generateMulti([voz1, voz2], types: ['sine', 'sine'], volumes: [0.1, 0.1]);
+      final data = bytes.buffer.asByteData();
+
+      expect(String.fromCharCodes(bytes.sublist(0, 4)), 'RIFF');
+      final dataLength = data.getUint32(40, Endian.little);
+      final expectedSamples = (MelodyWav.sampleRate * 0.1).round(); // el largo de la voz más larga
+      expect(dataLength, expectedSamples * 2);
+    });
+
     test('no hay clicks entre notas: cada nota empieza y termina cerca de cero (ataque/relajación suaves)', () {
       final bytes = MelodyWav.generate([(440.0, 0.05)], type: 'sine', volume: 0.5);
       final data = bytes.buffer.asByteData();

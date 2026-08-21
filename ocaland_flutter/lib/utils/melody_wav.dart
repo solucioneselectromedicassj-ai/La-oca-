@@ -14,6 +14,29 @@ class MelodyWav {
   /// [notas]: lista de (frecuencia en Hz, duración en segundos). Una
   /// frecuencia de 0 es un silencio (para separar frases).
   static Uint8List generate(List<(double, double)> notas, {String type = 'triangle', double volume = 0.08}) {
+    return _wavBytes(_renderVoice(notas, type, volume));
+  }
+
+  /// Varias voces sonando a la vez (por ejemplo, melodía + línea de bajo)
+  /// mezcladas en un solo WAV — así la música de fondo suena a banda en
+  /// vez de un tono solo en fila, sin necesidad de archivos de audio
+  /// externos. Las voces no necesitan durar exactamente lo mismo: la más
+  /// corta queda en silencio el resto del tiempo.
+  static Uint8List generateMulti(List<List<(double, double)>> voces, {required List<String> types, required List<double> volumes}) {
+    final rendered = [for (var i = 0; i < voces.length; i++) _renderVoice(voces[i], types[i], volumes[i])];
+    final totalSamples = rendered.fold<int>(0, (acc, v) => max(acc, v.length));
+    final mezcla = Int16List(totalSamples);
+    for (var i = 0; i < totalSamples; i++) {
+      var suma = 0.0;
+      for (final v in rendered) {
+        if (i < v.length) suma += v[i] / 32767;
+      }
+      mezcla[i] = (suma.clamp(-1.0, 1.0) * 32767).round();
+    }
+    return _wavBytes(mezcla);
+  }
+
+  static Int16List _renderVoice(List<(double, double)> notas, String type, double volume) {
     final totalSamples = notas.fold<int>(0, (acc, n) => acc + max(1, (sampleRate * n.$2).round()));
     final samples = Int16List(totalSamples);
     var offset = 0;
@@ -42,7 +65,7 @@ class MelodyWav {
       }
       offset += numSamples;
     }
-    return _wavBytes(samples);
+    return samples;
   }
 
   static double _waveAt(String type, double freq, double t) {
