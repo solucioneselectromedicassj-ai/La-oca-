@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import 'ahorcado_screen.dart';
 import 'buscaminas_screen.dart';
 import 'nivel_juegos_screen.dart';
+import 'rompecabezas_screen.dart';
 import 'sudoku_screen.dart';
 import 'tateti_screen.dart';
 
@@ -69,7 +70,7 @@ class _JuegosHubScreenState extends State<JuegosHubScreen> {
       _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: widget.usuarioId)),
       _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
-      _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta),
+      _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta, builder: (_) => RompecabezasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true, builder: (_) => BuscaminasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🎯', '2048', AppColors.sky),
     ];
