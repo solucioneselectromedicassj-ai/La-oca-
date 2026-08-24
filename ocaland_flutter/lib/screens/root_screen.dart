@@ -48,9 +48,14 @@ class _RootScreenState extends State<RootScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: Center(child: CircularProgressIndicator(color: AppColors.violetDark)),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+      ),
     );
   }
 }

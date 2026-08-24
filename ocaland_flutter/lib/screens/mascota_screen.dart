@@ -110,20 +110,34 @@ class _MascotaScreenState extends State<MascotaScreen> {
   Widget build(BuildContext context) {
     final e = _estado;
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('🪿 Tu Oca')),
-      body: SafeArea(
-        child: e == null
-            ? const Center(child: CircularProgressIndicator(color: AppColors.violetDark))
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: e.secuestrada ? _contenidoSecuestrada() : _contenidoNormal(e),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('🪿 Tu Oca')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: e == null
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 14, offset: const Offset(0, 6))],
+                        ),
+                        child: e.secuestrada ? _contenidoSecuestrada() : _contenidoNormal(e),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }

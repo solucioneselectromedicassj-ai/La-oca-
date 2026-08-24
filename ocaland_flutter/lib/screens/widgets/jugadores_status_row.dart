@@ -19,8 +19,8 @@ class JugadoresStatusRow extends StatelessWidget {
             final color = AppColors.tokenColors[i % AppColors.tokenColors.length];
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.13), border: Border.all(color: color), borderRadius: BorderRadius.circular(12)),
-              child: Text('${j.nombre}${j.saltaTurno ? " ⛓️" : ""} · #${j.posicion}', style: const TextStyle(fontSize: 11.5)),
+              decoration: BoxDecoration(color: Colors.white, border: Border.all(color: color, width: 1.5), borderRadius: BorderRadius.circular(12)),
+              child: Text('${j.nombre}${j.saltaTurno ? " ⛓️" : ""} · #${j.posicion}', style: const TextStyle(fontSize: 11.5, color: AppColors.violetDark)),
             );
           }),
       ],

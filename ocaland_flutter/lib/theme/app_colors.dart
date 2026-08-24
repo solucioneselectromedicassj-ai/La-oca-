@@ -69,8 +69,8 @@ class AppColors {
         style: ElevatedButton.styleFrom(
           backgroundColor: violetDark,
           foregroundColor: parchment,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: const StadiumBorder(),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
@@ -78,8 +78,8 @@ class AppColors {
         style: OutlinedButton.styleFrom(
           foregroundColor: violetDark,
           backgroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: const StadiumBorder(),
           side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),

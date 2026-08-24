@@ -66,12 +66,16 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
   Widget build(BuildContext context) {
     final c = widget.controller;
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
         child: ListenableBuilder(
           listenable: c,
           builder: (context, _) {
-            if (c.partida == null) return const Center(child: CircularProgressIndicator(color: AppColors.violetDark));
+            if (c.partida == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
             final finalizada = c.partida!.estado == 'finalizada';
             final enDesempate = c.partida!.estado == 'desempate';
             final jugadorTurno = c.jugadorEnTurno;
@@ -89,11 +93,11 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             enDesempate
                                 ? (jugadorTurno?.id == c.myPlayerId ? '¡Tu trivia de desempate!' : 'Turno de desempate: ${jugadorTurno?.nombre ?? ""}')
                                 : (c.esMiTurno ? '¡Tu turno!' : jugadorTurno != null ? 'Turno de ${jugadorTurno.nombre}' : ''),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                           Text(
                             c.esCampanaGrupal ? 'Campaña grupal (etapa ${c.partida!.rondaActual} de 10): ${c.marcadorTexto}' : 'Tanda (partida ${c.partida!.rondaActual}): ${c.marcadorTexto}',
-                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF9B8AB5)),
+                            style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
                           ),
                           const SizedBox(height: 6),
                           if (c.esCampanaGrupal) EtapaBanner(etapa: c.partida!.etapaActual),
@@ -126,7 +130,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             valorFinal: c.diceValorMostrado,
                             onTap: c.tirarDado,
                           ),
-                          Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(c.gameMsg, textAlign: TextAlign.center)),
+                          Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(c.gameMsg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
                           const SizedBox(height: 8),
                           OutlinedButton(onPressed: () => _salir(context), child: const Text('Salir del juego')),
                         ],
@@ -138,6 +142,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
               ],
             );
           },
+        ),
         ),
       ),
     );

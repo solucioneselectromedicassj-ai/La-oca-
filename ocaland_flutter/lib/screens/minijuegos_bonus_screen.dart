@@ -74,40 +74,47 @@ class _MinijuegosBonusScreenState extends State<MinijuegosBonusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.violetDark,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: AppColors.violetDark,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 0,
         title: const Text('🎮 Minijuegos'),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _stat('Jugados', '$_jugados'),
-                  _stat('Superados', '$_superados'),
-                  _stat('Ganadas acá', '$_monedasGanadasAca'),
-                  _stat('🪙 Total', '$_monedas'),
-                ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _stat('Jugados', '$_jugados'),
+                    _stat('Superados', '$_superados'),
+                    _stat('Ganadas acá', '$_monedasGanadasAca'),
+                    _stat('🪙 Total', '$_monedas'),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Superá cada minijuego para ganar $_monedasPorExito monedas.', style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.center),
-            ),
-            Expanded(
-              child: MinijuegoOverlay(
-                key: ValueKey(_rondaKey),
-                titulo: _tipo == 'reflejos' ? '⚡ Reflejos' : '🧠 Memoria',
-                tipo: _tipo,
-                onDone: _onDone,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Superá cada minijuego para ganar $_monedasPorExito monedas.', style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.center),
               ),
-            ),
-          ],
+              Expanded(
+                child: MinijuegoOverlay(
+                  key: ValueKey(_rondaKey),
+                  titulo: _tipo == 'reflejos' ? '⚡ Reflejos' : '🧠 Memoria',
+                  tipo: _tipo,
+                  onDone: _onDone,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

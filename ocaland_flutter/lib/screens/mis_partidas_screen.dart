@@ -62,13 +62,19 @@ class _MisPartidasScreenState extends State<MisPartidasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('🎮 Mis partidas')),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(padding: const EdgeInsets.all(20), child: _contenido()),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('🎮 Mis partidas')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(padding: const EdgeInsets.all(20), child: _contenido()),
+            ),
           ),
         ),
       ),
@@ -77,8 +83,8 @@ class _MisPartidasScreenState extends State<MisPartidasScreen> {
 
   Widget _contenido() {
     final sesiones = _sesiones;
-    if (sesiones == null) return const Center(child: CircularProgressIndicator(color: AppColors.violetDark));
-    if (sesiones.isEmpty) return const Text('Todavía no tenés ninguna partida activa.');
+    if (sesiones == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
+    if (sesiones.isEmpty) return const Text('Todavía no tenés ninguna partida activa.', style: TextStyle(color: Colors.white));
     return SingleChildScrollView(
       child: Card(
         child: Padding(

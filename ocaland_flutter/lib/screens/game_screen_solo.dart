@@ -55,8 +55,12 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
         child: ListenableBuilder(
           listenable: _c,
           builder: (context, _) {
@@ -67,7 +71,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_errorInicio!, textAlign: TextAlign.center),
+                      Text(_errorInicio!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 12),
                       OutlinedButton(onPressed: () => _salir(context), child: const Text('← Volver')),
                     ],
@@ -76,7 +80,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
               );
             }
             if (_c.cargando || _c.partida == null) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.violetDark));
+              return const Center(child: CircularProgressIndicator(color: Colors.white));
             }
             return Stack(
               children: [
@@ -89,9 +93,12 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                         children: [
                           Text(
                             _c.esMiTurno ? '¡Tu turno!' : (_c.jugadorEnTurno?.esBot == true ? '🤖 Turno del bot...' : 'Esperando...'),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
-                          Text('Campaña: etapa ${_c.partida!.etapaActual} de 10${_c.reintentosEtapaActual > 0 ? " · ${_c.reintentosEtapaActual} reintentos" : ""}', style: const TextStyle(fontSize: 11.5, color: Color(0xFF9B8AB5))),
+                          Text(
+                            'Campaña: etapa ${_c.partida!.etapaActual} de 10${_c.reintentosEtapaActual > 0 ? " · ${_c.reintentosEtapaActual} reintentos" : ""}',
+                            style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
+                          ),
                           const SizedBox(height: 6),
                           EtapaBanner(etapa: _c.partida!.etapaActual),
                           if (_c.overlay == GameOverlay.sorteo && _c.sorteoTiradas != null)
@@ -118,7 +125,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                               padding: const EdgeInsets.only(top: 6),
                               child: Column(
                                 children: [
-                                  const Text('🤖 el bot tira:', style: TextStyle(fontSize: 12, color: Color(0xFF9B8AB5))),
+                                  const Text('🤖 el bot tira:', style: TextStyle(fontSize: 12, color: Colors.white)),
                                   DiceWidget(
                                     habilitado: false,
                                     rodando: _c.botDiceRodando,
@@ -151,6 +158,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
               ],
             );
           },
+        ),
         ),
       ),
     );

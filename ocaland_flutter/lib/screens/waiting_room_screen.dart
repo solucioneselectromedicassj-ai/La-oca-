@@ -51,24 +51,28 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   Widget build(BuildContext context) {
     final c = widget.controller;
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: c,
-          builder: (context, _) {
-            final codigo = c.partida?.codigo ?? '----';
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      if (c.esCampanaGrupal)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 10),
-                          child: Text('🏆 Campaña grupal en vivo (10 etapas)', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
-                        ),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: ListenableBuilder(
+            listenable: c,
+            builder: (context, _) {
+              final codigo = c.partida?.codigo ?? '----';
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        if (c.esCampanaGrupal)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: Text('🏆 Campaña grupal en vivo (10 etapas)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -135,6 +139,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

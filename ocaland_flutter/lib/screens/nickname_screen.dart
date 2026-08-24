@@ -65,8 +65,12 @@ class _NicknameScreenState extends State<NicknameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
@@ -75,7 +79,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Ocaland', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+                  const Text('Ocaland', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white)),
                   const SizedBox(height: 24),
                   Card(
                     child: Padding(
@@ -115,6 +119,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

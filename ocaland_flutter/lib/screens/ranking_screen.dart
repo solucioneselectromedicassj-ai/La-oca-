@@ -36,15 +36,21 @@ class _RankingScreenState extends State<RankingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('🏆 Ranking')),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: _contenido(),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('🏆 Ranking')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _contenido(),
+              ),
             ),
           ),
         ),
@@ -53,9 +59,9 @@ class _RankingScreenState extends State<RankingScreen> {
   }
 
   Widget _contenido() {
-    if (_error) return const Text('No se pudo cargar el ranking.');
-    if (_top == null) return const Center(child: CircularProgressIndicator(color: AppColors.violetDark));
-    if (_top!.isEmpty) return const Text('Todavía no hay nadie en el ranking.');
+    if (_error) return const Text('No se pudo cargar el ranking.', style: TextStyle(color: Colors.white));
+    if (_top == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
+    if (_top!.isEmpty) return const Text('Todavía no hay nadie en el ranking.', style: TextStyle(color: Colors.white));
 
     final estoyEnElTop = _top!.any((u) => u.id == widget.usuario.id);
 

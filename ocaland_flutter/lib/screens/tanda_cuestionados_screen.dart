@@ -83,41 +83,48 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.violetDark,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: AppColors.violetDark,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 0,
         title: const Text('🎯 Tanda de cuestionados'),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _stat('Respondidas', '$_respondidas'),
-                  _stat('Seguidas', '$_correctasSeguidas'),
-                  _stat('Sellos ganados', '$_sellosGanadosAca'),
-                  _stat('🎖️ Total', '$_sellos'),
-                ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _stat('Respondidas', '$_respondidas'),
+                    _stat('Seguidas', '$_correctasSeguidas'),
+                    _stat('Sellos ganados', '$_sellosGanadosAca'),
+                    _stat('🎖️ Total', '$_sellos'),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Cada $_preguntasPorSello correctas seguidas ganás un sello.', style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.center),
-            ),
-            Expanded(
-              child: TriviaOverlay(
-                key: ValueKey(_rondaKey),
-                titulo: '🎯 Cuestionados',
-                pregunta: _pregunta,
-                segundos: 0,
-                onResponder: _responder,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Cada $_preguntasPorSello correctas seguidas ganás un sello.', style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.center),
               ),
-            ),
-          ],
+              Expanded(
+                child: TriviaOverlay(
+                  key: ValueKey(_rondaKey),
+                  titulo: '🎯 Cuestionados',
+                  pregunta: _pregunta,
+                  segundos: 0,
+                  onResponder: _responder,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

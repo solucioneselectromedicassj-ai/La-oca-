@@ -58,47 +58,53 @@ class _BuzonScreenState extends State<BuzonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('📬 Buzón')),
-      body: SafeArea(
-        child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.violetDark))
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: _mensajes.isEmpty
-                      ? const Padding(padding: EdgeInsets.all(24), child: Text('No tenés mensajes por ahora.', style: TextStyle(color: Color(0xFF9B8AB5))))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _mensajes.length,
-                          itemBuilder: (context, i) {
-                            final m = _mensajes[i];
-                            final esInvitacion = m.tipo == 'invitacion_desafio' && m.payload?['desafio_codigo'] != null;
-                            return Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(m.remitenteNombre != null ? '${m.remitenteNombre} te escribió:' : '🪿 Ocaland', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF9B8AB5))),
-                                    const SizedBox(height: 4),
-                                    Text(m.texto, style: const TextStyle(fontSize: 14.5, color: AppColors.violetDark)),
-                                    if (esInvitacion) ...[
-                                      const SizedBox(height: 10),
-                                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _unirseDesafio(m), child: const Text('Unirme al desafío'))),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('📬 Buzón')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: _mensajes.isEmpty
+                        ? Padding(padding: const EdgeInsets.all(24), child: Text('No tenés mensajes por ahora.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85))))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _mensajes.length,
+                            itemBuilder: (context, i) {
+                              final m = _mensajes[i];
+                              final esInvitacion = m.tipo == 'invitacion_desafio' && m.payload?['desafio_codigo'] != null;
+                              return Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(m.remitenteNombre != null ? '${m.remitenteNombre} te escribió:' : '🪿 Ocaland', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF9B8AB5))),
+                                      const SizedBox(height: 4),
+                                      Text(m.texto, style: const TextStyle(fontSize: 14.5, color: AppColors.violetDark)),
+                                      if (esInvitacion) ...[
+                                        const SizedBox(height: 10),
+                                        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _unirseDesafio(m), child: const Text('Unirme al desafío'))),
+                                      ],
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => _eliminar(m)),
+                                      ),
                                     ],
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => _eliminar(m)),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
