@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'ahorcado_screen.dart';
+import 'buscaminas_screen.dart';
 import 'sudoku_screen.dart';
 import 'tateti_screen.dart';
 
@@ -30,7 +31,7 @@ class JuegosHubScreen extends StatelessWidget {
       _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: usuarioId, nivel: nivel)),
       _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: usuarioId, nivel: nivel)),
       _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta),
-      _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true),
+      _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true, builder: (_) => BuscaminasScreen(usuarioId: usuarioId, nivel: nivel)),
       _JuegoInfo('🎯', '2048', AppColors.sky),
     ];
     return Scaffold(
