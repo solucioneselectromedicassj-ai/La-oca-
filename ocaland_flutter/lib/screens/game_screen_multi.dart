@@ -6,6 +6,7 @@ import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
 import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
+import 'widgets/boton_salir_juego.dart';
 import 'widgets/desempate_panel.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
@@ -131,13 +132,13 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             onTap: c.tirarDado,
                           ),
                           Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(c.gameMsg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
-                          const SizedBox(height: 8),
-                          OutlinedButton(onPressed: () => _salir(context), child: const Text('Salir del juego')),
+                          const SizedBox(height: 60),
                         ],
                       ),
                     ),
                   ),
                 ),
+                Positioned(top: 4, left: 4, child: BotonSalirJuego(onTap: () => _salir(context))),
                 _overlayActual(c),
               ],
             );

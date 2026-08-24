@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
 import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
+import 'widgets/boton_salir_juego.dart';
 import 'widgets/campana_terminada_overlay.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_comodin_overlay.dart';
@@ -144,16 +145,13 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                               onTap: _c.tirarDado,
                             ),
                           MessageBubble(mensaje: _c.gameMsg),
-                          const SizedBox(height: 8),
-                          OutlinedButton(
-                            onPressed: () => _salir(context),
-                            child: const Text('Salir del juego'),
-                          ),
+                          const SizedBox(height: 60),
                         ],
                       ),
                     ),
                   ),
                 ),
+                Positioned(top: 4, left: 4, child: BotonSalirJuego(onTap: () => _salir(context))),
                 _overlayActual(),
               ],
             );
