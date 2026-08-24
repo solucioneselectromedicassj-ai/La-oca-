@@ -8,7 +8,7 @@ import '../theme/app_colors.dart';
 class NivelJuegosScreen extends StatelessWidget {
   const NivelJuegosScreen({super.key});
 
-  static const _niveles = [
+  static const niveles = [
     ('menor', '🧒 Menor de 12 años'),
     ('adolescente', '🧑 Adolescente (13 a 17)'),
     ('adulto', '🧑‍🦱 Adulto (18 o más)'),
@@ -42,7 +42,7 @@ class NivelJuegosScreen extends StatelessWidget {
                           style: TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 14),
-                        for (final n in _niveles)
+                        for (final n in niveles)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: SizedBox(

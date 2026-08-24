@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 import 'ahorcado_screen.dart';
 import 'buscaminas_screen.dart';
+import 'nivel_juegos_screen.dart';
 import 'sudoku_screen.dart';
 import 'tateti_screen.dart';
 
@@ -19,25 +21,79 @@ class _JuegoInfo {
 /// clásicos bien distintos entre sí, con más variedad que solo dos
 /// minijuegos repetidos. Se va a ir completando de a uno; los que
 /// todavía no están armados se muestran atenuados como "Próximamente".
-class JuegosHubScreen extends StatelessWidget {
+class JuegosHubScreen extends StatefulWidget {
   final String usuarioId;
   final String nivel;
   const JuegosHubScreen({super.key, required this.usuarioId, required this.nivel});
 
   @override
+  State<JuegosHubScreen> createState() => _JuegosHubScreenState();
+}
+
+class _JuegosHubScreenState extends State<JuegosHubScreen> {
+  late String _nivel = widget.nivel;
+
+  String get _nivelEmoji => NivelJuegosScreen.niveles.firstWhere((n) => n.$1 == _nivel, orElse: () => NivelJuegosScreen.niveles.last).$2.split(' ').first;
+
+  Future<void> _cambiarNivel() async {
+    final elegido = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.parchment,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Text('¿A qué dificultad querés jugar?', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+            ),
+            for (final n in NivelJuegosScreen.niveles)
+              ListTile(
+                title: Text(n.$2),
+                trailing: n.$1 == _nivel ? const Icon(Icons.check, color: AppColors.violetDark) : null,
+                onTap: () => Navigator.of(sheetContext).pop(n.$1),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (elegido == null || elegido == _nivel) return;
+    await PreferenciasService.guardarNivelJuegos(elegido);
+    if (mounted) setState(() => _nivel = elegido);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final juegos = [
-      _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: usuarioId)),
-      _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: usuarioId, nivel: nivel)),
-      _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: usuarioId, nivel: nivel)),
+      _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: widget.usuarioId)),
+      _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
+      _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta),
-      _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true, builder: (_) => BuscaminasScreen(usuarioId: usuarioId, nivel: nivel)),
+      _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true, builder: (_) => BuscaminasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🎯', '2048', AppColors.sky),
     ];
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('🎮 Zona de juegos')),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: const Text('🎮 Zona de juegos'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+              child: ActionChip(
+                backgroundColor: Colors.white,
+                label: Text(_nivelEmoji, style: const TextStyle(fontSize: 16)),
+                onPressed: _cambiarNivel,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
