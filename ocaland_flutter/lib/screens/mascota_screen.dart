@@ -1,12 +1,13 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../services/audio_service.dart';
 import '../services/economy_service.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
+import 'juegos_hub_screen.dart';
+import 'nivel_juegos_screen.dart';
 import 'rescate_mascota_screen.dart';
-import 'widgets/minijuego_overlay.dart';
 import 'widgets/oca_comiendo_sprite.dart';
 import 'widgets/oca_face.dart';
 
@@ -83,20 +84,19 @@ class _MascotaScreenState extends State<MascotaScreen> {
 
   Future<void> _jugarConElla() async {
     if (_ocupado) return;
-    final tipo = Random().nextBool() ? 'reflejos' : 'memoria';
-    final gano = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (dialogContext) => MinijuegoOverlay(
-        titulo: '🎾 Jugá con tu Oca',
-        tipo: tipo,
-        onDone: (exito) => Navigator.of(dialogContext).pop(exito),
-      ),
-    ));
-    if (gano != true) return;
-    final nuevo = await MascotaService.registrarJuego(usuarioId: widget.usuario.id, suba: 20);
+    var nivel = await PreferenciasService.obtenerNivelJuegos();
+    if (nivel == null) {
+      if (!mounted) return;
+      final elegido = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const NivelJuegosScreen()));
+      if (elegido == null) return;
+      await PreferenciasService.guardarNivelJuegos(elegido);
+      nivel = elegido;
+    }
     if (!mounted) return;
-    AudioService.carino();
-    setState(() => _estado = nuevo);
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => JuegosHubScreen(usuarioId: widget.usuario.id, nivel: nivel!),
+    ));
+    _cargar();
   }
 
   Future<void> _irABuscarla() async {
