@@ -115,18 +115,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final multiplicadorActivo = u.multiplicadorVenceTs != null && u.multiplicadorVenceTs!.isAfter(DateTime.now());
 
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('Mi perfil')),
-      body: SafeArea(
-        child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.violetDark))
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('Mi perfil')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -148,7 +153,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                 const SizedBox(height: 10),
                                 SizedBox(
                                   width: double.infinity,
-                                  child: OutlinedButton(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.fuchsia, foregroundColor: Colors.white, shape: const StadiumBorder()),
                                     onPressed: () => Share.share('🎲 ¡Jugá Ocaland conmigo! Usá mi código ${u.codigoReferido} al entrar.\n${AppConfig.appUrl}'),
                                     child: const Text('📲 Compartir mi código'),
                                   ),
@@ -172,7 +178,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                 const SizedBox(height: 10),
                                 SizedBox(
                                   width: double.infinity,
-                                  child: ElevatedButton(onPressed: _abrirCanjeSellos, child: const Text('Canjear sellos')),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.violetDark, shape: const StadiumBorder()),
+                                    onPressed: _abrirCanjeSellos,
+                                    child: const Text('Canjear sellos'),
+                                  ),
                                 ),
                               ],
                             ),
@@ -206,6 +216,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   ),
                 ),
               ),
+        ),
       ),
     );
   }
