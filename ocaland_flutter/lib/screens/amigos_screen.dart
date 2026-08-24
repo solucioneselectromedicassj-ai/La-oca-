@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import '../app_config.dart';
 import '../models/amigo.dart';
 import '../models/grupo.dart';
 import '../models/usuario.dart';
@@ -75,6 +77,12 @@ class _AmigosScreenState extends State<AmigosScreen> {
     }
   }
 
+  Future<void> _compartirCodigo() async {
+    final codigo = widget.usuario.codigoReferido;
+    if (codigo == null) return;
+    await Share.share('🎲 ¡Jugá Ocaland conmigo! Usá mi código $codigo al entrar.\n${AppConfig.appUrl}');
+  }
+
   Future<void> _eliminarAmigo(Amigo a) async {
     await AmigosService.eliminar(a.id);
     await _cargar();
@@ -120,9 +128,32 @@ class _AmigosScreenState extends State<AmigosScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Tu código: ${widget.usuario.codigoReferido ?? '—'}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Color(0xFF9B8AB5))),
-                        const SizedBox(height: 12),
-                        ElevatedButton(onPressed: _agregarAmigo, child: const Text('+ Agregar amigo por código')),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [AppColors.violet.withValues(alpha: 0.85), AppColors.fuchsia.withValues(alpha: 0.85)]),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text('Invitá gente con tu código 👇', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 6),
+                              Text(
+                                widget.usuario.codigoReferido ?? '—',
+                                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: widget.usuario.codigoReferido == null ? null : _compartirCodigo,
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.violetDark, shape: const StadiumBorder()),
+                                icon: const Icon(Icons.share, size: 18),
+                                label: const Text('Compartir mi código'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ElevatedButton(onPressed: _agregarAmigo, child: const Text('¿Ya tenés un código? Agregar amigo')),
                         const SizedBox(height: 20),
                         const Text('Amigos', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
                         const SizedBox(height: 6),
