@@ -115,80 +115,95 @@ class _AmigosScreenState extends State<AmigosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: const Text('👥 Mis amigos')),
-      body: SafeArea(
-        child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.violetDark))
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [AppColors.violet.withValues(alpha: 0.85), AppColors.fuchsia.withValues(alpha: 0.85)]),
-                            borderRadius: BorderRadius.circular(20),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: const Text('👥 Mis amigos')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 10, offset: const Offset(0, 4))],
+                            ),
+                            child: Column(
+                              children: [
+                                const Text('Invitá gente con tu código 👇', style: TextStyle(fontSize: 13, color: AppColors.violetDark, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 6),
+                                Text(
+                                  widget.usuario.codigoReferido ?? '—',
+                                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.violetDark, letterSpacing: 2),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  onPressed: widget.usuario.codigoReferido == null ? null : _compartirCodigo,
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.fuchsia, foregroundColor: Colors.white, shape: const StadiumBorder()),
+                                  icon: const Icon(Icons.share, size: 18),
+                                  label: const Text('Compartir mi código'),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            children: [
-                              const Text('Invitá gente con tu código 👇', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 6),
-                              Text(
-                                widget.usuario.codigoReferido ?? '—',
-                                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2),
+                          const SizedBox(height: 14),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.turquoise, foregroundColor: Colors.white, shape: const StadiumBorder()),
+                            onPressed: _agregarAmigo,
+                            child: const Text('¿Ya tenés un código? Agregar amigo'),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text('Amigos', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                          const SizedBox(height: 6),
+                          if (_amigos.isEmpty) Text('Todavía no agregaste a nadie.', style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.85))),
+                          for (final a in _amigos)
+                            Card(
+                              child: ListTile(
+                                leading: const Text('🙂', style: TextStyle(fontSize: 20)),
+                                title: Text(a.apodo),
+                                trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _eliminarAmigo(a)),
                               ),
-                              const SizedBox(height: 12),
-                              ElevatedButton.icon(
-                                onPressed: widget.usuario.codigoReferido == null ? null : _compartirCodigo,
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.violetDark, shape: const StadiumBorder()),
-                                icon: const Icon(Icons.share, size: 18),
-                                label: const Text('Compartir mi código'),
+                            ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Grupos', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                              TextButton(
+                                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                                onPressed: _crearGrupo,
+                                child: const Text('+ Nuevo grupo'),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        ElevatedButton(onPressed: _agregarAmigo, child: const Text('¿Ya tenés un código? Agregar amigo')),
-                        const SizedBox(height: 20),
-                        const Text('Amigos', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
-                        const SizedBox(height: 6),
-                        if (_amigos.isEmpty) const Text('Todavía no agregaste a nadie.', style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
-                        for (final a in _amigos)
-                          Card(
-                            child: ListTile(
-                              leading: const Text('🙂', style: TextStyle(fontSize: 20)),
-                              title: Text(a.apodo),
-                              trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _eliminarAmigo(a)),
+                          if (_grupos.isEmpty) Text('Todavía no armaste ningún grupo.', style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.85))),
+                          for (final g in _grupos)
+                            Card(
+                              child: ListTile(
+                                leading: const Text('👨‍👩‍👧‍👦', style: TextStyle(fontSize: 20)),
+                                title: Text(g.nombre),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _abrirGrupo(g),
+                              ),
                             ),
-                          ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Grupos', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
-                            TextButton(onPressed: _crearGrupo, child: const Text('+ Nuevo grupo')),
-                          ],
-                        ),
-                        if (_grupos.isEmpty) const Text('Todavía no armaste ningún grupo.', style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
-                        for (final g in _grupos)
-                          Card(
-                            child: ListTile(
-                              leading: const Text('👨‍👩‍👧‍👦', style: TextStyle(fontSize: 20)),
-                              title: Text(g.nombre),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => _abrirGrupo(g),
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -250,35 +265,45 @@ class _GrupoDetalleScreenState extends State<_GrupoDetalleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: Text(widget.grupo.nombre)),
-      body: SafeArea(
-        child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.violetDark))
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ElevatedButton(onPressed: _agregarMiembro, child: const Text('+ Agregar amigo a este grupo')),
-                        const SizedBox(height: 12),
-                        if (_miembros.isEmpty) const Text('Este grupo todavía no tiene miembros.', style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
-                        for (final m in _miembros)
-                          Card(
-                            child: ListTile(
-                              leading: const Text('🙂', style: TextStyle(fontSize: 20)),
-                              title: Text(m.apodo),
-                              trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _quitar(m)),
-                            ),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: Text(widget.grupo.nombre)),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.turquoise, foregroundColor: Colors.white, shape: const StadiumBorder()),
+                            onPressed: _agregarMiembro,
+                            child: const Text('+ Agregar amigo a este grupo'),
                           ),
-                      ],
+                          const SizedBox(height: 12),
+                          if (_miembros.isEmpty) Text('Este grupo todavía no tiene miembros.', style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.85))),
+                          for (final m in _miembros)
+                            Card(
+                              child: ListTile(
+                                leading: const Text('🙂', style: TextStyle(fontSize: 20)),
+                                title: Text(m.apodo),
+                                trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _quitar(m)),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }

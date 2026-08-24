@@ -219,29 +219,29 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   void _abrirJugar() {
     _pushPanel('🎲 Jugar', [
-      _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', onTap: _jugarSolo),
-      _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', destacado: true, onTap: _crearSala),
-      _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', onTap: _unirseSala),
-      _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', onTap: _crearCampanaGrupal),
-      _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', onTap: _desafioGrupal),
+      _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', color: AppColors.indigo, onTap: _jugarSolo),
+      _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', color: AppColors.gold, textOscuro: true, onTap: _crearSala),
+      _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', color: AppColors.turquoise, onTap: _unirseSala),
+      _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', color: AppColors.coral, onTap: _crearCampanaGrupal),
+      _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', color: AppColors.magenta, onTap: _desafioGrupal),
     ]);
   }
 
   void _abrirBonus() {
     _pushPanel('🎁 Bonus', [
-      _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', onTap: _girarRuletaBonus),
-      _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', onTap: _compartirApp),
-      _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', destacado: true, onTap: _tandaCuestionados),
-      _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', destacado: true, onTap: _minijuegosBonus),
+      _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', color: AppColors.sky, onTap: _girarRuletaBonus),
+      _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', color: AppColors.turquoise, onTap: _compartirApp),
+      _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', color: AppColors.gold, textOscuro: true, onTap: _tandaCuestionados),
+      _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', color: AppColors.coral, onTap: _minijuegosBonus),
     ]);
   }
 
   void _abrirCuenta() {
     _pushPanel('👤 Cuenta', [
-      _AccionRow(label: '📊 Mi perfil', emoji: '📊', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
-      _AccionRow(label: '👥 Mis amigos', emoji: '👥', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AmigosScreen(usuario: widget.usuario)))),
-      _AccionRow(label: '🏆 Ranking', emoji: '🏆', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
-      _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '📊 Mi perfil', emoji: '📊', color: AppColors.indigo, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PerfilScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '👥 Mis amigos', emoji: '👥', color: AppColors.fuchsia, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AmigosScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '🏆 Ranking', emoji: '🏆', color: AppColors.gold, textOscuro: true, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankingScreen(usuario: widget.usuario)))),
+      _AccionRow(label: '🎮 Mis partidas', emoji: '🎮', color: AppColors.turquoise, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MisPartidasScreen(usuario: widget.usuario)))),
     ]);
   }
 
@@ -250,22 +250,28 @@ class _LobbyScreenState extends State<LobbyScreen> {
   void _pushPanel(String titulo, List<Widget> filas) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
-        backgroundColor: AppColors.parchment,
-        appBar: AppBar(backgroundColor: AppColors.parchment, elevation: 0, foregroundColor: AppColors.violetDark, title: Text(titulo)),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              const _FondoDecorado(),
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: _panelAcciones(filas),
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, title: Text(titulo)),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                const _FondoDecorado(),
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: _panelAcciones(filas),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -275,100 +281,97 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            const _FondoDecorado(),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Row(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      IconButton(icon: const Icon(Icons.mail_outline, color: AppColors.violetDark, size: 26), onPressed: _abrirBuzon),
-                      if (_noLeidos > 0)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                            child: Text('$_noLeidos', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              const _FondoDecorado(),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Row(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(icon: const Icon(Icons.mail_outline, color: Colors.white, size: 26), onPressed: _abrirBuzon),
+                        if (_noLeidos > 0)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                              child: Text('$_noLeidos', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: AppColors.violetDark, size: 28),
-                    onSelected: (v) {
-                      if (v == 'bonus') _abrirBonus();
-                      if (v == 'cuenta') _abrirCuenta();
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'bonus', child: Text('🎁 Bonus')),
-                      PopupMenuItem(value: 'cuenta', child: Text('👤 Cuenta')),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
+                      onSelected: (v) {
+                        if (v == 'bonus') _abrirBonus();
+                        if (v == 'cuenta') _abrirCuenta();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'bonus', child: Text('🎁 Bonus')),
+                        PopupMenuItem(value: 'cuenta', child: Text('👤 Cuenta')),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const _TituloDecorado(),
-                      const SizedBox(height: 4),
-                      Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: AppColors.violetDark, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 18),
-                      if (_mascota != null) _MascotaFaceCaption(estado: _mascota!, onTap: _abrirMascota),
-                      const SizedBox(height: 26),
-                      SizedBox(
-                        width: 220,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.violet,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: const StadiumBorder(),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const _TituloDecorado(),
+                        const SizedBox(height: 4),
+                        Text('👋 ¡Hola de nuevo, $_nombre!', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 18),
+                        if (_mascota != null) _MascotaFaceCaption(estado: _mascota!, onTap: _abrirMascota),
+                        const SizedBox(height: 26),
+                        SizedBox(
+                          width: 220,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.gold,
+                              foregroundColor: AppColors.violetDark,
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: const StadiumBorder(),
+                            ),
+                            onPressed: _abrirJugar,
+                            child: const Text('🎲 Jugar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                           ),
-                          onPressed: _abrirJugar,
-                          child: const Text('🎲 Jugar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   /// Panel único que agrupa todas las acciones de una sección (antes eran
-  /// pestañas; ahora cada una es su propia pantalla). Bordes bien
-  /// redondeados y sombra suave en vez de un marco grueso, para que no se
-  /// sienta como una caja.
+  /// pestañas; ahora cada una es su propia pantalla). Cada fila es un
+  /// bloque de color sólido distinto (estilo "Tuenti"), directamente sobre
+  /// el fondo vivo, sin una caja envolvente que compita con esos colores.
   Widget _panelAcciones(List<Widget> filas) {
     return SingleChildScrollView(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white.withValues(alpha: 0.75), AppColors.violet.withValues(alpha: 0.08)],
-          ),
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [BoxShadow(color: AppColors.violet.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 8))],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8),
         child: Column(children: filas),
       ),
     );
@@ -376,22 +379,25 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
 }
 
-/// Fila de acción del lobby: texto a la izquierda, una "medallita" con
-/// emoji decorativo a la derecha. [destacado] resalta la opción principal
-/// de cada pestaña con relleno violeta sólido en vez de blanco con borde.
+/// Fila de acción del lobby: un bloque de color sólido (cada acción con su
+/// propio color, estilo "Tuenti") con el texto a la izquierda y una
+/// "medallita" con emoji decorativo a la derecha. [textOscuro] se usa con
+/// colores claros (como el dorado) donde el texto blanco no contrasta.
 class _AccionRow extends StatelessWidget {
   final String label;
   final String emoji;
-  final bool destacado;
+  final Color color;
+  final bool textOscuro;
   final VoidCallback onTap;
-  const _AccionRow({required this.label, required this.emoji, required this.onTap, this.destacado = false});
+  const _AccionRow({required this.label, required this.emoji, required this.color, required this.onTap, this.textOscuro = false});
 
   @override
   Widget build(BuildContext context) {
+    final textColor = textOscuro ? AppColors.violetDark : Colors.white;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Material(
-        color: destacado ? AppColors.violet : Colors.white,
+        color: color,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -400,26 +406,19 @@ class _AccionRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: destacado ? null : Border.all(color: AppColors.violet.withValues(alpha: 0.4), width: 1.5),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 3))],
             ),
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: destacado ? Colors.white : AppColors.violetDark),
-                  ),
+                  child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
                 ),
                 const SizedBox(width: 10),
                 Container(
                   width: 34,
                   height: 34,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: destacado ? Colors.white.withValues(alpha: 0.2) : AppColors.parchmentDark,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.28), shape: BoxShape.circle),
                   child: Text(emoji, style: const TextStyle(fontSize: 17)),
                 ),
               ],
@@ -459,8 +458,12 @@ class _MascotaFaceCaption extends StatelessWidget {
         children: [
           estado.secuestrada ? const Text('🏹', style: TextStyle(fontSize: 68)) : OcaFace(estado: estado, size: 88),
           if (leyenda != null) ...[
-            const SizedBox(height: 4),
-            Text(leyenda, style: const TextStyle(fontSize: 12.5, color: AppColors.violetDark, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+              child: Text(leyenda, style: const TextStyle(fontSize: 12.5, color: AppColors.violetDark, fontWeight: FontWeight.w600)),
+            ),
           ],
         ],
       ),
@@ -480,12 +483,22 @@ class _TituloDecorado extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
-        children: const [
-          Positioned(left: 4, top: 2, child: Text('🎲', style: TextStyle(fontSize: 20))),
-          Positioned(right: 2, top: -4, child: Text('🏅', style: TextStyle(fontSize: 18))),
-          Positioned(right: 26, bottom: -2, child: Text('⭐', style: TextStyle(fontSize: 14))),
-          Positioned(left: 28, bottom: -4, child: Text('🎉', style: TextStyle(fontSize: 16))),
-          Center(child: Text('Ocaland', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.violetDark))),
+        children: [
+          const Positioned(left: 4, top: 2, child: Text('🎲', style: TextStyle(fontSize: 20))),
+          const Positioned(right: 2, top: -4, child: Text('🏅', style: TextStyle(fontSize: 18))),
+          const Positioned(right: 26, bottom: -2, child: Text('⭐', style: TextStyle(fontSize: 14))),
+          const Positioned(left: 28, bottom: -4, child: Text('🎉', style: TextStyle(fontSize: 16))),
+          Center(
+            child: Text(
+              'Ocaland',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                shadows: [Shadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))],
+              ),
+            ),
+          ),
         ],
       ),
     );

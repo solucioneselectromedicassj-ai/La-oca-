@@ -29,6 +29,11 @@ class AppColors {
     violet, fuchsia, Color(0xFF3D8BFD), amber, magenta, green,
   ];
 
+  /// Fondo vivo tipo "Tuenti" (bloques de color planos) para las pantallas
+  /// principales, en vez del parchment pastel — pedido explícito de que la
+  /// app se sienta "más colorida".
+  static const heroGradient = <Color>[violet, fuchsia];
+
   static const cellColors = <String, Color>{
     'meta': fuchsia,
     'oca': lemon,
