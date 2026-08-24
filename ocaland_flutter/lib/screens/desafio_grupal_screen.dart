@@ -178,6 +178,14 @@ class _DesafioGrupalScreenState extends State<DesafioGrupalScreen> {
               child: Column(
                 children: [
                   if (_desafioId == null) ...[
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'Cada uno juega su campaña de 10 etapas cuando quiera, y comparan resultados en un ranking.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12.5, color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),

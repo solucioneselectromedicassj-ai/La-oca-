@@ -92,7 +92,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                       child: Column(
                         children: [
                           Text(
-                            _c.esMiTurno ? '¡Tu turno!' : (_c.jugadorEnTurno?.esBot == true ? '🤖 Turno del bot...' : 'Esperando...'),
+                            _c.esMiTurno ? '¡Tu turno!' : (_c.jugadorEnTurno?.esBot == true ? '🏹 Turno del Cazador...' : 'Esperando...'),
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                           Text(
@@ -125,7 +125,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                               padding: const EdgeInsets.only(top: 6),
                               child: Column(
                                 children: [
-                                  const Text('🤖 el bot tira:', style: TextStyle(fontSize: 12, color: Colors.white)),
+                                  const Text('🏹 el Cazador tira:', style: TextStyle(fontSize: 12, color: Colors.white)),
                                   DiceWidget(
                                     habilitado: false,
                                     rodando: _c.botDiceRodando,

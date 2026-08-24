@@ -235,7 +235,7 @@ class SoloGameController extends ChangeNotifier {
       JugadorPartida(
         id: uuidV4(),
         partidaId: partidaId,
-        nombre: 'Bot',
+        nombre: 'El Cazador',
         esBot: true,
         posicion: 0,
         ordenTurno: 1,
@@ -433,7 +433,7 @@ class SoloGameController extends ChangeNotifier {
 
   Future<void> _jugarTurnoBot(JugadorPartida bot) async {
     botPensando = true;
-    _msg('🤖 El bot está pensando...');
+    _msg('🏹 El Cazador está pensando...');
     notifyListeners();
     await _wait(Pacing.botThink);
     botPensando = false;
@@ -444,7 +444,7 @@ class SoloGameController extends ChangeNotifier {
     final valor = 1 + Random().nextInt(6);
     botDiceValorMostrado = valor;
     botDiceRodando = false;
-    _msg('🤖 El bot tiró un $valor.');
+    _msg('🏹 El Cazador tiró un $valor.');
     await _resolverMovimiento(bot.id, bot.posicion, valor, bot.edadBracket ?? myEdadBracket, true, bot.pais ?? myPais);
     await _wait(Pacing.diceResultHold);
     botDiceValorMostrado = null;
@@ -481,7 +481,7 @@ class SoloGameController extends ChangeNotifier {
     await _animarCaminata(jugadorId, posActual, tope);
     if (huboRebote) {
       await _animarCaminata(jugadorId, tope, rawNewPos);
-      _msg('↩️ ${esBot ? "El bot se pasó" : "Te pasaste"} de la meta y rebota a la casilla $rawNewPos.');
+      _msg('↩️ ${esBot ? "El Cazador se pasó" : "Te pasaste"} de la meta y rebota a la casilla $rawNewPos.');
     }
 
     final tipo = BoardEngine.tipoCasilla(rawNewPos, partida!.layoutCasillas);
@@ -489,7 +489,7 @@ class SoloGameController extends ChangeNotifier {
     if (tipo == 'puente') {
       final destino = BoardEngine.destinoPuente(rawNewPos, partida!.layoutPuentes) ?? rawNewPos;
       await _updateJugador(jugadorId, {'posicion': destino});
-      _msg('🌉 ¡Puente! ${esBot ? "El bot salta" : "Saltás"} directo a la casilla $destino, sin pregunta.');
+      _msg('🌉 ¡Puente! ${esBot ? "El Cazador salta" : "Saltás"} directo a la casilla $destino, sin pregunta.');
       await _terminarTurno(false);
       return;
     }
@@ -501,7 +501,7 @@ class SoloGameController extends ChangeNotifier {
         AudioService.sello();
         _msg('🎖️ ¡Casilla de suerte! Ganaste un sello.');
       } else {
-        _msg('🎖️ El bot cayó en la casilla de suerte.');
+        _msg('🎖️ El Cazador cayó en la casilla de suerte.');
       }
       await _terminarTurno(false);
       return;
@@ -608,7 +608,7 @@ class SoloGameController extends ChangeNotifier {
 
     triviaActual = pregunta;
     triviaTipo = tipo;
-    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El bot';
+    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El Cazador';
     triviaEspectadorAcierto = acierto;
     overlay = GameOverlay.triviaEspectador;
     notifyListeners();
@@ -624,7 +624,7 @@ class SoloGameController extends ChangeNotifier {
   /// si lo superó.
   Future<void> _mostrarMinijuegoEspectador(int posActual, String jugadorId, bool exito) async {
     minijuegoTipo = Random().nextBool() ? 'reflejos' : 'memoria';
-    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El bot';
+    triviaEspectadorNombre = jugadores.where((j) => j.id == jugadorId).firstOrNull?.nombre ?? 'El Cazador';
     triviaEspectadorAcierto = exito;
     overlay = GameOverlay.minijuegoEspectador;
     notifyListeners();
@@ -831,7 +831,7 @@ class SoloGameController extends ChangeNotifier {
 
     await _updateJugador(jugadorId, {'posicion': posFinal});
 
-    final quien = esBot ? 'El bot' : 'Vos';
+    final quien = esBot ? 'El Cazador' : 'Vos';
     _msg(forzarSkip ? '⏱️ ${quien == "Vos" ? "Se te acabó" : "Se le acabó"} el tiempo.' : _mensajeTrivia(tipo, acierto, quien));
 
     if (posFinal >= BoardEngine.meta) {
@@ -881,7 +881,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _aplicarResultadoMinijuego(String jugadorId, int posActual, bool exito, bool esBot) async {
     final nuevaPos = exito ? min(posActual + 2, BoardEngine.meta) : posActual;
     await _updateJugador(jugadorId, {'posicion': nuevaPos});
-    final quien = esBot ? 'El bot' : 'Vos';
+    final quien = esBot ? 'El Cazador' : 'Vos';
     _msg(exito ? '🎮 ¡$quien superó el minijuego! Avanza 2 casillas extra.' : '🎮 ${quien == "Vos" ? "No superaste" : "No superó"} el minijuego esta vez.');
 
     if (nuevaPos >= BoardEngine.meta) {
@@ -944,7 +944,7 @@ class SoloGameController extends ChangeNotifier {
       await _avanzarEtapaCampana();
     } else {
       final etapaActual = partida!.etapaActual;
-      perdidaMsg = 'Te ganó el bot en la etapa $etapaActual (van $reintentosEtapaActual reintentos). Elegí cómo seguir:';
+      perdidaMsg = 'Te ganó el Cazador en la etapa $etapaActual (van $reintentosEtapaActual reintentos). Elegí cómo seguir:';
       overlay = GameOverlay.eleccionPerdiste;
       notifyListeners();
     }
@@ -1197,7 +1197,7 @@ class SoloGameController extends ChangeNotifier {
       'layout_casillas': layout.layoutCasillas.map((k, v) => MapEntry(k.toString(), v)),
       'layout_puentes': layout.layoutPuentes.map((k, v) => MapEntry(k.toString(), v)),
     });
-    _msg('😕 Te ganó el bot en la etapa $etapaActual. ¡Reintentá!');
+    _msg('😕 Te ganó el Cazador en la etapa $etapaActual. ¡Reintentá!');
     notifyListeners();
 
     await _sortearTurnoInicial();

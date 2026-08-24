@@ -15,7 +15,7 @@ class EleccionPerdisteOverlay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('😕 Te ganó el bot', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+          const Text('😕 Te ganó el Cazador', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
           const SizedBox(height: 8),
           Text(mensaje, textAlign: TextAlign.center),
           const SizedBox(height: 14),

@@ -219,20 +219,20 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   void _abrirJugar() {
     _pushPanel('🎲 Jugar', [
-      _AccionRow(label: '🤖 Jugar solo (contra la bot)', emoji: '🤖', color: AppColors.indigo, onTap: _jugarSolo),
-      _AccionRow(label: 'Crear sala nueva (tanda)', emoji: '🏆', color: AppColors.gold, textOscuro: true, onTap: _crearSala),
-      _AccionRow(label: '¿Ya tenés un código? Unirme', emoji: '🔑', color: AppColors.turquoise, onTap: _unirseSala),
-      _AccionRow(label: '🏆 Crear campaña grupal (10 etapas, en vivo)', emoji: '🥇', color: AppColors.coral, onTap: _crearCampanaGrupal),
-      _AccionRow(label: '🎯 Desafío grupal (campañas por separado)', emoji: '🔄', color: AppColors.magenta, onTap: _desafioGrupal),
+      _AccionRow(label: '🏹 Jugar solo', emoji: '🏹', color: AppColors.indigo, onTap: _jugarSolo),
+      _AccionRow(label: 'Crear sala nueva', emoji: '🏆', color: AppColors.gold, textOscuro: true, onTap: _crearSala),
+      _AccionRow(label: 'Unirme a una sala', emoji: '🔑', color: AppColors.turquoise, onTap: _unirseSala),
+      _AccionRow(label: '🏆 Campaña grupal en vivo', emoji: '🥇', color: AppColors.coral, onTap: _crearCampanaGrupal),
+      _AccionRow(label: '🎯 Desafío grupal', emoji: '🔄', color: AppColors.magenta, onTap: _desafioGrupal),
     ]);
   }
 
   void _abrirBonus() {
     _pushPanel('🎁 Bonus', [
-      _AccionRow(label: '🎰 Ruleta de bonus diaria (multiplicador)', emoji: '🎰', color: AppColors.sky, onTap: _girarRuletaBonus),
-      _AccionRow(label: '📲 Compartir Ocaland (+15 🪙 hoy)', emoji: '📲', color: AppColors.turquoise, onTap: _compartirApp),
-      _AccionRow(label: '🎯 Tanda de cuestionados (ganá sellos)', emoji: '🎖️', color: AppColors.gold, textOscuro: true, onTap: _tandaCuestionados),
-      _AccionRow(label: '🎮 Minijuegos (ganá monedas)', emoji: '🪙', color: AppColors.coral, onTap: _minijuegosBonus),
+      _AccionRow(label: '🎰 Ruleta de bonus diaria', emoji: '🎰', color: AppColors.sky, onTap: _girarRuletaBonus),
+      _AccionRow(label: '📲 Compartir Ocaland', emoji: '📲', color: AppColors.turquoise, onTap: _compartirApp),
+      _AccionRow(label: '🎯 Tanda de cuestionados', emoji: '🎖️', color: AppColors.gold, textOscuro: true, onTap: _tandaCuestionados),
+      _AccionRow(label: '🎮 Minijuegos', emoji: '🪙', color: AppColors.coral, onTap: _minijuegosBonus),
     ]);
   }
 
@@ -403,7 +403,7 @@ class _AccionRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 3))],
@@ -488,6 +488,10 @@ class _TituloDecorado extends StatelessWidget {
           const Positioned(right: 2, top: -4, child: Text('🏅', style: TextStyle(fontSize: 18))),
           const Positioned(right: 26, bottom: -2, child: Text('⭐', style: TextStyle(fontSize: 14))),
           const Positioned(left: 28, bottom: -4, child: Text('🎉', style: TextStyle(fontSize: 16))),
+          const Positioned(left: -14, top: 20, child: Text('🎲', style: TextStyle(fontSize: 16))),
+          const Positioned(right: -12, top: 14, child: Text('🏅', style: TextStyle(fontSize: 15))),
+          const Positioned(right: 44, top: -6, child: Text('⭐', style: TextStyle(fontSize: 12))),
+          const Positioned(left: 50, top: -8, child: Text('🎉', style: TextStyle(fontSize: 14))),
           Center(
             child: Text(
               'Ocaland',
@@ -522,6 +526,10 @@ class _FondoDecorado extends StatelessWidget {
             Positioned(right: -4, top: 30, child: Text('🔺', style: TextStyle(fontSize: 30))),
             Positioned(left: 10, bottom: 90, child: Text('🎉', style: TextStyle(fontSize: 32))),
             Positioned(right: 14, bottom: 100, child: Text('♟️', style: TextStyle(fontSize: 34))),
+            Positioned(right: -8, top: 160, child: Text('🎲', style: TextStyle(fontSize: 30))),
+            Positioned(left: -6, top: 200, child: Text('🏅', style: TextStyle(fontSize: 28))),
+            Positioned(left: 4, bottom: 30, child: Text('🎉', style: TextStyle(fontSize: 26))),
+            Positioned(right: 6, bottom: 20, child: Text('🔺', style: TextStyle(fontSize: 24))),
           ],
         ),
       ),
