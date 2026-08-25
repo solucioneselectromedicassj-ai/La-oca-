@@ -125,15 +125,7 @@ class _MascotaScreenState extends State<MascotaScreen> {
                     constraints: const BoxConstraints(maxWidth: 420),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 14, offset: const Offset(0, 6))],
-                        ),
-                        child: e.secuestrada ? _contenidoSecuestrada() : _contenidoNormal(e),
-                      ),
+                      child: e.secuestrada ? _contenidoSecuestrada() : _contenidoNormal(e),
                     ),
                   ),
                 ),
@@ -150,12 +142,19 @@ class _MascotaScreenState extends State<MascotaScreen> {
         const Text(
           'El cazador se la llevó porque la extrañaste mucho tiempo.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 8),
-        const Text('No es un castigo: cuando quieras, jugá un desafío de Cuestionados y la traés de vuelta.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Color(0xFF9B8AB5))),
+        Text('No es un castigo: cuando quieras, jugá un desafío de Cuestionados y la traés de vuelta.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.85))),
         const SizedBox(height: 24),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _irABuscarla, child: const Text('Ir a buscarla'))),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.coral, foregroundColor: Colors.white),
+            onPressed: _irABuscarla,
+            child: const Text('🏹 Ir a buscarla'),
+          ),
+        ),
       ],
     );
   }
@@ -173,14 +172,18 @@ class _MascotaScreenState extends State<MascotaScreen> {
     return Column(
       children: [
         if (_mostrandoComer)
-          OcaComiendoSprite(onTerminado: _terminarAnimacionComer, size: 140)
+          OcaComiendoSprite(onTerminado: _terminarAnimacionComer, size: 150)
         else
-          OcaFace(estado: e, size: 140),
-        const SizedBox(height: 8),
-        Text(
-          _mensaje(e),
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.violetDark),
+          OcaFace(estado: e, size: 150),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          child: Text(
+            _mensaje(e),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.violetDark),
+          ),
         ),
         const SizedBox(height: 24),
         if (!e.durmiendo) ...[
@@ -193,6 +196,7 @@ class _MascotaScreenState extends State<MascotaScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.violetDark),
               onPressed: (_ocupado || e.hambre >= 100) ? null : _alimentar,
               child: Text(e.hambre >= 100 ? 'Ya no tiene hambre 🍽️' : 'Darle de comer (10 🪙)'),
             ),
@@ -200,7 +204,8 @@ class _MascotaScreenState extends State<MascotaScreen> {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.turquoise, foregroundColor: Colors.white),
               onPressed: _ocupado ? null : _jugarConElla,
               child: Text(e.diversion >= 100 ? 'Ya está súper contenta 🎾' : 'Jugar con ella 🎾'),
             ),
@@ -210,18 +215,19 @@ class _MascotaScreenState extends State<MascotaScreen> {
           const SizedBox(height: 28),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.indigo, foregroundColor: Colors.white),
             onPressed: _ocupado ? null : _alternarDormir,
-            child: Text(e.durmiendo ? 'Despertarla' : 'Dejarla dormir un rato 💤'),
+            child: Text(e.durmiendo ? '☀️ Despertarla' : 'Dejarla dormir un rato 💤'),
           ),
         ),
         const SizedBox(height: 16),
-        Text('Tenés $_monedas 🪙', style: const TextStyle(fontSize: 13, color: Color(0xFF9B8AB5))),
+        Text('Tenés $_monedas 🪙', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Jugar cualquier partida también la pone contenta. Si la dejás dormir un rato recupera el sueño.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: Color(0xFF9B8AB5)),
+          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8)),
         ),
       ],
     );
@@ -235,9 +241,9 @@ class _BarraNecesidad extends StatelessWidget {
   const _BarraNecesidad({required this.emoji, required this.label, required this.valor});
 
   Color get _color {
-    if (valor >= 60) return const Color(0xFF6FBE6A);
-    if (valor >= 30) return const Color(0xFFE0A83A);
-    return const Color(0xFFD9534F);
+    if (valor >= 60) return AppColors.green;
+    if (valor >= 30) return AppColors.gold;
+    return AppColors.coral;
   }
 
   @override
@@ -246,7 +252,7 @@ class _BarraNecesidad extends StatelessWidget {
       children: [
         Text(emoji, style: const TextStyle(fontSize: 18)),
         const SizedBox(width: 8),
-        SizedBox(width: 78, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.violetDark))),
+        SizedBox(width: 78, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white))),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -259,7 +265,7 @@ class _BarraNecesidad extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        SizedBox(width: 36, child: Text('${valor.round()}%', style: const TextStyle(fontSize: 12), textAlign: TextAlign.right)),
+        SizedBox(width: 36, child: Text('${valor.round()}%', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600), textAlign: TextAlign.right)),
       ],
     );
   }

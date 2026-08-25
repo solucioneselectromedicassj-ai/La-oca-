@@ -83,7 +83,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                               const SizedBox(height: 10),
                               SizedBox(
                                 width: double.infinity,
-                                child: OutlinedButton(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.turquoise, foregroundColor: Colors.white),
                                   onPressed: () => Clipboard.setData(ClipboardData(text: codigo)),
                                   child: const Text('📋 Copiar código'),
                                 ),
@@ -91,7 +92,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                               const SizedBox(height: 6),
                               SizedBox(
                                 width: double.infinity,
-                                child: OutlinedButton(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.fuchsia, foregroundColor: Colors.white),
                                   onPressed: () => Share.share('🎲 ¡Jugá conmigo a Ocaland! Entrá con el código: $codigo\n${AppConfig.appUrl}'),
                                   child: const Text('📲 Compartir por WhatsApp/chat'),
                                 ),
@@ -121,7 +123,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                                   ),
                                 ),
                               if (c.puedoIniciar)
-                                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: c.iniciarPartida, child: const Text('Iniciar partida')))
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.violetDark),
+                                    onPressed: c.iniciarPartida,
+                                    child: const Text('🎲 Iniciar partida'),
+                                  ),
+                                )
                               else
                                 Text(
                                   c.soyHost ? 'Necesitás al menos 2 jugadores para empezar.' : 'Esperando a que el anfitrión inicie la partida...',

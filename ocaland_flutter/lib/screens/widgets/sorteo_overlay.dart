@@ -35,7 +35,8 @@ class SorteoPanel extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.violetDark),
                     onPressed: onTirar,
                     child: Text('🎲 ¡Tocá para tirar tu dado, ${j.nombre}!'),
                   ),

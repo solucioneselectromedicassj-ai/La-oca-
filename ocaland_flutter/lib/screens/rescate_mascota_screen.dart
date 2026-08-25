@@ -166,7 +166,7 @@ class _RescateMascotaScreenState extends State<RescateMascotaScreen> {
           children: [
             Text('Pregunta ${_ronda + 1} de 3 · $_correctas correctas', style: const TextStyle(fontSize: 13, color: Color(0xFF9B8AB5))),
             const SizedBox(height: 12),
-            TriviaOverlay(titulo: '🏹 Rescate', pregunta: p, segundos: 0, onResponder: _responder),
+            TriviaOverlay(titulo: '🏹 Rescate', pregunta: p, segundos: 0, onResponder: _responder, scrim: false),
           ],
         );
       case _Fase.exito:

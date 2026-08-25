@@ -111,6 +111,7 @@ class _MinijuegosBonusScreenState extends State<MinijuegosBonusScreen> {
                   titulo: _tipo == 'reflejos' ? '⚡ Reflejos' : '🧠 Memoria',
                   tipo: _tipo,
                   onDone: _onDone,
+                  scrim: false,
                 ),
               ),
             ],

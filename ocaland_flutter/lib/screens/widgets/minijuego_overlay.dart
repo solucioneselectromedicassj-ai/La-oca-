@@ -9,12 +9,14 @@ class MinijuegoOverlay extends StatelessWidget {
   final String? subtitulo;
   final String tipo; // 'reflejos' | 'memoria'
   final ValueChanged<bool> onDone;
+  final bool scrim;
 
-  const MinijuegoOverlay({super.key, required this.titulo, this.subtitulo, required this.tipo, required this.onDone});
+  const MinijuegoOverlay({super.key, required this.titulo, this.subtitulo, required this.tipo, required this.onDone, this.scrim = true});
 
   @override
   Widget build(BuildContext context) {
     return ModalCard(
+      scrim: scrim,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

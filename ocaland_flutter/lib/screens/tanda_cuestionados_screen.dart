@@ -121,6 +121,7 @@ class _TandaCuestionadosScreenState extends State<TandaCuestionadosScreen> {
                   pregunta: _pregunta,
                   segundos: 0,
                   onResponder: _responder,
+                  scrim: false,
                 ),
               ),
             ],

@@ -34,6 +34,11 @@ class AppColors {
   /// app se sienta "más colorida".
   static const heroGradient = <Color>[violet, fuchsia];
 
+  /// Casillas del tablero sin tipo especial — un lila pálido en vez de
+  /// blanco/parchment liso, para que no desentonen con el resto de la
+  /// paleta viva (pedido explícito: "sacar el blanco").
+  static const neutralCell = Color(0xFFEDE3FF);
+
   static const cellColors = <String, Color>{
     'meta': fuchsia,
     'oca': lemon,

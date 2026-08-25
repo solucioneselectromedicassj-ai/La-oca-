@@ -14,6 +14,7 @@ class TriviaOverlay extends StatefulWidget {
   final VoidCallback? onPedirPista;
   final bool pistaUsada;
   final int? opcionEliminada;
+  final bool scrim;
 
   const TriviaOverlay({
     super.key,
@@ -25,6 +26,7 @@ class TriviaOverlay extends StatefulWidget {
     this.onPedirPista,
     this.pistaUsada = false,
     this.opcionEliminada,
+    this.scrim = true,
   });
 
   @override
@@ -55,6 +57,7 @@ class _TriviaOverlayState extends State<TriviaOverlay> {
   @override
   Widget build(BuildContext context) {
     return ModalCard(
+      scrim: widget.scrim,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -109,21 +112,27 @@ class _TriviaOverlayState extends State<TriviaOverlay> {
 }
 
 /// Overlay modal compartido por trivia, minijuegos, sorteo, ruleta, etc.
+/// [scrim] oscurece el fondo (para cuando esta tarjeta flota arriba del
+/// tablero, dentro de un Stack) — se desactiva cuando es el único
+/// contenido de una pantalla propia (tanda de cuestionados, minijuegos
+/// bonus), donde ese negro de por medio quedaba pisando el fondo vivo
+/// de esa pantalla en vez de "atenuar" algo detrás.
 class ModalCard extends StatelessWidget {
   final Widget child;
-  const ModalCard({super.key, required this.child});
+  final bool scrim;
+  const ModalCard({super.key, required this.child, this.scrim = true});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.72),
+      color: scrim ? Colors.black.withValues(alpha: 0.72) : null,
       padding: const EdgeInsets.all(16),
       alignment: Alignment.center,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 380),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-          decoration: BoxDecoration(color: AppColors.parchment, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8))]),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8))]),
           child: SingleChildScrollView(child: child),
         ),
       ),

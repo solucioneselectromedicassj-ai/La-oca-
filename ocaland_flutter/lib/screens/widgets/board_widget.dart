@@ -278,7 +278,7 @@ class _CellBoxState extends State<_CellBox> with SingleTickerProviderStateMixin 
   }
 
   Widget _contenido(double escala) {
-    final color = widget.tipo != null ? AppColors.cellColors[widget.tipo] : AppColors.parchment;
+    final color = widget.tipo != null ? AppColors.cellColors[widget.tipo] : AppColors.neutralCell;
     // sombra más grande cuanto más "levantada" está — refuerza la sensación
     // de que se despega del plano del tablero.
     final elevacion = ((escala - 1) / 0.7).clamp(0.0, 1.0);
