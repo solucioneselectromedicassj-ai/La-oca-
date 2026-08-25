@@ -80,6 +80,19 @@ class _OcaFaceState extends State<OcaFace> {
   Widget build(BuildContext context) {
     final cuadros = _cuadros;
     final nombre = cuadros[_cuadro % cuadros.length];
-    return Image.asset('assets/mascota/$nombre.png', width: widget.size, height: widget.size);
+    // Cross-fade entre cuadros en vez de corte seco — pedido explícito
+    // de que la animación "parezca con movimiento nato" mientras no
+    // haya más fotos secuenciales para un flip-book más fluido.
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: Image.asset(
+        'assets/mascota/$nombre.png',
+        key: ValueKey(nombre),
+        width: widget.size,
+        height: widget.size,
+      ),
+    );
   }
 }

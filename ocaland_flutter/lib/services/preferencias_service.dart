@@ -10,6 +10,7 @@ class PreferenciasService {
   static const _kEdad = 'pref_edad_bracket';
   static const _kPais = 'pref_pais';
   static const _kNivelJuegos = 'pref_nivel_juegos';
+  static const _kSonido = 'pref_sonido_activado';
 
   static Future<String?> obtenerEdad() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,5 +43,17 @@ class PreferenciasService {
   static Future<void> guardarNivelJuegos(String nivel) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kNivelJuegos, nivel);
+  }
+
+  /// Preferencia de sonido/música, para que el botón de silenciar del
+  /// juego se mantenga apagado entre partidas y al volver a abrir la app.
+  static Future<bool?> obtenerSonidoActivado() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey(_kSonido) ? prefs.getBool(_kSonido) : null;
+  }
+
+  static Future<void> guardarSonidoActivado(bool activado) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kSonido, activado);
   }
 }

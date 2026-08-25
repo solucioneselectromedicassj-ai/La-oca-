@@ -59,6 +59,24 @@ class _MisPartidasScreenState extends State<MisPartidasScreen> {
     }
   }
 
+  Future<void> _eliminar(SesionActiva sesion) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.parchment,
+        title: const Text('¿Eliminar esta partida?'),
+        content: const Text('No la vas a poder retomar después.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    await SessionService.borrar(sesion.partidaId);
+    await _cargar();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,10 +111,16 @@ class _MisPartidasScreenState extends State<MisPartidasScreen> {
             children: [
               for (final s in sesiones)
                 ListTile(
-                  title: Text(s.esModoSolo ? '🤖 Campaña solo' : '👥 Sala ${s.codigo.isEmpty ? "----" : s.codigo}'),
+                  title: Text(s.esModoSolo ? '🏹 Campaña solo' : '👥 Sala ${s.codigo.isEmpty ? "----" : s.codigo}'),
                   trailing: _entrando == s.partidaId
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : OutlinedButton(onPressed: () => _entrar(s), child: const Text('Entrar')),
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.coral), onPressed: () => _eliminar(s)),
+                            OutlinedButton(onPressed: () => _entrar(s), child: const Text('Entrar')),
+                          ],
+                        ),
                 ),
             ],
           ),

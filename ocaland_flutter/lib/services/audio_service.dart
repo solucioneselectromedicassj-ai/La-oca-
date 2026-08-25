@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import '../utils/melody_wav.dart';
 import '../utils/tone_wav.dart';
+import 'preferencias_service.dart';
 
 /// Sonido: mismo diseño del prototipo HTML (Web Audio API, osciladores,
 /// sin archivos externos) — acá los tonos se generan como WAV en memoria
@@ -12,6 +13,27 @@ class AudioService {
   AudioService._();
 
   static bool enabled = true;
+
+  /// Carga la preferencia guardada (si el usuario ya silenció antes) —
+  /// se llama una vez al arrancar la app.
+  static Future<void> cargarPreferencia() async {
+    final v = await PreferenciasService.obtenerSonidoActivado();
+    if (v != null) enabled = v;
+  }
+
+  /// Botón de silenciar del juego: guarda la preferencia y corta/retoma
+  /// la música si hay una partida en curso (no vuelve a arrancarla si no
+  /// se le pide explícitamente, para no reactivar música en pantallas
+  /// donde no corresponde).
+  static Future<void> alternarSonido({bool enJuego = false}) async {
+    enabled = !enabled;
+    await PreferenciasService.guardarSonidoActivado(enabled);
+    if (!enabled) {
+      await detenerMusica();
+    } else if (enJuego) {
+      await iniciarMusica();
+    }
+  }
 
   static final Map<String, Uint8List> _cache = {};
   static final List<AudioPlayer> _pool = List.generate(6, (_) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/campana.dart';
 import '../models/cell_descriptions.dart';
 import '../models/sesion_activa.dart';
 import '../services/audio_service.dart';
@@ -8,6 +9,7 @@ import 'lobby_screen.dart';
 import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/boton_salir_juego.dart';
+import 'widgets/boton_silenciar.dart';
 import 'widgets/campana_terminada_overlay.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_comodin_overlay.dart';
@@ -15,6 +17,7 @@ import 'widgets/eleccion_perdiste_overlay.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/espectador_overlay.dart';
 import 'widgets/etapa_banner.dart';
+import 'widgets/etapa_historia_dialog.dart';
 import 'widgets/jugadores_status_row.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/minijuego_overlay.dart';
@@ -35,6 +38,23 @@ class GameScreenSolo extends StatefulWidget {
 class _GameScreenSoloState extends State<GameScreenSolo> {
   SoloGameController get _c => widget.controller;
   String? _errorInicio;
+  int? _ultimaEtapaHistoriaMostrada;
+
+  /// Micro-historia de la etapa: se muestra una vez al llegar a cada
+  /// etapa nueva de la campaña (pedido explícito, "armarlo para ir
+  /// completando"). Se guarda solo en memoria (no hace falta persistir
+  /// entre sesiones — es más una bienvenida a la etapa que un logro).
+  void _revisarHistoriaEtapa() {
+    final etapa = _c.partida?.etapaActual;
+    if (etapa == null || etapa == _ultimaEtapaHistoriaMostrada) return;
+    _ultimaEtapaHistoriaMostrada = etapa;
+    final info = Campana.etapasInfo[etapa];
+    if (info == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(context: context, builder: (_) => EtapaHistoriaDialog(etapa: etapa, info: info));
+    });
+  }
 
   @override
   void initState() {
@@ -83,6 +103,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
             if (_c.cargando || _c.partida == null) {
               return const Center(child: CircularProgressIndicator(color: Colors.white));
             }
+            _revisarHistoriaEtapa();
             return Stack(
               children: [
                 Center(
@@ -152,6 +173,7 @@ class _GameScreenSoloState extends State<GameScreenSolo> {
                   ),
                 ),
                 Positioned(top: 4, left: 4, child: BotonSalirJuego(onTap: () => _salir(context))),
+                const Positioned(top: 4, right: 4, child: BotonSilenciar()),
                 _overlayActual(),
               ],
             );

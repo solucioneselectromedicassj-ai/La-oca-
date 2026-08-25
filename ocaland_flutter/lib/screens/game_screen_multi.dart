@@ -7,6 +7,7 @@ import 'lobby_screen.dart';
 import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/boton_salir_juego.dart';
+import 'widgets/boton_silenciar.dart';
 import 'widgets/desempate_panel.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
@@ -139,6 +140,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                   ),
                 ),
                 Positioned(top: 4, left: 4, child: BotonSalirJuego(onTap: () => _salir(context))),
+                const Positioned(top: 4, right: 4, child: BotonSilenciar()),
                 _overlayActual(c),
               ],
             );
