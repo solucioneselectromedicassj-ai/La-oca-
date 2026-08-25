@@ -29,6 +29,10 @@ class _TatetiScreenState extends State<TatetiScreen> {
   List<int>? _lineaGanadora;
   bool _premiado = false;
 
+  /// Dificultad elegible aparte del nivel por edad — pedido explícito:
+  /// antes la oca jugaba siempre perfecto y era imposible ganarle.
+  String _dificultad = 'medio'; // 'facil' | 'medio' | 'dificil'
+
   void _reiniciar() {
     setState(() {
       _celdas = List.filled(9, null);
@@ -53,15 +57,37 @@ class _TatetiScreenState extends State<TatetiScreen> {
     final libres = [for (var i = 0; i < 9; i++) if (_celdas[i] == null) i];
     if (libres.isEmpty) return;
 
-    int? elegido = _buscarJugadaGanadora('O') ?? _buscarJugadaGanadora('X');
-    elegido ??= _celdas[4] == null ? 4 : null;
-    elegido ??= libres.firstWhere((i) => [0, 2, 6, 8].contains(i), orElse: () => libres[Random().nextInt(libres.length)]);
+    final elegido = _elegirJugada(libres);
 
     setState(() {
-      _celdas[elegido!] = 'O';
+      _celdas[elegido] = 'O';
       _turnoJugador = true;
     });
     _resolverFin();
+  }
+
+  int _elegirJugada(List<int> libres) {
+    switch (_dificultad) {
+      case 'facil':
+        // Nunca busca ganar ni bloquea a propósito: juega al azar, para
+        // que se le pueda ganar sin problema.
+        return libres[Random().nextInt(libres.length)];
+      case 'medio':
+        // Gana si puede, pero solo bloquea la mitad de las veces — se
+        // puede ganar, pero hay que jugar con algo de cabeza.
+        final ganar = _buscarJugadaGanadora('O');
+        if (ganar != null) return ganar;
+        if (Random().nextBool()) {
+          final bloquear = _buscarJugadaGanadora('X');
+          if (bloquear != null) return bloquear;
+        }
+        return libres[Random().nextInt(libres.length)];
+      default: // dificil
+        int? elegido = _buscarJugadaGanadora('O') ?? _buscarJugadaGanadora('X');
+        elegido ??= _celdas[4] == null ? 4 : null;
+        elegido ??= libres.firstWhere((i) => [0, 2, 6, 8].contains(i), orElse: () => libres[Random().nextInt(libres.length)]);
+        return elegido;
+    }
   }
 
   int? _buscarJugadaGanadora(String simbolo) {
@@ -97,6 +123,24 @@ class _TatetiScreenState extends State<TatetiScreen> {
     await MascotaService.registrarJuego(usuarioId: widget.usuarioId, suba: 20);
   }
 
+  Widget _selectorDificultad() {
+    const opciones = [('facil', '😌 Fácil'), ('medio', '🙂 Medio'), ('dificil', '😤 Difícil')];
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 6,
+      children: [
+        for (final o in opciones)
+          ChoiceChip(
+            label: Text(o.$2, style: const TextStyle(fontSize: 12)),
+            selected: _dificultad == o.$1,
+            selectedColor: AppColors.gold,
+            backgroundColor: Colors.white,
+            onSelected: (_) => setState(() => _dificultad = o.$1),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,6 +160,8 @@ class _TatetiScreenState extends State<TatetiScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    _selectorDificultad(),
+                    const SizedBox(height: 10),
                     Text(
                       _ganador == null
                           ? (_turnoJugador ? 'Tu turno (❌)' : 'Piensa la oca... (⭕)')

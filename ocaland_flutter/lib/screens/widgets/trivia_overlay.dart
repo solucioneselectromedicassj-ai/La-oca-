@@ -132,7 +132,7 @@ class ModalCard extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 380),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8))]),
+          decoration: BoxDecoration(color: AppColors.parchment, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8))]),
           child: SingleChildScrollView(child: child),
         ),
       ),

@@ -94,23 +94,35 @@ class _AhorcadoScreenState extends State<AhorcadoScreen> {
                     children: [
                       Text('🪿 Fallos: ${_falladas.length} / $_maxFallos', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.violetDark)),
                       const SizedBox(height: 12),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        children: [
-                          for (final letra in _palabra.split(''))
-                            Container(
-                              width: 30,
-                              height: 38,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.violetDark, width: 2))),
-                              child: Text(
-                                (_adivinadas.contains(letra) || fin) ? letra : '',
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.violetDark),
+                      // Siempre en un solo renglón (las casillas se achican
+                      // si la palabra es larga) — antes una palabra larga
+                      // se cortaba en dos filas y parecía que eran dos
+                      // palabras distintas.
+                      LayoutBuilder(builder: (context, constraints) {
+                        const espaciado = 6.0;
+                        final n = _palabra.length;
+                        final anchoIdeal = (30.0 * n + espaciado * (n - 1)) <= constraints.maxWidth
+                            ? 30.0
+                            : (constraints.maxWidth - espaciado * (n - 1)) / n;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < n; i++) ...[
+                              if (i > 0) const SizedBox(width: espaciado),
+                              Container(
+                                width: anchoIdeal,
+                                height: 38,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.violetDark, width: 2))),
+                                child: Text(
+                                  (_adivinadas.contains(_palabra[i]) || fin) ? _palabra[i] : '',
+                                  style: TextStyle(fontSize: anchoIdeal < 24 ? 15 : 22, fontWeight: FontWeight.bold, color: AppColors.violetDark),
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
+                            ],
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 18),
                       if (!fin)
                         Wrap(
