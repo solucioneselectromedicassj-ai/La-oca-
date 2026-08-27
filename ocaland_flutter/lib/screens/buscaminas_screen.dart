@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 
 class _NivelConfig {
@@ -46,23 +47,55 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   late final List<_NivelConfig> _niveles = _nivelesPorTier[widget.nivel] ?? _nivelesPorTier['adulto']!;
   int _nivelActual = 0;
 
-  late List<List<bool>> _minas;
-  late List<List<bool>> _reveladas;
-  late List<List<bool>> _banderas;
-  late List<List<int>> _adyacentes;
+  List<List<bool>> _minas = [];
+  List<List<bool>> _reveladas = [];
+  List<List<bool>> _banderas = [];
+  List<List<int>> _adyacentes = [];
   bool _minasColocadas = false;
   _Estado _estado = _Estado.jugando;
   bool _premiado = false;
+  bool _cargando = true;
 
   _NivelConfig get _config => _niveles[_nivelActual];
 
   @override
   void initState() {
     super.initState();
-    _reiniciar();
+    _cargarEstado();
   }
 
-  void _reiniciar() {
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego('buscaminas');
+    if (g != null && g['minas'] != null) {
+      _nivelActual = (g['nivelActual'] as int).clamp(0, _niveles.length - 1);
+      List<List<bool>> aBool(dynamic v) => (v as List).map((f) => (f as List).map((x) => x as bool).toList()).toList();
+      _minas = aBool(g['minas']);
+      _reveladas = aBool(g['reveladas']);
+      _banderas = aBool(g['banderas']);
+      _adyacentes = (g['adyacentes'] as List).map((f) => (f as List).map((x) => x as int).toList()).toList();
+      _minasColocadas = g['minasColocadas'] as bool;
+      _estado = _Estado.values[g['estado'] as int];
+      _premiado = g['premiado'] as bool? ?? false;
+    } else {
+      _generarNueva();
+    }
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _guardarEstado() {
+    return PreferenciasService.guardarEstadoJuego('buscaminas', {
+      'nivelActual': _nivelActual,
+      'minas': _minas,
+      'reveladas': _reveladas,
+      'banderas': _banderas,
+      'adyacentes': _adyacentes,
+      'minasColocadas': _minasColocadas,
+      'estado': _estado.index,
+      'premiado': _premiado,
+    });
+  }
+
+  void _generarNueva() {
     final f = _config.filas, c = _config.columnas;
     _minas = List.generate(f, (_) => List.filled(c, false));
     _reveladas = List.generate(f, (_) => List.filled(c, false));
@@ -71,7 +104,11 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
     _minasColocadas = false;
     _estado = _Estado.jugando;
     _premiado = false;
-    setState(() {});
+  }
+
+  void _reiniciar() {
+    setState(_generarNueva);
+    _guardarEstado();
   }
 
   void _colocarMinas(int rSeguro, int cSeguro) {
@@ -122,6 +159,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
           }
         }
       });
+      _guardarEstado();
       return;
     }
 
@@ -132,6 +170,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
         _premiar();
       }
     });
+    _guardarEstado();
   }
 
   void _revelarDesde(int r, int c) {
@@ -160,6 +199,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   void _marcar(int r, int c) {
     if (_estado != _Estado.jugando || _reveladas[r][c]) return;
     setState(() => _banderas[r][c] = !_banderas[r][c]);
+    _guardarEstado();
   }
 
   Future<void> _premiar() async {
@@ -169,8 +209,11 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   }
 
   void _siguienteNivel() {
-    setState(() => _nivelActual = (_nivelActual + 1).clamp(0, _niveles.length - 1));
-    _reiniciar();
+    setState(() {
+      _nivelActual = (_nivelActual + 1).clamp(0, _niveles.length - 1);
+      _generarNueva();
+    });
+    _guardarEstado();
   }
 
   int get _banderasPuestas => _banderas.expand((f) => f).where((b) => b).length;
@@ -187,7 +230,9 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
         ),
         child: SafeArea(
-          child: Center(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: SingleChildScrollView(

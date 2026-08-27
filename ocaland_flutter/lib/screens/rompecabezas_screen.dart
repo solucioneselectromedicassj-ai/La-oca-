@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 
 /// Tamaño de grilla por franja de edad — 8-puzzle (3x3) para menores,
@@ -26,20 +27,42 @@ class RompecabezasScreen extends StatefulWidget {
 }
 
 class _RompecabezasScreenState extends State<RompecabezasScreen> {
-  late final int _n = _tamanoPorNivel[widget.nivel] ?? 4;
-  late List<int> _fichas; // 0 = espacio vacío, fila por fila
+  int _n = 4;
+  List<int> _fichas = [];
   int _movimientos = 0;
   bool _premiado = false;
+  bool _cargando = true;
 
   List<int> get _resuelto => [for (var i = 1; i < _n * _n; i++) i, 0];
 
   @override
   void initState() {
     super.initState();
-    _mezclar();
+    _cargarEstado();
   }
 
-  void _mezclar() {
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego('rompecabezas');
+    if (g != null && g['fichas'] != null) {
+      _n = g['n'] as int;
+      _fichas = (g['fichas'] as List).map((v) => v as int).toList();
+      _movimientos = g['movimientos'] as int? ?? 0;
+    } else {
+      _n = _tamanoPorNivel[widget.nivel] ?? 4;
+      _generarMezcla();
+    }
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _guardarEstado() {
+    return PreferenciasService.guardarEstadoJuego('rompecabezas', {
+      'n': _n,
+      'fichas': _fichas,
+      'movimientos': _movimientos,
+    });
+  }
+
+  void _generarMezcla() {
     _fichas = List<int>.from(_resuelto);
     final rnd = Random();
     var vacio = _fichas.indexOf(0);
@@ -55,7 +78,11 @@ class _RompecabezasScreenState extends State<RompecabezasScreen> {
     }
     _movimientos = 0;
     _premiado = false;
-    setState(() {});
+  }
+
+  void _mezclar() {
+    setState(_generarMezcla);
+    _guardarEstado();
   }
 
   List<int> _vecinos(int i) {
@@ -79,6 +106,7 @@ class _RompecabezasScreenState extends State<RompecabezasScreen> {
       _fichas[i] = 0;
       _movimientos++;
     });
+    _guardarEstado();
     if (_gano) _premiar();
   }
 
@@ -99,7 +127,9 @@ class _RompecabezasScreenState extends State<RompecabezasScreen> {
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
         ),
         child: SafeArea(
-          child: Center(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: SingleChildScrollView(

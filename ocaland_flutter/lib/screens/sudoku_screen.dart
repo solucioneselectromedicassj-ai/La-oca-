@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/sudoku_generator.dart';
 
@@ -44,7 +45,35 @@ class _SudokuScreenState extends State<SudokuScreen> {
   @override
   void initState() {
     super.initState();
-    _generar();
+    _cargarEstado();
+  }
+
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego('sudoku');
+    if (g != null && g['solucion'] != null) {
+      List<List<int>> aInt(dynamic v) => (v as List).map((f) => (f as List).map((x) => x as int).toList()).toList();
+      final p = SudokuPuzzle(n: g['n'] as int, boxR: g['boxR'] as int, boxC: g['boxC'] as int, solucion: aInt(g['solucion']), pistas: aInt(g['pistas']));
+      _grid = aInt(g['grid']);
+      _fijas = [for (final fila in p.pistas) [for (final v in fila) v != 0]];
+      _premiado = g['premiado'] as bool? ?? false;
+      if (mounted) setState(() => _puzzle = p);
+    } else {
+      _generar();
+    }
+  }
+
+  Future<void> _guardarEstado() {
+    final p = _puzzle;
+    if (p == null) return Future.value();
+    return PreferenciasService.guardarEstadoJuego('sudoku', {
+      'n': p.n,
+      'boxR': p.boxR,
+      'boxC': p.boxC,
+      'solucion': p.solucion,
+      'pistas': p.pistas,
+      'grid': _grid,
+      'premiado': _premiado,
+    });
   }
 
   void _generar() {
@@ -62,6 +91,7 @@ class _SudokuScreenState extends State<SudokuScreen> {
         _grid = [for (final fila in p.pistas) List<int>.from(fila)];
         _fijas = [for (final fila in p.pistas) [for (final v in fila) v != 0]];
       });
+      _guardarEstado();
     });
   }
 
@@ -101,6 +131,7 @@ class _SudokuScreenState extends State<SudokuScreen> {
     final r = _selR, c = _selC;
     if (r == null || c == null || _fijas[r][c]) return;
     setState(() => _grid[r][c] = v);
+    _guardarEstado();
     if (_ganado) _premiar();
   }
 
@@ -108,11 +139,13 @@ class _SudokuScreenState extends State<SudokuScreen> {
     final r = _selR, c = _selC;
     if (r == null || c == null || _fijas[r][c]) return;
     setState(() => _grid[r][c] = 0);
+    _guardarEstado();
   }
 
   Future<void> _premiar() async {
     if (_premiado) return;
     _premiado = true;
+    _guardarEstado();
     await MascotaService.registrarJuego(usuarioId: widget.usuarioId, suba: 20);
   }
 
@@ -184,16 +217,28 @@ class _SudokuScreenState extends State<SudokuScreen> {
     final seleccionada = _selR == r && _selC == c;
     final fija = _fijas[r][c];
     final conflicto = v != 0 && _tieneConflicto(r, c);
+
+    // Líneas gruesas y oscuras entre cajas, apenas visibles adentro de
+    // cada caja, y un tinte alternado por caja — antes todas las líneas
+    // se veían igual y era fácil perder de vista en qué fila/caja se
+    // estaba (pedido explícito: "separarlas más").
+    const colorCaja = AppColors.violetDark;
+    final colorFina = AppColors.violet.withValues(alpha: 0.18);
+    final bordeDerecho = (c + 1) % _config.boxC == 0;
+    final bordeAbajo = (r + 1) % _config.boxR == 0;
+    final cajaPar = ((r ~/ _config.boxR) + (c ~/ _config.boxC)) % 2 == 0;
+
     return GestureDetector(
       onTap: fija ? null : () => setState(() { _selR = r; _selC = c; }),
       child: Container(
-        margin: EdgeInsets.only(
-          right: (c + 1) % _config.boxC == 0 && c != _config.n - 1 ? 2 : 0.4,
-          bottom: (r + 1) % _config.boxR == 0 && r != _config.n - 1 ? 2 : 0.4,
-        ),
         decoration: BoxDecoration(
-          color: seleccionada ? AppColors.turquoise.withValues(alpha: 0.35) : (fija ? AppColors.parchmentDark : Colors.white),
-          border: Border.all(color: AppColors.violet.withValues(alpha: 0.25)),
+          color: seleccionada ? AppColors.turquoise.withValues(alpha: 0.35) : (fija ? (cajaPar ? AppColors.parchmentDark : Colors.white) : (cajaPar ? Colors.white : AppColors.parchmentDark.withValues(alpha: 0.5))),
+          border: Border(
+            top: r == 0 ? const BorderSide(color: colorCaja, width: 2.5) : BorderSide.none,
+            left: c == 0 ? const BorderSide(color: colorCaja, width: 2.5) : BorderSide.none,
+            right: BorderSide(color: bordeDerecho ? colorCaja : colorFina, width: bordeDerecho ? 2.5 : 0.6),
+            bottom: BorderSide(color: bordeAbajo ? colorCaja : colorFina, width: bordeAbajo ? 2.5 : 0.6),
+          ),
         ),
         alignment: Alignment.center,
         child: Text(

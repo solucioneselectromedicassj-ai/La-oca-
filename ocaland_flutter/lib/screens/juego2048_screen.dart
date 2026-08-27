@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 
 const _n = 4;
@@ -40,26 +41,53 @@ class Juego2048Screen extends StatefulWidget {
 
 class _Juego2048ScreenState extends State<Juego2048Screen> {
   late final List<int> _metas = _metasPorNivel[widget.nivel] ?? _metasPorNivel['adulto']!;
-  late List<List<int>> _grid;
+  List<List<int>> _grid = [];
   final _rnd = Random();
   final Set<int> _metasCelebradas = {};
   bool _premiado = false;
   bool _perdiste = false;
+  bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _nuevaPartida();
+    _cargarEstado();
   }
 
-  void _nuevaPartida() {
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego('2048');
+    if (g != null && g['grid'] != null) {
+      _grid = (g['grid'] as List).map((fila) => (fila as List).map((v) => v as int).toList()).toList();
+      _metasCelebradas.addAll((g['metasCelebradas'] as List).map((v) => v as int));
+      _premiado = g['premiado'] as bool? ?? false;
+      _perdiste = g['perdiste'] as bool? ?? false;
+    } else {
+      _generarPartidaNueva();
+    }
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _guardarEstado() {
+    return PreferenciasService.guardarEstadoJuego('2048', {
+      'grid': _grid,
+      'metasCelebradas': _metasCelebradas.toList(),
+      'premiado': _premiado,
+      'perdiste': _perdiste,
+    });
+  }
+
+  void _generarPartidaNueva() {
     _grid = List.generate(_n, (_) => List.filled(_n, 0));
     _metasCelebradas.clear();
     _premiado = false;
     _perdiste = false;
     _agregarFicha();
     _agregarFicha();
-    setState(() {});
+  }
+
+  void _nuevaPartida() {
+    setState(_generarPartidaNueva);
+    _guardarEstado();
   }
 
   void _agregarFicha() {
@@ -115,6 +143,7 @@ class _Juego2048ScreenState extends State<Juego2048Screen> {
       _revisarMetas();
       if (_sinMovimientos()) _perdiste = true;
       setState(() {});
+      _guardarEstado();
     }
     return cambio;
   }
@@ -176,7 +205,9 @@ class _Juego2048ScreenState extends State<Juego2048Screen> {
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
         ),
         child: SafeArea(
-          child: Center(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: SingleChildScrollView(

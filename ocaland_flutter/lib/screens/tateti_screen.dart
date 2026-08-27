@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
+
+const _claveEstado = 'tateti';
 
 const _lineasGanadoras = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -28,10 +31,39 @@ class _TatetiScreenState extends State<TatetiScreen> {
   String? _ganador; // 'X' | 'O' | 'empate' | null
   List<int>? _lineaGanadora;
   bool _premiado = false;
+  bool _cargando = true;
 
   /// Dificultad elegible aparte del nivel por edad — pedido explícito:
   /// antes la oca jugaba siempre perfecto y era imposible ganarle.
   String _dificultad = 'medio'; // 'facil' | 'medio' | 'dificil'
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarEstado();
+  }
+
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego(_claveEstado);
+    if (g != null) {
+      _celdas = (g['celdas'] as List).map((v) => v as String?).toList();
+      _turnoJugador = g['turnoJugador'] as bool;
+      _ganador = g['ganador'] as String?;
+      _lineaGanadora = (g['lineaGanadora'] as List?)?.map((v) => v as int).toList();
+      _dificultad = g['dificultad'] as String? ?? 'medio';
+    }
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _guardarEstado() {
+    return PreferenciasService.guardarEstadoJuego(_claveEstado, {
+      'celdas': _celdas,
+      'turnoJugador': _turnoJugador,
+      'ganador': _ganador,
+      'lineaGanadora': _lineaGanadora,
+      'dificultad': _dificultad,
+    });
+  }
 
   void _reiniciar() {
     setState(() {
@@ -41,6 +73,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
       _lineaGanadora = null;
       _premiado = false;
     });
+    _guardarEstado();
   }
 
   void _tocar(int i) {
@@ -49,6 +82,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
     _resolverFin();
     if (_ganador != null) return;
     setState(() => _turnoJugador = false);
+    _guardarEstado();
     Timer(const Duration(milliseconds: 500), _jugadaOca);
   }
 
@@ -67,26 +101,37 @@ class _TatetiScreenState extends State<TatetiScreen> {
   }
 
   int _elegirJugada(List<int> libres) {
+    // Se bajó el nivel de las tres dificultades (pedido explícito: "que
+    // se parezca como oportunidad") — ni siquiera la difícil juega
+    // perfecto ahora, para que siempre haya una chance real de ganar,
+    // pensando sobre todo en que este juego lo van a usar chicos.
     switch (_dificultad) {
       case 'facil':
         // Nunca busca ganar ni bloquea a propósito: juega al azar, para
         // que se le pueda ganar sin problema.
         return libres[Random().nextInt(libres.length)];
       case 'medio':
-        // Gana si puede, pero solo bloquea la mitad de las veces — se
-        // puede ganar, pero hay que jugar con algo de cabeza.
-        final ganar = _buscarJugadaGanadora('O');
-        if (ganar != null) return ganar;
-        if (Random().nextBool()) {
+        // Bloquea y busca ganar poco más de un tercio de las veces.
+        if (Random().nextDouble() < 0.4) {
+          final ganar = _buscarJugadaGanadora('O');
+          if (ganar != null) return ganar;
+        }
+        if (Random().nextDouble() < 0.35) {
           final bloquear = _buscarJugadaGanadora('X');
           if (bloquear != null) return bloquear;
         }
         return libres[Random().nextInt(libres.length)];
       default: // dificil
-        int? elegido = _buscarJugadaGanadora('O') ?? _buscarJugadaGanadora('X');
-        elegido ??= _celdas[4] == null ? 4 : null;
-        elegido ??= libres.firstWhere((i) => [0, 2, 6, 8].contains(i), orElse: () => libres[Random().nextInt(libres.length)]);
-        return elegido;
+        if (Random().nextDouble() < 0.8) {
+          final ganar = _buscarJugadaGanadora('O');
+          if (ganar != null) return ganar;
+        }
+        if (Random().nextDouble() < 0.75) {
+          final bloquear = _buscarJugadaGanadora('X');
+          if (bloquear != null) return bloquear;
+        }
+        if (_celdas[4] == null) return 4;
+        return libres.firstWhere((i) => [0, 2, 6, 8].contains(i), orElse: () => libres[Random().nextInt(libres.length)]);
     }
   }
 
@@ -108,12 +153,16 @@ class _TatetiScreenState extends State<TatetiScreen> {
           _ganador = a;
           _lineaGanadora = linea;
         });
+        _guardarEstado();
         if (a == 'X') _premiar();
         return;
       }
     }
     if (_celdas.every((c) => c != null)) {
       setState(() => _ganador = 'empate');
+      _guardarEstado();
+    } else {
+      _guardarEstado();
     }
   }
 
@@ -135,7 +184,10 @@ class _TatetiScreenState extends State<TatetiScreen> {
             selected: _dificultad == o.$1,
             selectedColor: AppColors.gold,
             backgroundColor: Colors.white,
-            onSelected: (_) => setState(() => _dificultad = o.$1),
+            onSelected: (_) {
+              setState(() => _dificultad = o.$1);
+              _guardarEstado();
+            },
           ),
       ],
     );
@@ -152,7 +204,9 @@ class _TatetiScreenState extends State<TatetiScreen> {
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
         ),
         child: SafeArea(
-          child: Center(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 380),
               child: Padding(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Franja de edad y país elegidos para Cuestionados — no son parte de la
@@ -55,5 +56,29 @@ class PreferenciasService {
   static Future<void> guardarSonidoActivado(bool activado) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kSonido, activado);
+  }
+
+  /// Estado guardado de cada juego de la Zona de juegos, para poder
+  /// salir y retomarlo más tarde en vez de arrancar de cero siempre
+  /// (pedido explícito) — un blob JSON por juego, bajo su propia clave.
+  static Future<void> guardarEstadoJuego(String juego, Map<String, dynamic> estado) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('juego_estado_$juego', jsonEncode(estado));
+  }
+
+  static Future<Map<String, dynamic>?> obtenerEstadoJuego(String juego) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('juego_estado_$juego');
+    if (raw == null) return null;
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> borrarEstadoJuego(String juego) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('juego_estado_$juego');
   }
 }

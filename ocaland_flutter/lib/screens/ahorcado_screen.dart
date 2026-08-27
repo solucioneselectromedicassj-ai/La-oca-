@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
+import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 
 /// Palabras cortas (para menores/adolescentes) y más largas (para
@@ -23,20 +24,52 @@ class AhorcadoScreen extends StatefulWidget {
 }
 
 class _AhorcadoScreenState extends State<AhorcadoScreen> {
-  late String _palabra;
+  String _palabra = '';
   final Set<String> _adivinadas = {};
   final Set<String> _falladas = {};
   bool _premiado = false;
+  bool _cargando = true;
+
+  /// Cola de palabras ya barajadas: se van sacando de a una para no
+  /// repetir hasta agotar todo el banco (mismo patrón que la tanda de
+  /// cuestionados) — antes podía tocar la misma palabra dos veces
+  /// seguidas por pura casualidad del sorteo.
+  final List<String> _cola = [];
 
   @override
   void initState() {
     super.initState();
-    _elegirPalabra();
+    _cargarEstado();
+  }
+
+  Future<void> _cargarEstado() async {
+    final g = await PreferenciasService.obtenerEstadoJuego('ahorcado');
+    if (g != null && g['palabra'] != null) {
+      _palabra = g['palabra'] as String;
+      _adivinadas.addAll((g['adivinadas'] as List).map((v) => v as String));
+      _falladas.addAll((g['falladas'] as List).map((v) => v as String));
+      _cola.addAll((g['cola'] as List).map((v) => v as String));
+    } else {
+      _elegirPalabra();
+    }
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _guardarEstado() {
+    return PreferenciasService.guardarEstadoJuego('ahorcado', {
+      'palabra': _palabra,
+      'adivinadas': _adivinadas.toList(),
+      'falladas': _falladas.toList(),
+      'cola': _cola,
+    });
   }
 
   void _elegirPalabra() {
-    final banco = widget.nivel == 'adulto' ? _palabrasLargas : _palabrasCortas;
-    _palabra = (List<String>.from(banco)..shuffle()).first;
+    if (_cola.isEmpty) {
+      final banco = widget.nivel == 'adulto' ? _palabrasLargas : _palabrasCortas;
+      _cola.addAll(List<String>.from(banco)..shuffle());
+    }
+    _palabra = _cola.removeAt(0);
   }
 
   bool get _gano => _palabra.split('').every(_adivinadas.contains);
@@ -51,6 +84,7 @@ class _AhorcadoScreenState extends State<AhorcadoScreen> {
         _falladas.add(letra);
       }
     });
+    _guardarEstado();
     if (_gano) _premiar();
   }
 
@@ -67,6 +101,7 @@ class _AhorcadoScreenState extends State<AhorcadoScreen> {
       _premiado = false;
       _elegirPalabra();
     });
+    _guardarEstado();
   }
 
   @override
@@ -81,7 +116,9 @@ class _AhorcadoScreenState extends State<AhorcadoScreen> {
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.heroGradient),
         ),
         child: SafeArea(
-          child: Center(
+          child: _cargando
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: SingleChildScrollView(
