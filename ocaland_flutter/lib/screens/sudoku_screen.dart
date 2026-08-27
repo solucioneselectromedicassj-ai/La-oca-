@@ -219,20 +219,25 @@ class _SudokuScreenState extends State<SudokuScreen> {
     final conflicto = v != 0 && _tieneConflicto(r, c);
 
     // Líneas gruesas y oscuras entre cajas, apenas visibles adentro de
-    // cada caja, y un tinte alternado por caja — antes todas las líneas
-    // se veían igual y era fácil perder de vista en qué fila/caja se
-    // estaba (pedido explícito: "separarlas más").
+    // cada caja, y un tinte alternado por caja bien marcado (no solo un
+    // matiz sutil) — pedido explícito: "remarcar los cuadraditos para
+    // saber cuál es cada uno". Además, un numerito 1..9 (según el
+    // tamaño) en la esquina de la primera celda de cada caja, a modo de
+    // referencia — como en las guías de sudoku impresas.
     const colorCaja = AppColors.violetDark;
     final colorFina = AppColors.violet.withValues(alpha: 0.18);
     final bordeDerecho = (c + 1) % _config.boxC == 0;
     final bordeAbajo = (r + 1) % _config.boxR == 0;
-    final cajaPar = ((r ~/ _config.boxR) + (c ~/ _config.boxC)) % 2 == 0;
+    final boxColsCount = _config.n ~/ _config.boxC;
+    final numeroCaja = (r ~/ _config.boxR) * boxColsCount + (c ~/ _config.boxC) + 1;
+    final cajaPar = numeroCaja % 2 == 0;
+    final esInicioDeCaja = r % _config.boxR == 0 && c % _config.boxC == 0;
 
     return GestureDetector(
       onTap: fija ? null : () => setState(() { _selR = r; _selC = c; }),
       child: Container(
         decoration: BoxDecoration(
-          color: seleccionada ? AppColors.turquoise.withValues(alpha: 0.35) : (fija ? (cajaPar ? AppColors.parchmentDark : Colors.white) : (cajaPar ? Colors.white : AppColors.parchmentDark.withValues(alpha: 0.5))),
+          color: seleccionada ? AppColors.turquoise.withValues(alpha: 0.35) : (cajaPar ? Colors.white : AppColors.violet.withValues(alpha: 0.14)),
           border: Border(
             top: r == 0 ? const BorderSide(color: colorCaja, width: 2.5) : BorderSide.none,
             left: c == 0 ? const BorderSide(color: colorCaja, width: 2.5) : BorderSide.none,
@@ -240,14 +245,25 @@ class _SudokuScreenState extends State<SudokuScreen> {
             bottom: BorderSide(color: bordeAbajo ? colorCaja : colorFina, width: bordeAbajo ? 2.5 : 0.6),
           ),
         ),
-        alignment: Alignment.center,
-        child: Text(
-          v == 0 ? '' : '$v',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: fija ? FontWeight.bold : FontWeight.w600,
-            color: conflicto ? AppColors.coral : AppColors.violetDark,
-          ),
+        child: Stack(
+          children: [
+            if (esInicioDeCaja)
+              Positioned(
+                top: 1,
+                left: 2,
+                child: Text('$numeroCaja', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppColors.violetDark.withValues(alpha: 0.4))),
+              ),
+            Center(
+              child: Text(
+                v == 0 ? '' : '$v',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: fija ? FontWeight.bold : FontWeight.w600,
+                  color: conflicto ? AppColors.coral : AppColors.violetDark,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
