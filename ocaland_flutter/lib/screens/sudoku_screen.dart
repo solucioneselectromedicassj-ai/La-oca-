@@ -42,6 +42,15 @@ class _SudokuScreenState extends State<SudokuScreen> {
   int? _selC;
   bool _premiado = false;
 
+  // El tamaño real de la grilla en pantalla tiene que salir siempre del
+  // puzzle efectivamente cargado o generado (que puede venir de una
+  // partida guardada con OTRO nivel/dificultad que el actual), nunca de
+  // `_config` directamente — si no, un sudoku guardado en un nivel y
+  // reabierto luego de cambiar de nivel se ve roto/incompleto.
+  int get _n => _puzzle?.n ?? _config.n;
+  int get _boxR => _puzzle?.boxR ?? _config.boxR;
+  int get _boxC => _puzzle?.boxC ?? _config.boxC;
+
   @override
   void initState() {
     super.initState();
@@ -98,15 +107,15 @@ class _SudokuScreenState extends State<SudokuScreen> {
   bool _tieneConflicto(int r, int c) {
     final v = _grid[r][c];
     if (v == 0) return false;
-    final n = _config.n;
+    final n = _n;
     for (var i = 0; i < n; i++) {
       if (i != c && _grid[r][i] == v) return true;
       if (i != r && _grid[i][c] == v) return true;
     }
-    final baseR = (r ~/ _config.boxR) * _config.boxR;
-    final baseC = (c ~/ _config.boxC) * _config.boxC;
-    for (var i = 0; i < _config.boxR; i++) {
-      for (var j = 0; j < _config.boxC; j++) {
+    final baseR = (r ~/ _boxR) * _boxR;
+    final baseC = (c ~/ _boxC) * _boxC;
+    for (var i = 0; i < _boxR; i++) {
+      for (var j = 0; j < _boxC; j++) {
         final rr = baseR + i, cc = baseC + j;
         if ((rr != r || cc != c) && _grid[rr][cc] == v) return true;
       }
@@ -119,8 +128,8 @@ class _SudokuScreenState extends State<SudokuScreen> {
   bool get _ganado {
     final sol = _puzzle?.solucion;
     if (sol == null || !_completo) return false;
-    for (var r = 0; r < _config.n; r++) {
-      for (var c = 0; c < _config.n; c++) {
+    for (var r = 0; r < _n; r++) {
+      for (var c = 0; c < _n; c++) {
         if (_grid[r][c] != sol[r][c]) return false;
       }
     }
@@ -180,11 +189,11 @@ class _SudokuScreenState extends State<SudokuScreen> {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
                               child: GridView.count(
-                                crossAxisCount: _config.n,
+                                crossAxisCount: _n,
                                 physics: const NeverScrollableScrollPhysics(),
                                 children: [
-                                  for (var r = 0; r < _config.n; r++)
-                                    for (var c = 0; c < _config.n; c++) _celda(r, c),
+                                  for (var r = 0; r < _n; r++)
+                                    for (var c = 0; c < _n; c++) _celda(r, c),
                                 ],
                               ),
                             ),
@@ -196,7 +205,7 @@ class _SudokuScreenState extends State<SudokuScreen> {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                for (var v = 1; v <= _config.n; v++) _teclaNumero(v),
+                                for (var v = 1; v <= _n; v++) _teclaNumero(v),
                                 _teclaBorrar(),
                               ],
                             )
@@ -226,12 +235,12 @@ class _SudokuScreenState extends State<SudokuScreen> {
     // referencia — como en las guías de sudoku impresas.
     const colorCaja = AppColors.violetDark;
     final colorFina = AppColors.violet.withValues(alpha: 0.18);
-    final bordeDerecho = (c + 1) % _config.boxC == 0;
-    final bordeAbajo = (r + 1) % _config.boxR == 0;
-    final boxColsCount = _config.n ~/ _config.boxC;
-    final numeroCaja = (r ~/ _config.boxR) * boxColsCount + (c ~/ _config.boxC) + 1;
+    final bordeDerecho = (c + 1) % _boxC == 0;
+    final bordeAbajo = (r + 1) % _boxR == 0;
+    final boxColsCount = _n ~/ _boxC;
+    final numeroCaja = (r ~/ _boxR) * boxColsCount + (c ~/ _boxC) + 1;
     final cajaPar = numeroCaja % 2 == 0;
-    final esInicioDeCaja = r % _config.boxR == 0 && c % _config.boxC == 0;
+    final esInicioDeCaja = r % _boxR == 0 && c % _boxC == 0;
 
     return GestureDetector(
       onTap: fija ? null : () => setState(() { _selR = r; _selC = c; }),

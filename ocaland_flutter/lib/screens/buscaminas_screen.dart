@@ -58,6 +58,16 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
 
   _NivelConfig get _config => _niveles[_nivelActual];
 
+  // El tamaño real del tablero en pantalla tiene que salir siempre de la
+  // grilla efectivamente cargada (que puede venir de una partida
+  // guardada en OTRA franja de edad que la actual), nunca de `_config`
+  // directamente — si no, un buscaminas guardado y reabierto luego de
+  // cambiar de nivel queda con dimensiones que no coinciden con los
+  // arreglos guardados.
+  int get _filas => _minas.isNotEmpty ? _minas.length : _config.filas;
+  int get _columnas => _minas.isNotEmpty ? _minas.first.length : _config.columnas;
+  int get _totalMinas => _minasColocadas ? _minas.expand((f) => f).where((m) => m).length : _config.minas;
+
   @override
   void initState() {
     super.initState();
@@ -112,7 +122,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   }
 
   void _colocarMinas(int rSeguro, int cSeguro) {
-    final f = _config.filas, c = _config.columnas;
+    final f = _filas, c = _columnas;
     final prohibidas = <String>{};
     for (var dr = -1; dr <= 1; dr++) {
       for (var dc = -1; dc <= 1; dc++) {
@@ -121,7 +131,8 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
     }
     final rnd = Random();
     var colocadas = 0;
-    while (colocadas < _config.minas) {
+    final minasObjetivo = _config.minas.clamp(0, f * c - prohibidas.length);
+    while (colocadas < minasObjetivo) {
       final r = rnd.nextInt(f);
       final cc = rnd.nextInt(c);
       if (_minas[r][cc] || prohibidas.contains('$r,$cc')) continue;
@@ -153,8 +164,8 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
       setState(() {
         _reveladas[r][c] = true;
         _estado = _Estado.perdiste;
-        for (var i = 0; i < _config.filas; i++) {
-          for (var j = 0; j < _config.columnas; j++) {
+        for (var i = 0; i < _filas; i++) {
+          for (var j = 0; j < _columnas; j++) {
             if (_minas[i][j]) _reveladas[i][j] = true;
           }
         }
@@ -174,7 +185,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   }
 
   void _revelarDesde(int r, int c) {
-    if (r < 0 || r >= _config.filas || c < 0 || c >= _config.columnas) return;
+    if (r < 0 || r >= _filas || c < 0 || c >= _columnas) return;
     if (_reveladas[r][c] || _banderas[r][c]) return;
     _reveladas[r][c] = true;
     if (_adyacentes[r][c] == 0) {
@@ -188,8 +199,8 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
   }
 
   bool _gano() {
-    for (var r = 0; r < _config.filas; r++) {
-      for (var c = 0; c < _config.columnas; c++) {
+    for (var r = 0; r < _filas; r++) {
+      for (var c = 0; c < _columnas; c++) {
         if (!_minas[r][c] && !_reveladas[r][c]) return false;
       }
     }
@@ -245,7 +256,7 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '💣 ${_config.minas - _banderasPuestas} por marcar',
+                      '💣 ${_totalMinas - _banderasPuestas} por marcar',
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5),
                     ),
                     const SizedBox(height: 10),
@@ -260,18 +271,18 @@ class _BuscaminasScreenState extends State<BuscaminasScreen> {
                         child: Text('💥 ¡Pisaste una mina!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     AspectRatio(
-                      aspectRatio: _config.columnas / _config.filas,
+                      aspectRatio: _columnas / _filas,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
                         child: GridView.count(
-                          crossAxisCount: _config.columnas,
+                          crossAxisCount: _columnas,
                           physics: const NeverScrollableScrollPhysics(),
                           mainAxisSpacing: 2,
                           crossAxisSpacing: 2,
                           children: [
-                            for (var r = 0; r < _config.filas; r++)
-                              for (var c = 0; c < _config.columnas; c++) _celda(r, c),
+                            for (var r = 0; r < _filas; r++)
+                              for (var c = 0; c < _columnas; c++) _celda(r, c),
                           ],
                         ),
                       ),
