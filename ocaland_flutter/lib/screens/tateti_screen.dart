@@ -15,7 +15,7 @@ const _lineasGanadoras = [
 ];
 
 /// Ta-Te-Ti para los más chicos (queda solo para la franja "menor" de la
-/// Zona de juegos, a partir de adolescentes se juega al Spider) — con
+/// Zona de juegos, a partir de adolescentes se juega al Solitario) — con
 /// dos modos: contra una IA simple (gana si puede, bloquea si hace
 /// falta, si no juega el centro/esquina/al azar) o pasándose el celular
 /// entre dos jugadores sin ninguna IA de por medio.

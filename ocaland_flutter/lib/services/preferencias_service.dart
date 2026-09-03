@@ -117,7 +117,7 @@ class PreferenciasService {
   }
 
   /// Mostrar u ocultar el cronómetro en los juegos que lo tienen (Sudoku,
-  /// Spider) — preferencia compartida entre ambos, pedido explícito de
+  /// Solitario) — preferencia compartida entre ambos, pedido explícito de
   /// poder "activar o no" el tiempo. Por defecto activado.
   static Future<bool> obtenerMostrarTiempo() async {
     final prefs = await SharedPreferences.getInstance();

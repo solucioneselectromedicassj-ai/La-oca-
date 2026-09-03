@@ -6,7 +6,7 @@ import 'buscaminas_screen.dart';
 import 'juego2048_screen.dart';
 import 'nivel_juegos_screen.dart';
 import 'rompecabezas_screen.dart';
-import 'spider_screen.dart';
+import 'solitario_screen.dart';
 import 'sudoku_screen.dart';
 import 'tateti_screen.dart';
 
@@ -69,13 +69,16 @@ class _JuegosHubScreenState extends State<JuegosHubScreen> {
   @override
   Widget build(BuildContext context) {
     // Ta-Te-Ti queda solo para los más chicos; a partir de adolescentes
-    // se juega al Spider en su lugar — pedido explícito.
+    // se juega al Solitario clásico en su lugar — pedido explícito.
     final juegos = [
       _nivel == 'menor'
           ? _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: widget.usuarioId))
-          : _JuegoInfo('🕷️', 'Spider', AppColors.turquoise, builder: (_) => SpiderScreen(usuarioId: widget.usuarioId)),
-      _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
-      _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
+          : _JuegoInfo('🃏', 'Solitario', AppColors.turquoise, builder: (_) => SolitarioScreen(usuarioId: widget.usuarioId)),
+      // 🔤 y 🔢 (los emoji originales) renderizan como cuadraditos planos
+      // "abc"/"123" en vez de un dibujo a color — pedido explícito de
+      // cambiarlos por unos que se vean más parecidos al resto.
+      _JuegoInfo('📝', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
+      _JuegoInfo('🧮', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta, builder: (_) => RompecabezasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('💣', 'Buscaminas', AppColors.gold, textoOscuro: true, builder: (_) => BuscaminasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🎯', '2048', AppColors.sky, builder: (_) => Juego2048Screen(usuarioId: widget.usuarioId, nivel: _nivel)),
