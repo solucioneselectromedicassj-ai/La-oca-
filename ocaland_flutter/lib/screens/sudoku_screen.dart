@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
 import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/sudoku_generator.dart';
+import 'widgets/estadisticas_juego.dart';
+
+const _claveEstado = 'sudoku';
 
 class _Config {
   final int n;
@@ -41,6 +45,10 @@ class _SudokuScreenState extends State<SudokuScreen> {
   int? _selR;
   int? _selC;
   bool _premiado = false;
+  int _segundos = 0;
+  bool _mostrarTiempo = true;
+  int _statsRefresco = 0;
+  Timer? _ticker;
 
   // El tamaño real de la grilla en pantalla tiene que salir siempre del
   // puzzle efectivamente cargado o generado (que puede venir de una
@@ -57,15 +65,24 @@ class _SudokuScreenState extends State<SudokuScreen> {
     _cargarEstado();
   }
 
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
   Future<void> _cargarEstado() async {
-    final g = await PreferenciasService.obtenerEstadoJuego('sudoku');
+    _mostrarTiempo = await PreferenciasService.obtenerMostrarTiempo();
+    final g = await PreferenciasService.obtenerEstadoJuego(_claveEstado);
     if (g != null && g['solucion'] != null) {
       List<List<int>> aInt(dynamic v) => (v as List).map((f) => (f as List).map((x) => x as int).toList()).toList();
       final p = SudokuPuzzle(n: g['n'] as int, boxR: g['boxR'] as int, boxC: g['boxC'] as int, solucion: aInt(g['solucion']), pistas: aInt(g['pistas']));
       _grid = aInt(g['grid']);
       _fijas = [for (final fila in p.pistas) [for (final v in fila) v != 0]];
       _premiado = g['premiado'] as bool? ?? false;
+      _segundos = g['segundos'] as int? ?? 0;
       if (mounted) setState(() => _puzzle = p);
+      _iniciarTicker();
     } else {
       _generar();
     }
@@ -74,7 +91,7 @@ class _SudokuScreenState extends State<SudokuScreen> {
   Future<void> _guardarEstado() {
     final p = _puzzle;
     if (p == null) return Future.value();
-    return PreferenciasService.guardarEstadoJuego('sudoku', {
+    return PreferenciasService.guardarEstadoJuego(_claveEstado, {
       'n': p.n,
       'boxR': p.boxR,
       'boxC': p.boxC,
@@ -82,6 +99,15 @@ class _SudokuScreenState extends State<SudokuScreen> {
       'pistas': p.pistas,
       'grid': _grid,
       'premiado': _premiado,
+      'segundos': _segundos,
+    });
+  }
+
+  void _iniciarTicker() {
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _puzzle == null || _ganado) return;
+      setState(() => _segundos++);
     });
   }
 
@@ -91,6 +117,7 @@ class _SudokuScreenState extends State<SudokuScreen> {
       _selR = null;
       _selC = null;
       _premiado = false;
+      _segundos = 0;
     });
     Future(() {
       final p = SudokuGenerator.generar(n: _config.n, boxR: _config.boxR, boxC: _config.boxC, pistasObjetivo: _config.pistas);
@@ -101,8 +128,43 @@ class _SudokuScreenState extends State<SudokuScreen> {
         _fijas = [for (final fila in p.pistas) [for (final v in fila) v != 0]];
       });
       _guardarEstado();
+      _iniciarTicker();
     });
   }
+
+  Future<void> _reiniciarPuzzle() async {
+    final p = _puzzle;
+    if (p == null) return;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Reiniciar el sudoku?'),
+        content: const Text('Se borran los números que pusiste (las pistas quedan igual).'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Reiniciar')),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    setState(() {
+      _grid = [for (final fila in p.pistas) List<int>.from(fila)];
+      _selR = null;
+      _selC = null;
+      _premiado = false;
+      _segundos = 0;
+    });
+    _guardarEstado();
+    _iniciarTicker();
+  }
+
+  Future<void> _alternarMostrarTiempo() async {
+    final nuevo = !_mostrarTiempo;
+    await PreferenciasService.guardarMostrarTiempo(nuevo);
+    if (mounted) setState(() => _mostrarTiempo = nuevo);
+  }
+
+  String _formatearTiempo(int s) => '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 
   bool _tieneConflicto(int r, int c) {
     final v = _grid[r][c];
@@ -154,8 +216,11 @@ class _SudokuScreenState extends State<SudokuScreen> {
   Future<void> _premiar() async {
     if (_premiado) return;
     _premiado = true;
+    _ticker?.cancel();
     _guardarEstado();
+    await PreferenciasService.registrarPartidaJuego(_claveEstado, gano: true, tiempoSegundos: _segundos);
     await MascotaService.registrarJuego(usuarioId: widget.usuarioId, suba: 20);
+    if (mounted) setState(() => _statsRefresco++);
   }
 
   @override
@@ -178,6 +243,31 @@ class _SudokuScreenState extends State<SudokuScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
+                          EstadisticasJuego(juego: _claveEstado, refresco: _statsRefresco),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: _alternarMostrarTiempo,
+                                child: Text(
+                                  _mostrarTiempo ? '⏱️ ${_formatearTiempo(_segundos)}' : '⏱️ oculto',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                              ),
+                              SizedBox(
+                                height: 30,
+                                child: ElevatedButton(
+                                  onPressed: _reiniciarPuzzle,
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.coral, padding: const EdgeInsets.symmetric(horizontal: 12)),
+                                  child: const Text('🔁 Reiniciar', style: TextStyle(fontSize: 12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
                           if (_ganado)
                             const Padding(
                               padding: EdgeInsets.only(bottom: 10),

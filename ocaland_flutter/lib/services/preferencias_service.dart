@@ -12,6 +12,7 @@ class PreferenciasService {
   static const _kPais = 'pref_pais';
   static const _kNivelJuegos = 'pref_nivel_juegos';
   static const _kSonido = 'pref_sonido_activado';
+  static const _kMostrarTiempo = 'pref_mostrar_tiempo';
 
   static Future<String?> obtenerEdad() async {
     final prefs = await SharedPreferences.getInstance();
@@ -80,5 +81,51 @@ class PreferenciasService {
   static Future<void> borrarEstadoJuego(String juego) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('juego_estado_$juego');
+  }
+
+  /// Historial simple por juego (jugadas/victorias/mejor tiempo) — pedido
+  /// explícito de mostrar un historial en los juegos que más gustan, para
+  /// que se sienta el progreso entre partidas.
+  static Future<void> registrarPartidaJuego(String juego, {required bool gano, int? tiempoSegundos}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'juego_stats_$juego';
+    final raw = prefs.getString(key);
+    Map<String, dynamic> stats = {};
+    if (raw != null) {
+      try {
+        stats = jsonDecode(raw) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    stats['jugadas'] = (stats['jugadas'] as int? ?? 0) + 1;
+    if (gano) stats['victorias'] = (stats['victorias'] as int? ?? 0) + 1;
+    if (tiempoSegundos != null) {
+      final mejor = stats['mejorTiempo'] as int?;
+      if (mejor == null || tiempoSegundos < mejor) stats['mejorTiempo'] = tiempoSegundos;
+    }
+    await prefs.setString(key, jsonEncode(stats));
+  }
+
+  static Future<Map<String, dynamic>> obtenerEstadisticasJuego(String juego) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('juego_stats_$juego');
+    if (raw == null) return {};
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Mostrar u ocultar el cronómetro en los juegos que lo tienen (Sudoku,
+  /// Spider) — preferencia compartida entre ambos, pedido explícito de
+  /// poder "activar o no" el tiempo. Por defecto activado.
+  static Future<bool> obtenerMostrarTiempo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kMostrarTiempo) ?? true;
+  }
+
+  static Future<void> guardarMostrarTiempo(bool activado) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kMostrarTiempo, activado);
   }
 }

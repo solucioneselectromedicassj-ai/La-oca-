@@ -6,6 +6,7 @@ import 'buscaminas_screen.dart';
 import 'juego2048_screen.dart';
 import 'nivel_juegos_screen.dart';
 import 'rompecabezas_screen.dart';
+import 'spider_screen.dart';
 import 'sudoku_screen.dart';
 import 'tateti_screen.dart';
 
@@ -67,8 +68,12 @@ class _JuegosHubScreenState extends State<JuegosHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ta-Te-Ti queda solo para los más chicos; a partir de adolescentes
+    // se juega al Spider en su lugar — pedido explícito.
     final juegos = [
-      _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: widget.usuarioId)),
+      _nivel == 'menor'
+          ? _JuegoInfo('❌⭕', 'Ta-Te-Ti', AppColors.turquoise, builder: (_) => TatetiScreen(usuarioId: widget.usuarioId))
+          : _JuegoInfo('🕷️', 'Spider', AppColors.turquoise, builder: (_) => SpiderScreen(usuarioId: widget.usuarioId)),
       _JuegoInfo('🔤', 'Ahorcado', AppColors.coral, builder: (_) => AhorcadoScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🔢', 'Sudoku', AppColors.indigo, builder: (_) => SudokuScreen(usuarioId: widget.usuarioId, nivel: _nivel)),
       _JuegoInfo('🧩', 'Rompecabezas', AppColors.magenta, builder: (_) => RompecabezasScreen(usuarioId: widget.usuarioId, nivel: _nivel)),

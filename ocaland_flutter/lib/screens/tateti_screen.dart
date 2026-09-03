@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
 import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
+import 'widgets/estadisticas_juego.dart';
 
 const _claveEstado = 'tateti';
 
@@ -13,10 +14,11 @@ const _lineasGanadoras = [
   [0, 4, 8], [2, 4, 6],
 ];
 
-/// Ta-Te-Ti contra una IA simple (gana si puede, bloquea si hace falta,
-/// si no juega el centro/esquina/al azar) — parte de la Zona de juegos
-/// nueva que reemplaza a los minijuegos de reflejos/memoria en "Jugar
-/// con ella" (esos siguen existiendo en el tablero y en Bonus).
+/// Ta-Te-Ti para los más chicos (queda solo para la franja "menor" de la
+/// Zona de juegos, a partir de adolescentes se juega al Spider) — con
+/// dos modos: contra una IA simple (gana si puede, bloquea si hace
+/// falta, si no juega el centro/esquina/al azar) o pasándose el celular
+/// entre dos jugadores sin ninguna IA de por medio.
 class TatetiScreen extends StatefulWidget {
   final String usuarioId;
   const TatetiScreen({super.key, required this.usuarioId});
@@ -32,10 +34,16 @@ class _TatetiScreenState extends State<TatetiScreen> {
   List<int>? _lineaGanadora;
   bool _premiado = false;
   bool _cargando = true;
+  int _statsRefresco = 0;
 
   /// Dificultad elegible aparte del nivel por edad — pedido explícito:
   /// antes la oca jugaba siempre perfecto y era imposible ganarle.
   String _dificultad = 'medio'; // 'facil' | 'medio' | 'dificil'
+
+  /// Modo de juego — pedido explícito: para los más chicos, poder elegir
+  /// entre jugarle a la oca (con IA) o pasarse el celular entre dos
+  /// personas sin ninguna inteligencia artificial de por medio.
+  String _modo = 'oca'; // 'oca' | 'dosJugadores'
 
   @override
   void initState() {
@@ -51,6 +59,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
       _ganador = g['ganador'] as String?;
       _lineaGanadora = (g['lineaGanadora'] as List?)?.map((v) => v as int).toList();
       _dificultad = g['dificultad'] as String? ?? 'medio';
+      _modo = g['modo'] as String? ?? 'oca';
     }
     if (mounted) setState(() => _cargando = false);
   }
@@ -62,6 +71,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
       'ganador': _ganador,
       'lineaGanadora': _lineaGanadora,
       'dificultad': _dificultad,
+      'modo': _modo,
     });
   }
 
@@ -76,14 +86,23 @@ class _TatetiScreenState extends State<TatetiScreen> {
     _guardarEstado();
   }
 
+  void _elegirModo(String modo) {
+    if (modo == _modo) return;
+    setState(() => _modo = modo);
+    _reiniciar();
+  }
+
   void _tocar(int i) {
-    if (!_turnoJugador || _celdas[i] != null || _ganador != null) return;
-    setState(() => _celdas[i] = 'X');
+    if (_celdas[i] != null || _ganador != null) return;
+    if (_modo == 'oca' && !_turnoJugador) return; // esperando a la oca
+    setState(() => _celdas[i] = _turnoJugador ? 'X' : 'O');
     _resolverFin();
     if (_ganador != null) return;
-    setState(() => _turnoJugador = false);
+    setState(() => _turnoJugador = !_turnoJugador);
     _guardarEstado();
-    Timer(const Duration(milliseconds: 500), _jugadaOca);
+    if (_modo == 'oca' && !_turnoJugador) {
+      Timer(const Duration(milliseconds: 500), _jugadaOca);
+    }
   }
 
   void _jugadaOca() {
@@ -154,22 +173,51 @@ class _TatetiScreenState extends State<TatetiScreen> {
           _lineaGanadora = linea;
         });
         _guardarEstado();
-        if (a == 'X') _premiar();
+        _registrarFinDePartida(a);
+        if (_modo == 'oca' && a == 'X') _premiar();
         return;
       }
     }
     if (_celdas.every((c) => c != null)) {
       setState(() => _ganador = 'empate');
       _guardarEstado();
+      _registrarFinDePartida('empate');
     } else {
       _guardarEstado();
     }
+  }
+
+  /// Historial simple del juego — en modo "vs. la oca" una victoria es
+  /// clara (ganó el jugador); en "2 jugadores" no hay a quién atribuírsela
+  /// desde la app, así que solo se cuenta la partida jugada.
+  void _registrarFinDePartida(String resultado) {
+    final gano = _modo == 'oca' && resultado == 'X';
+    PreferenciasService.registrarPartidaJuego(_claveEstado, gano: gano);
+    if (mounted) setState(() => _statsRefresco++);
   }
 
   Future<void> _premiar() async {
     if (_premiado) return;
     _premiado = true;
     await MascotaService.registrarJuego(usuarioId: widget.usuarioId, suba: 20);
+  }
+
+  Widget _selectorModo() {
+    const opciones = [('oca', '🪿 Vs. la oca'), ('dosJugadores', '👫 2 jugadores')];
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 6,
+      children: [
+        for (final o in opciones)
+          ChoiceChip(
+            label: Text(o.$2, style: const TextStyle(fontSize: 12)),
+            selected: _modo == o.$1,
+            selectedColor: AppColors.turquoise,
+            backgroundColor: Colors.white,
+            onSelected: (_) => _elegirModo(o.$1),
+          ),
+      ],
+    );
   }
 
   Widget _selectorDificultad() {
@@ -193,6 +241,17 @@ class _TatetiScreenState extends State<TatetiScreen> {
     );
   }
 
+  String _textoTurno() {
+    if (_modo == 'oca') return _turnoJugador ? 'Tu turno (❌)' : 'Piensa la oca... (⭕)';
+    return _turnoJugador ? 'Turno: Jugador 1 (❌)' : 'Turno: Jugador 2 (⭕)';
+  }
+
+  String _textoResultado() {
+    if (_ganador == 'empate') return '🤝 ¡Empate!';
+    if (_modo == 'oca') return _ganador == 'X' ? '🎉 ¡Ganaste!' : '😅 Ganó la oca';
+    return _ganador == 'X' ? '🎉 ¡Ganó el Jugador 1!' : '🎉 ¡Ganó el Jugador 2!';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -214,16 +273,15 @@ class _TatetiScreenState extends State<TatetiScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _selectorDificultad(),
-                    const SizedBox(height: 10),
+                    _selectorModo(),
+                    if (_modo == 'oca') ...[
+                      const SizedBox(height: 8),
+                      _selectorDificultad(),
+                    ],
+                    const SizedBox(height: 8),
+                    EstadisticasJuego(juego: _claveEstado, refresco: _statsRefresco),
                     Text(
-                      _ganador == null
-                          ? (_turnoJugador ? 'Tu turno (❌)' : 'Piensa la oca... (⭕)')
-                          : _ganador == 'empate'
-                              ? '🤝 ¡Empate!'
-                              : _ganador == 'X'
-                                  ? '🎉 ¡Ganaste!'
-                                  : '😅 Ganó la oca',
+                      _ganador == null ? _textoTurno() : _textoResultado(),
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     const SizedBox(height: 16),
