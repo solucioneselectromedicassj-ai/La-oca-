@@ -1,0 +1,7 @@
+pdfplumber
+numpy
+scikit-learn
+gspread
+google-auth
+google-auth-oauthlib
+google-api-python-client
