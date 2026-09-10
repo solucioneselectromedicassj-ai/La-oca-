@@ -1,234 +1,234 @@
 {
  "extra": {
   "A-AUS": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 118,
-   "veces_4mas": 5
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4659,
+   "veces_4mas": 220
   },
   "A-CIC": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 124,
-   "veces_4mas": 7
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4670,
+   "veces_4mas": 215
   },
   "A-PREV": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 128,
-   "veces_4mas": 7
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4709,
+   "veces_4mas": 235
   },
   "A-PSEG": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 110,
-   "veces_4mas": 3
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4676,
+   "veces_4mas": 204
   },
   "A-PSS": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 122,
-   "veces_4mas": 5
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4699,
+   "veces_4mas": 206
   },
   "A-PTRAD": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 111,
-   "veces_4mas": 6
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4675,
+   "veces_4mas": 190
   },
   "A-RNGR": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 130,
-   "veces_4mas": 7
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4666,
+   "veces_4mas": 192
   },
   "A-RNGT": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 115,
-   "veces_4mas": 7
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4727,
+   "veces_4mas": 211
   },
   "A-SR": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 119,
-   "veces_4mas": 6
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4736,
+   "veces_4mas": 213
   },
   "A-TR": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 120,
-   "veces_4mas": 5
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4662,
+   "veces_4mas": 219
   },
   "A-TS": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 106,
-   "veces_4mas": 4
+   "max_hits": 5,
+   "n": 2308,
+   "sum_hits": 4688,
+   "veces_4mas": 213
   },
   "C-AUS": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 117,
-   "veces_4mas": 5
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4769,
+   "veces_4mas": 222
   },
   "C-RNGT": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 117,
-   "veces_4mas": 6
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4776,
+   "veces_4mas": 227
   },
   "C-SR": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 130,
-   "veces_4mas": 11
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4727,
+   "veces_4mas": 236
   },
   "CICLO-S": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 121,
-   "veces_4mas": 5
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4754,
+   "veces_4mas": 221
   },
   "MOD-CAL": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 116,
-   "veces_4mas": 2
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4733,
+   "veces_4mas": 228
   },
   "MOD-COMP": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 111,
-   "veces_4mas": 6
+   "max_hits": 5,
+   "n": 2308,
+   "sum_hits": 4645,
+   "veces_4mas": 238
   },
   "MOD-D1": {
    "max_hits": 6,
-   "n": 58,
-   "sum_hits": 130,
-   "veces_4mas": 7
+   "n": 2308,
+   "sum_hits": 4723,
+   "veces_4mas": 212
   },
   "MOD-DD": {
-   "max_hits": 5,
-   "n": 29,
-   "sum_hits": 56,
-   "veces_4mas": 4
+   "max_hits": 6,
+   "n": 1154,
+   "sum_hits": 2376,
+   "veces_4mas": 111
   },
   "MOD-DD2": {
-   "max_hits": 4,
-   "n": 29,
-   "sum_hits": 60,
-   "veces_4mas": 2
+   "max_hits": 5,
+   "n": 1154,
+   "sum_hits": 2289,
+   "veces_4mas": 86
   },
   "MOD-DM": {
-   "max_hits": 4,
-   "n": 29,
-   "sum_hits": 59,
-   "veces_4mas": 2
+   "max_hits": 5,
+   "n": 1154,
+   "sum_hits": 2341,
+   "veces_4mas": 102
   },
   "MOD-EX-A": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 113,
-   "veces_4mas": 2
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4702,
+   "veces_4mas": 220
   },
   "MOD-EX-B": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 127,
-   "veces_4mas": 8
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4720,
+   "veces_4mas": 214
   },
   "MOD-INT": {
-   "max_hits": 5,
-   "n": 58,
-   "sum_hits": 131,
-   "veces_4mas": 7
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4694,
+   "veces_4mas": 205
   },
   "MOD-MD": {
-   "max_hits": 4,
-   "n": 29,
-   "sum_hits": 66,
-   "veces_4mas": 2
+   "max_hits": 5,
+   "n": 1154,
+   "sum_hits": 2366,
+   "veces_4mas": 114
   },
   "MOD-MM": {
-   "max_hits": 4,
-   "n": 29,
-   "sum_hits": 54,
-   "veces_4mas": 2
+   "max_hits": 5,
+   "n": 1154,
+   "sum_hits": 2308,
+   "veces_4mas": 99
   },
   "MOD-MM2": {
-   "max_hits": 5,
-   "n": 29,
-   "sum_hits": 61,
-   "veces_4mas": 2
+   "max_hits": 6,
+   "n": 1154,
+   "sum_hits": 2377,
+   "veces_4mas": 122
   },
   "MOD-PRES": {
    "max_hits": 5,
-   "n": 58,
-   "sum_hits": 121,
-   "veces_4mas": 6
+   "n": 2308,
+   "sum_hits": 4733,
+   "veces_4mas": 214
   },
   "MOD-SIM": {
-   "max_hits": 4,
-   "n": 58,
-   "sum_hits": 113,
-   "veces_4mas": 6
+   "max_hits": 6,
+   "n": 2308,
+   "sum_hits": 4639,
+   "veces_4mas": 211
   }
  },
  "rev": {
   "MOD-R-A": {
-   "max_hits": 3,
-   "n": 58,
-   "sum_hits": 47,
-   "veces_4mas": 0
+   "max_hits": 4,
+   "n": 2308,
+   "sum_hits": 1798,
+   "veces_4mas": 2
   },
   "MOD-R-B": {
-   "max_hits": 3,
-   "n": 58,
-   "sum_hits": 45,
-   "veces_4mas": 0
+   "max_hits": 4,
+   "n": 2308,
+   "sum_hits": 1802,
+   "veces_4mas": 3
   }
  },
  "seg": {
   "MOD-S-A": {
-   "max_hits": 3,
-   "n": 58,
-   "sum_hits": 49,
-   "veces_4mas": 0
+   "max_hits": 4,
+   "n": 2308,
+   "sum_hits": 1784,
+   "veces_4mas": 4
   },
   "MOD-S-B": {
    "max_hits": 4,
-   "n": 58,
-   "sum_hits": 51,
-   "veces_4mas": 1
+   "n": 2308,
+   "sum_hits": 1768,
+   "veces_4mas": 2
   }
  },
  "ss": {
   "MOD-SS-A": {
    "max_hits": 4,
-   "n": 58,
-   "sum_hits": 54,
-   "veces_4mas": 1
+   "n": 2308,
+   "sum_hits": 1781,
+   "veces_4mas": 4
   },
   "MOD-SS-B": {
-   "max_hits": 2,
-   "n": 58,
-   "sum_hits": 41,
-   "veces_4mas": 0
+   "max_hits": 4,
+   "n": 2308,
+   "sum_hits": 1796,
+   "veces_4mas": 6
   }
  },
  "trad": {
   "MOD-T-A": {
-   "max_hits": 3,
-   "n": 58,
-   "sum_hits": 41,
-   "veces_4mas": 0
+   "max_hits": 4,
+   "n": 2308,
+   "sum_hits": 1811,
+   "veces_4mas": 2
   },
   "MOD-T-B": {
-   "max_hits": 3,
-   "n": 58,
-   "sum_hits": 44,
-   "veces_4mas": 0
+   "max_hits": 5,
+   "n": 2308,
+   "sum_hits": 1800,
+   "veces_4mas": 1
   }
  }
 }
