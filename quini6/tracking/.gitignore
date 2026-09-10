@@ -1,0 +1,2 @@
+# pending.json se regenera en cada --sorteo; model_stats.json se siembra con backtest_models.py
+pending.json

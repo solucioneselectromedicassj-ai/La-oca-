@@ -4,6 +4,7 @@ import sys
 
 from data.loader import (
     DATASET_PATH,
+    DIA_VERIFICADO_DESDE,
     REAL_SOURCE_PATH,
     apply_verificados,
     calc_dia,
@@ -12,11 +13,13 @@ from data.loader import (
     parse_nums,
     save_dataset,
 )
+import engine
 from evaluation.metrics import summarize
 from evaluation.walkforward import walkforward
 from models import build_pool, build_pool_c, get_all_models
 from models.scoring import score_pool
 from reports.generator import generate_report
+from reports.generator_unificado import generate_report as generate_report_unificado
 
 
 def cmd_build_dataset(args):
@@ -52,12 +55,7 @@ def cmd_build_dataset(args):
           f'({sorteos[0]["n"]}-{sorteos[-1]["n"]})')
 
 
-def _load_and_append_sorteo(args):
-    sorteos = load_dataset(args.dataset)
-    if not sorteos:
-        print('Dataset vacío. Corré primero: python main.py --build-dataset')
-        sys.exit(1)
-
+def _validar_nums(args):
     try:
         trad, seg, rev, ss = (parse_nums(v) for v in (args.t, args.s, args.r, args.ss))
     except ValueError:
@@ -68,7 +66,16 @@ def _load_and_append_sorteo(args):
         if len(nums) != 6:
             print(f'{nombre} debe tener 6 números, recibí {len(nums)}: {nums}')
             sys.exit(1)
+    return trad, seg, rev, ss
 
+
+def _load_and_append_sorteo(args):
+    sorteos = load_dataset(args.dataset)
+    if not sorteos:
+        print('Dataset vacío. Corré primero: python main.py --build-dataset')
+        sys.exit(1)
+
+    trad, seg, rev, ss = _validar_nums(args)
     dia = args.dia or calc_dia(args.sorteo)
     nuevo = make_sorteo(args.sorteo, dia, trad, seg, rev, ss)
 
@@ -76,6 +83,14 @@ def _load_and_append_sorteo(args):
     sorteos.sort(key=lambda s: s['n'])
     save_dataset(sorteos, args.dataset)
     return sorteos, nuevo
+
+
+def cmd_sorteo_unificado(args):
+    trad, seg, rev, ss = _validar_nums(args)
+    result = engine.process_sorteo(args.dataset, args.sorteo, args.dia, trad, seg, rev, ss)
+    report = generate_report_unificado(result)
+    print(report)
+    _guardar_reporte(args, result['target_n'], report, prefijo='QUINI6_PROY')
 
 
 def _guardar_reporte(args, target_n, report, prefijo='QUINI6_PROY'):
@@ -147,6 +162,30 @@ def cmd_walkforward(args):
     print(f'Pool-20 accuracy promedio: {s["acc_p20"] * 100:.1f}%  (V4+: {s["v4_p20"] * 100:.1f}%)')
 
 
+def cmd_backtest_models(args):
+    from evaluation.backtest_models import backtest_and_seed
+
+    sorteos = load_dataset(args.dataset)
+    if len(sorteos) <= args.ventana:
+        print(f'Se necesitan más de {args.ventana} sorteos para el backtest (hay {len(sorteos)}).')
+        sys.exit(1)
+
+    print(f'Corriendo backtest modelo por modelo sobre {len(sorteos) - args.ventana} sorteos '
+          f'(esto puede tardar unos minutos)...')
+    stats, n_evaluados = backtest_and_seed(sorteos, ventana=args.ventana,
+                                            solo_dia_verificado=args.solo_dia_verificado)
+    print(f'Listo: {n_evaluados} sorteos evaluados. tracking/model_stats.json actualizado.\n')
+
+    for cat, modelos in stats.items():
+        print(f'── {cat} ──')
+        ranked = sorted(modelos.items(), key=lambda kv: -(kv[1]['sum_hits'] / kv[1]['n']))
+        for nombre, m in ranked[:8]:
+            prom = m['sum_hits'] / m['n']
+            print(f'  {nombre:<10} prom={prom:.2f}  max={m["max_hits"]}  '
+                  f'4+={m["veces_4mas"]}  n={m["n"]}')
+        print()
+
+
 def build_parser():
     p = argparse.ArgumentParser(description='Quini 6 - Sistema de análisis estadístico')
     p.add_argument('--dataset', default=DATASET_PATH, help='Ruta al dataset.txt')
@@ -162,8 +201,10 @@ def build_parser():
                     help='Muestra el texto crudo extraído del PDF (para calibrar el parser)')
 
     p.add_argument('--sorteo', type=int, help='Número del sorteo a procesar')
-    p.add_argument('--sistema', choices=['v1', 'v4'], default='v1',
-                    help='v1: pools + 34 modelos heurísticos. v4: ensemble DECAY/LOGIT/KNN/FFT + señales')
+    p.add_argument('--sistema', choices=['unificado', 'v4', 'v1-legacy'], default='unificado',
+                    help='unificado (default): por sección (T/S/R/SS) + extra pool, ranking por '
+                         'acierto histórico real. v4: ensemble DECAY/LOGIT/KNN/FFT + señales/boletos. '
+                         'v1-legacy: solo extra pool, reporte original sin tracking')
     p.add_argument('--dia', choices=['D', 'X'],
                     help='Día del sorteo (D=Domingo, X=Miércoles). Si se omite se calcula automáticamente')
     p.add_argument('--t', help='Números de la Tradicional, ej: 10-19-22-29-36-43')
@@ -173,9 +214,16 @@ def build_parser():
     p.add_argument('--upload', action='store_true', help='Subir el reporte a Google Drive')
 
     p.add_argument('--walkforward', action='store_true',
-                    help='Corre la validación walk-forward sobre el dataset')
+                    help='Corre la validación walk-forward sobre el dataset (accuracy de pools)')
     p.add_argument('--ventana', type=int, default=200,
-                    help='Tamaño de la ventana de entrenamiento para walk-forward')
+                    help='Tamaño de la ventana de entrenamiento para walk-forward/backtest')
+
+    p.add_argument('--backtest-models', action='store_true',
+                    help='Siembra tracking/model_stats.json corriendo walk-forward modelo por '
+                         'modelo (T/S/R/SS + extra) sobre todo el histórico')
+    p.add_argument('--solo-dia-verificado', action='store_true',
+                    help=f'Con --backtest-models: evalúa solo sorteos >= {DIA_VERIFICADO_DESDE} '
+                         '(día D/X verificado; excluye la franja con día estimado)')
     return p
 
 
@@ -193,8 +241,12 @@ def main():
             sys.exit(1)
         if args.sistema == 'v4':
             cmd_sorteo_v4(args)
-        else:
+        elif args.sistema == 'v1-legacy':
             cmd_sorteo(args)
+        else:
+            cmd_sorteo_unificado(args)
+    elif args.backtest_models:
+        cmd_backtest_models(args)
     elif args.walkforward:
         cmd_walkforward(args)
     else:

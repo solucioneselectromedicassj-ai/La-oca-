@@ -1,0 +1,234 @@
+{
+ "extra": {
+  "A-AUS": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 118,
+   "veces_4mas": 5
+  },
+  "A-CIC": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 124,
+   "veces_4mas": 7
+  },
+  "A-PREV": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 128,
+   "veces_4mas": 7
+  },
+  "A-PSEG": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 110,
+   "veces_4mas": 3
+  },
+  "A-PSS": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 122,
+   "veces_4mas": 5
+  },
+  "A-PTRAD": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 111,
+   "veces_4mas": 6
+  },
+  "A-RNGR": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 130,
+   "veces_4mas": 7
+  },
+  "A-RNGT": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 115,
+   "veces_4mas": 7
+  },
+  "A-SR": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 119,
+   "veces_4mas": 6
+  },
+  "A-TR": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 120,
+   "veces_4mas": 5
+  },
+  "A-TS": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 106,
+   "veces_4mas": 4
+  },
+  "C-AUS": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 117,
+   "veces_4mas": 5
+  },
+  "C-RNGT": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 117,
+   "veces_4mas": 6
+  },
+  "C-SR": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 130,
+   "veces_4mas": 11
+  },
+  "CICLO-S": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 121,
+   "veces_4mas": 5
+  },
+  "MOD-CAL": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 116,
+   "veces_4mas": 2
+  },
+  "MOD-COMP": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 111,
+   "veces_4mas": 6
+  },
+  "MOD-D1": {
+   "max_hits": 6,
+   "n": 58,
+   "sum_hits": 130,
+   "veces_4mas": 7
+  },
+  "MOD-DD": {
+   "max_hits": 5,
+   "n": 29,
+   "sum_hits": 56,
+   "veces_4mas": 4
+  },
+  "MOD-DD2": {
+   "max_hits": 4,
+   "n": 29,
+   "sum_hits": 60,
+   "veces_4mas": 2
+  },
+  "MOD-DM": {
+   "max_hits": 4,
+   "n": 29,
+   "sum_hits": 59,
+   "veces_4mas": 2
+  },
+  "MOD-EX-A": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 113,
+   "veces_4mas": 2
+  },
+  "MOD-EX-B": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 127,
+   "veces_4mas": 8
+  },
+  "MOD-INT": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 131,
+   "veces_4mas": 7
+  },
+  "MOD-MD": {
+   "max_hits": 4,
+   "n": 29,
+   "sum_hits": 66,
+   "veces_4mas": 2
+  },
+  "MOD-MM": {
+   "max_hits": 4,
+   "n": 29,
+   "sum_hits": 54,
+   "veces_4mas": 2
+  },
+  "MOD-MM2": {
+   "max_hits": 5,
+   "n": 29,
+   "sum_hits": 61,
+   "veces_4mas": 2
+  },
+  "MOD-PRES": {
+   "max_hits": 5,
+   "n": 58,
+   "sum_hits": 121,
+   "veces_4mas": 6
+  },
+  "MOD-SIM": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 113,
+   "veces_4mas": 6
+  }
+ },
+ "rev": {
+  "MOD-R-A": {
+   "max_hits": 3,
+   "n": 58,
+   "sum_hits": 47,
+   "veces_4mas": 0
+  },
+  "MOD-R-B": {
+   "max_hits": 3,
+   "n": 58,
+   "sum_hits": 45,
+   "veces_4mas": 0
+  }
+ },
+ "seg": {
+  "MOD-S-A": {
+   "max_hits": 3,
+   "n": 58,
+   "sum_hits": 49,
+   "veces_4mas": 0
+  },
+  "MOD-S-B": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 51,
+   "veces_4mas": 1
+  }
+ },
+ "ss": {
+  "MOD-SS-A": {
+   "max_hits": 4,
+   "n": 58,
+   "sum_hits": 54,
+   "veces_4mas": 1
+  },
+  "MOD-SS-B": {
+   "max_hits": 2,
+   "n": 58,
+   "sum_hits": 41,
+   "veces_4mas": 0
+  }
+ },
+ "trad": {
+  "MOD-T-A": {
+   "max_hits": 3,
+   "n": 58,
+   "sum_hits": 41,
+   "veces_4mas": 0
+  },
+  "MOD-T-B": {
+   "max_hits": 3,
+   "n": 58,
+   "sum_hits": 44,
+   "veces_4mas": 0
+  }
+ }
+}

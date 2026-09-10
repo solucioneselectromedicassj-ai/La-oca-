@@ -2,7 +2,12 @@ import os
 from datetime import date, timedelta
 
 DATASET_PATH = os.path.join(os.path.dirname(__file__), 'dataset.txt')
-REAL_SOURCE_PATH = os.path.join(os.path.dirname(__file__), 'sources', 'quini6_real_3276_3407.txt')
+REAL_SOURCE_PATH = os.path.join(os.path.dirname(__file__), 'sources', 'quini6_full_900_3407.txt')
+VERIFIED_SOURCE_PATH = os.path.join(os.path.dirname(__file__), 'sources', 'quini6_real_3012_3407.txt')
+# Desde este sorteo el dia (D/X) viene de una fecha real verificada. Antes (900-3011) los
+# numeros de cada seccion son exactos pero el dia se estima con calc_dia (la fuente solo
+# traia "Mie/Dom" generico) - por eso conviene discriminar el walk-forward por tramo.
+DIA_VERIFICADO_DESDE = 3012
 
 DIA_ANCHOR_N = 3276
 DIA_ANCHOR_DATE = date(2025, 6, 8)  # Domingo 08/06/2025 - ancla verificada
