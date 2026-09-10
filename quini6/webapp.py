@@ -240,9 +240,14 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Quini 6 - App web local')
-    parser.add_argument('--port', type=int, default=8000)
-    parser.add_argument('--host', default='127.0.0.1')
+    # En plataformas tipo Render, el puerto a escuchar viene en $PORT y hay que
+    # atender en 0.0.0.0; localmente seguimos usando localhost por defecto.
+    default_port = int(os.environ.get('PORT', 8000))
+    default_host = os.environ.get('HOST', '0.0.0.0' if 'PORT' in os.environ else '127.0.0.1')
+
+    parser = argparse.ArgumentParser(description='Quini 6 - App web')
+    parser.add_argument('--port', type=int, default=default_port)
+    parser.add_argument('--host', default=default_host)
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
