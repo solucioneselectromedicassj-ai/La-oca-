@@ -130,10 +130,14 @@ class SalaGameController extends ChangeNotifier {
   // de haber estado esperando), tengo que responder una pregunta rápida
   // para destrabar el dado — si no respondo a tiempo, pierdo el turno. Usa
   // el mismo puntaje/premio del medidor (es la misma actividad, solo que
-  // acá es obligatoria en vez de libre).
+  // acá es obligatoria en vez de libre). Si ya respondí el medidor libre
+  // en algún momento de esta espera, el chequeo se saltea directamente
+  // ("tiene que HABER jugado" — no hace falta pedir una pregunta más
+  // justo al toque de tirar, si ya participó mientras esperaba).
   TriviaQuestion? chequeoPregunta;
   int chequeoSegundosRestantes = 0;
   Timer? _chequeoTimer;
+  bool _participeEnEspera = false;
 
   // ---- Duelo 1 contra 1 (Ta-Te-Ti) entre los que esperan — pedido
   // explícito: "cuando a uno le toca esperar, salte un juego uno contra
@@ -515,6 +519,7 @@ class SalaGameController extends ChangeNotifier {
     final acierto = idx != null && idx == pregunta.correct;
     acierto ? AudioService.correct() : AudioService.wrong();
     medidorPregunta = null;
+    _participeEnEspera = true;
     await _registrarRespuestaMedidor(acierto);
   }
 
@@ -562,9 +567,25 @@ class SalaGameController extends ChangeNotifier {
   void _chequearSiArrancaMiTurno(String? estadoAnterior, String? jugadorAnteriorId) {
     if (partida?.estado != 'en_curso' || estadoAnterior != 'en_curso') return;
     final j = jugadorEnTurno;
-    if (j == null || j.id != myPlayerId) return;
+    if (j == null) return;
+
+    if (j.id != myPlayerId) {
+      // No es mi turno. Si el mío recién terminó, arranca mi espera:
+      // reinicio la marca de "ya jugué mientras esperaba" para este ciclo.
+      if (jugadorAnteriorId == myPlayerId) _participeEnEspera = false;
+      return;
+    }
+
     if (jugadorAnteriorId == myPlayerId) return; // tirada extra de oca: no se vuelve a gatear
     if (j.saltaTurno) return; // va a saltar por cárcel de todos modos
+
+    if (_participeEnEspera) {
+      // Ya respondí el medidor en algún momento de la espera — no hace
+      // falta pedir otra pregunta más, el turno se destraba directo.
+      _participeEnEspera = false;
+      return;
+    }
+
     if (overlay != MpOverlay.none) return;
     _abrirChequeoDeTurno();
   }
