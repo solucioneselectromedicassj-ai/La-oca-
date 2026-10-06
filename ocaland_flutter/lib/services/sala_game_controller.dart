@@ -27,6 +27,11 @@ const _horasPlazoTurno = 6;
 const _tiempoLimiteTriviaTanda = 15; // segundos, fijo (sin escalado de dificultad, a diferencia de la campaña)
 const _totalPartidasTanda = 3; // mejor de 3
 
+/// Cuántos puntos hay que juntar en el medidor compartido para ganarlo.
+const medidorMeta = 10;
+const _tiempoLimiteMedidor = 6; // segundos — pregunta rápida, pensada para el hueco de espera entre turnos
+const _monedasPremioMedidor = 10;
+
 /// Motor de la sala normal multijugador ("tanda"): crear/unirse por código,
 /// sala de espera, sorteo de turno, tirar el dado por turnos con plazo de
 /// 6hs, Cuestionados, minijuegos, mejor-de-3 con desempate por trivia.
@@ -98,6 +103,20 @@ class SalaGameController extends ChangeNotifier {
   Completer<String>? _eleccionCompleter;
   Completer<void>? _anuncioCompleter;
 
+  // ---- Medidor compartido: actividad para los que esperan su turno —
+  // pedido explícito del usuario ("que no dependa de cuántos jueguen...
+  // mientras uno hace, otro deshace, hasta que alguien termina ganando").
+  // Estado efímero sincronizado por broadcast (no se persiste en
+  // Supabase: sin tabla nueva, nada que tocar del esquema).
+  int medidorValor = 0;
+  int _medidorIdx = 0;
+  TriviaQuestion? medidorPregunta;
+  int medidorSegundosRestantes = 0;
+  Timer? _medidorTimer;
+  RealtimeChannel? _medidorChannel;
+  String? medidorUltimoMensaje;
+  Timer? _medidorMensajeTimer;
+
   Future<void> _cargarSellos() async {
     sellos = await SellosService.obtener();
   }
@@ -105,6 +124,22 @@ class SalaGameController extends ChangeNotifier {
   bool get esCampanaGrupal => partida?.esCampanaGrupal ?? false;
   int get _totalRondas => esCampanaGrupal ? 10 : _totalPartidasTanda;
   String get _palabraRonda => esCampanaGrupal ? 'etapa' : 'partida';
+
+  /// Jugadores humanos que no tienen el turno del tablero ahora mismo —
+  /// son quienes pueden participar del medidor mientras esperan.
+  List<JugadorPartida> get _jugadoresEnEspera {
+    final turnoId = jugadorEnTurno?.id;
+    return jugadores.where((j) => j.id != turnoId && !j.esBot).toList()..sort((a, b) => a.ordenTurno.compareTo(b.ordenTurno));
+  }
+
+  JugadorPartida? get medidorJugadorActual {
+    final espera = _jugadoresEnEspera;
+    if (espera.isEmpty) return null;
+    return espera[_medidorIdx % espera.length];
+  }
+
+  bool get medidorVisible => partida?.estado == 'en_curso' && _jugadoresEnEspera.isNotEmpty;
+  bool get medidorEsMiTurno => medidorPregunta == null && medidorJugadorActual?.id == myPlayerId;
 
   bool get soyHost {
     if (jugadores.isEmpty) return false;
@@ -344,6 +379,100 @@ class SalaGameController extends ChangeNotifier {
         callback: (payload) => _aplicarPartidaActualizada(Partida.fromJson(payload.newRecord)),
       );
     _channel!.subscribe();
+    _iniciarMedidorChannel();
+  }
+
+  // ---------------------------------------------------------------------
+  // Medidor compartido — canal de broadcast efímero, independiente del
+  // canal de la partida (no toca filas de la tabla `partidas`/
+  // `jugadores_partida`, así que no interfiere con esa sincronización).
+  // ---------------------------------------------------------------------
+  void _iniciarMedidorChannel() {
+    _medidorChannel = SupabaseService.client.channel('medidor-${partida!.id}')
+      ..onBroadcast(event: 'estado', callback: _onMedidorBroadcast)
+      ..subscribe();
+  }
+
+  void _onMedidorBroadcast(Map<String, dynamic> payload) {
+    medidorValor = payload['valor'] as int? ?? medidorValor;
+    _medidorIdx = payload['idx'] as int? ?? _medidorIdx;
+    final nombre = payload['ultimoNombre'] as String?;
+    final correcto = payload['ultimoCorrecto'] as bool?;
+    final gano = payload['gano'] as bool? ?? false;
+    if (nombre != null) {
+      if (gano) {
+        _mostrarMedidorMensaje('🏆 ¡$nombre completó el medidor y ganó $_monedasPremioMedidor monedas!');
+      } else if (correcto != null) {
+        _mostrarMedidorMensaje(correcto ? '✅ $nombre sumó un punto' : '❌ $nombre erró, resta un punto');
+      }
+    }
+    notifyListeners();
+  }
+
+  void _mostrarMedidorMensaje(String texto) {
+    medidorUltimoMensaje = texto;
+    notifyListeners();
+    _medidorMensajeTimer?.cancel();
+    _medidorMensajeTimer = Timer(const Duration(seconds: 3), () {
+      medidorUltimoMensaje = null;
+      notifyListeners();
+    });
+  }
+
+  /// Abre la pregunta rápida para quien tiene el turno del medidor — solo
+  /// hace algo si realmente es su turno (no el del tablero).
+  void abrirPreguntaMedidor() {
+    if (!medidorEsMiTurno) return;
+    medidorPregunta = (TriviaBank.bancoBonus(myEdadBracket)..shuffle()).first;
+    medidorSegundosRestantes = _tiempoLimiteMedidor;
+    notifyListeners();
+    _medidorTimer?.cancel();
+    _medidorTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      medidorSegundosRestantes--;
+      notifyListeners();
+      if (medidorSegundosRestantes <= 0) {
+        t.cancel();
+        responderMedidor(null);
+      }
+    });
+  }
+
+  /// Resuelve la pregunta del medidor: acierto suma un punto, error resta
+  /// uno (sin bajar de 0). Si se llega a [medidorMeta], quien respondió se
+  /// lleva unas monedas y el medidor vuelve a 0 para la próxima ronda.
+  Future<void> responderMedidor(int? idx) async {
+    _medidorTimer?.cancel();
+    final pregunta = medidorPregunta;
+    if (pregunta == null) return;
+    final acierto = idx != null && idx == pregunta.correct;
+    acierto ? AudioService.correct() : AudioService.wrong();
+    medidorPregunta = null;
+
+    final nombre = yo?.nombre ?? myNombre;
+    final nuevoValor = (medidorValor + (acierto ? 1 : -1)).clamp(0, medidorMeta);
+    final gano = acierto && nuevoValor >= medidorMeta;
+    _medidorIdx++;
+    medidorValor = gano ? 0 : nuevoValor;
+    notifyListeners();
+
+    unawaited(_medidorChannel?.sendBroadcastMessage(event: 'estado', payload: {
+      'valor': medidorValor,
+      'idx': _medidorIdx,
+      'ultimoNombre': nombre,
+      'ultimoCorrecto': acierto,
+      'gano': gano,
+    }));
+
+    if (gano) {
+      _mostrarMedidorMensaje('🏆 ¡$nombre completó el medidor y ganó $_monedasPremioMedidor monedas!');
+      final nuevoTotal = await EconomyService.agregarMonedas(usuario.id, _monedasPremioMedidor);
+      if (nuevoTotal != null) {
+        usuario = usuario.copyWith(monedas: nuevoTotal);
+        notifyListeners();
+      }
+    } else {
+      _mostrarMedidorMensaje(acierto ? '✅ $nombre sumó un punto' : '❌ $nombre erró, resta un punto');
+    }
   }
 
   void _startPolling() {
@@ -1092,8 +1221,13 @@ class SalaGameController extends ChangeNotifier {
 
   Future<void> salir() async {
     _pollTimer?.cancel();
+    _medidorTimer?.cancel();
+    _medidorMensajeTimer?.cancel();
     if (_channel != null) {
       await SupabaseService.client.removeChannel(_channel!);
+    }
+    if (_medidorChannel != null) {
+      await SupabaseService.client.removeChannel(_medidorChannel!);
     }
     if (partida != null) await SessionService.borrar(partida!.id);
   }
@@ -1102,8 +1236,13 @@ class SalaGameController extends ChangeNotifier {
   void dispose() {
     _triviaTimer?.cancel();
     _pollTimer?.cancel();
+    _medidorTimer?.cancel();
+    _medidorMensajeTimer?.cancel();
     if (_channel != null) {
       SupabaseService.client.removeChannel(_channel!);
+    }
+    if (_medidorChannel != null) {
+      SupabaseService.client.removeChannel(_medidorChannel!);
     }
     super.dispose();
   }

@@ -14,6 +14,7 @@ import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/fin_partida_panel.dart';
 import 'widgets/jugadores_status_row.dart';
+import 'widgets/medidor_compartido_widget.dart';
 import 'widgets/minijuego_overlay.dart';
 import 'widgets/ruleta_overlay.dart';
 import 'widgets/sorteo_overlay.dart';
@@ -117,6 +118,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             ),
                           JugadoresStatusRow(jugadores: c.jugadores),
                           const SizedBox(height: 8),
+                          MedidorCompartidoWidget(controller: c),
                           BoardWidget(
                             layoutCasillas: c.partida!.layoutCasillas,
                             jugadores: c.jugadores,
