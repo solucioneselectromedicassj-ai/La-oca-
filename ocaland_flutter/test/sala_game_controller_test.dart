@@ -41,7 +41,25 @@ Partida _partida({required String estado, required int turnoActual}) => Partida.
       'desempate_turno_idx': 0,
     });
 
+SalaGameController _controller({required List<JugadorPartida> jugadores, required String estado, required int turnoActual, required String myPlayerId}) {
+  final c = SalaGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
+  c.myPlayerId = myPlayerId;
+  c.jugadores = jugadores;
+  c.partida = _partida(estado: estado, turnoActual: turnoActual);
+  return c;
+}
+
 void main() {
+  // responderMedidor()/tocarDuelo() tocan AudioService.correct()/.wrong(),
+  // que en un test sin binding de widgets intenta crear reproductores
+  // reales de audio ("Binding has not yet been initialized"). Se apaga
+  // una sola vez para todo el archivo en vez de por test: correct() programa
+  // un segundo beep 110ms después con Future.delayed, que vuelve a chequear
+  // `enabled` en ese momento — reactivarlo en un tearDown entre tests deja
+  // una ventana donde ese beep tardío se dispara con el audio ya reactivado
+  // y explota en medio de otro test.
+  AudioService.enabled = false;
+
   group('SalaGameController.diceHabilitado', () {
     test('habilitado cuando es mi turno y la partida está en curso', () {
       final c = SalaGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
@@ -97,20 +115,7 @@ void main() {
   });
 
   group('SalaGameController — medidor compartido', () {
-    // responderMedidor() toca AudioService.correct()/.wrong(), que en un
-    // test sin binding de widgets intenta crear reproductores reales de
-    // audio (falla con "Binding has not yet been initialized"). Lo
-    // apagamos acá — no es lo que se está probando.
-    setUp(() => AudioService.enabled = false);
-    tearDown(() => AudioService.enabled = true);
-
-    SalaGameController controller({required List<JugadorPartida> jugadores, required String estado, required int turnoActual, required String myPlayerId}) {
-      final c = SalaGameController(usuario: _usuario(), myNombre: 'Pablo', myEdadBracket: 'adultos', myPais: 'argentina');
-      c.myPlayerId = myPlayerId;
-      c.jugadores = jugadores;
-      c.partida = _partida(estado: estado, turnoActual: turnoActual);
-      return c;
-    }
+    final controller = _controller;
 
     test('no es visible si la partida no está en curso', () {
       final c = controller(
@@ -203,6 +208,136 @@ void main() {
       await c.responderMedidor(incorrecta);
 
       expect(c.medidorValor, 0);
+    });
+  });
+
+  group('SalaGameController — duelo 1 contra 1 (Ta-Te-Ti)', () {
+    test('no es visible si hay menos de dos jugadores esperando', () {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'rival', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 1, // le toca a "rival" -> solo "yo" espera
+        myPlayerId: 'yo',
+      );
+      expect(c.dueloVisible, isFalse);
+    });
+
+    test('empareja a los dos primeros en espera por orden de turno, dejando afuera a quien tira el dado y a los bots', () {
+      final c = _controller(
+        jugadores: [
+          _jugador(id: 'yo', ordenTurno: 0),
+          _jugador(id: 'rival1', ordenTurno: 1),
+          _jugador(id: 'rival2', ordenTurno: 2),
+          _jugador(id: 'bot', ordenTurno: 3)..esBot = true,
+        ],
+        estado: 'en_curso',
+        turnoActual: 0, // le toca a "yo" -> esperan rival1 y rival2 (el bot queda afuera)
+        myPlayerId: 'rival1',
+      );
+      expect(c.dueloVisible, isTrue);
+      expect(c.dueloJugadorX?.id, 'rival1');
+      expect(c.dueloJugadorO?.id, 'rival2');
+      expect(c.soyDueloX, isTrue);
+      expect(c.soyDueloO, isFalse);
+      expect(c.dueloEsMiTurno, isTrue, reason: 'arranca jugando X');
+    });
+
+    test('tocarDuelo ignora el toque si no es mi turno o la celda ya está ocupada', () {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'o', // le toca a X primero, no a "o"
+      );
+      c.tocarDuelo(0);
+      expect(c.dueloCeldas[0], isNull, reason: 'todavía no es el turno de O');
+
+      // Si fuera mi turno (X) pero la celda ya tiene algo, tampoco hace nada.
+      final cX = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'x',
+      );
+      cX.dueloCeldas[4] = 'X';
+      cX.tocarDuelo(4);
+      expect(cX.dueloCeldas[4], 'X', reason: 'no se pisa una celda ya jugada');
+    });
+
+    test('tocarDuelo juega la celda y pasa el turno al otro jugador', () {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'x',
+      );
+      expect(c.dueloEsMiTurno, isTrue);
+      c.tocarDuelo(0);
+      expect(c.dueloCeldas[0], 'X');
+      expect(c.dueloTurnoX, isFalse);
+      expect(c.dueloEsMiTurno, isFalse, reason: 'ahora le toca a O');
+    });
+
+    test('detecta una línea ganadora y la marca', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'x',
+      );
+      // X: 0,1,2 (gana la fila de arriba) — O juega en el medio en cada vuelta.
+      c.dueloCeldas = ['X', 'X', null, 'O', 'O', null, null, null, null];
+      c.dueloTurnoX = true;
+      c.tocarDuelo(2);
+
+      expect(c.dueloGanador, 'X');
+      expect(c.dueloLineaGanadora, [0, 1, 2]);
+    });
+
+    test('empate cuando se llena el tablero sin ganador', () {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'x',
+      );
+      c.dueloCeldas = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', null];
+      c.dueloTurnoX = true;
+      c.tocarDuelo(8);
+
+      expect(c.dueloGanador, 'empate');
+      expect(c.dueloLineaGanadora, isNull);
+    });
+
+    test('reiniciarDuelo solo funciona para quienes participan del duelo', () {
+      final cEspectador = _controller(
+        jugadores: [
+          _jugador(id: 'yo', ordenTurno: 0),
+          _jugador(id: 'x', ordenTurno: 1),
+          _jugador(id: 'o', ordenTurno: 2),
+          _jugador(id: 'espectador', ordenTurno: 3),
+        ],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'espectador',
+      );
+      cEspectador.dueloCeldas[0] = 'X';
+      cEspectador.dueloGanador = 'X';
+      cEspectador.reiniciarDuelo();
+      expect(cEspectador.dueloCeldas[0], 'X', reason: 'un espectador no puede reiniciar el duelo de otros');
+
+      final cJugador = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'x', ordenTurno: 1), _jugador(id: 'o', ordenTurno: 2)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'x',
+      );
+      cJugador.dueloCeldas[0] = 'X';
+      cJugador.dueloGanador = 'X';
+      cJugador.reiniciarDuelo();
+      expect(cJugador.dueloCeldas.every((v) => v == null), isTrue);
+      expect(cJugador.dueloGanador, isNull);
+      expect(cJugador.dueloTurnoX, isTrue);
     });
   });
 }

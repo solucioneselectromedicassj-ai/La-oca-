@@ -13,6 +13,7 @@ import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../models/wheel_prizes.dart';
 import '../utils/iterable_ext.dart';
+import '../utils/tateti_lineas.dart';
 import 'audio_service.dart';
 import 'economy_service.dart';
 import 'join_room_result.dart';
@@ -31,6 +32,7 @@ const _totalPartidasTanda = 3; // mejor de 3
 const medidorMeta = 10;
 const _tiempoLimiteMedidor = 6; // segundos — pregunta rápida, pensada para el hueco de espera entre turnos
 const _monedasPremioMedidor = 10;
+const _monedasPremioDuelo = 15;
 
 /// Motor de la sala normal multijugador ("tanda"): crear/unirse por código,
 /// sala de espera, sorteo de turno, tirar el dado por turnos con plazo de
@@ -117,6 +119,19 @@ class SalaGameController extends ChangeNotifier {
   String? medidorUltimoMensaje;
   Timer? _medidorMensajeTimer;
 
+  // ---- Duelo 1 contra 1 (Ta-Te-Ti) entre los que esperan — pedido
+  // explícito: "cuando a uno le toca esperar, salte un juego uno contra
+  // uno". Se arma automáticamente entre los dos primeros jugadores en
+  // espera (por orden de turno) apenas hay dos o más esperando; si solo
+  // espera uno, usa el medidor de arriba en su lugar. También efímero
+  // por broadcast, sin tabla nueva.
+  RealtimeChannel? _dueloChannel;
+  String _dueloParActual = '';
+  List<String?> dueloCeldas = List.filled(9, null);
+  bool dueloTurnoX = true;
+  String? dueloGanador; // 'X' | 'O' | 'empate' | null
+  List<int>? dueloLineaGanadora;
+
   Future<void> _cargarSellos() async {
     sellos = await SellosService.obtener();
   }
@@ -126,11 +141,28 @@ class SalaGameController extends ChangeNotifier {
   String get _palabraRonda => esCampanaGrupal ? 'etapa' : 'partida';
 
   /// Jugadores humanos que no tienen el turno del tablero ahora mismo —
-  /// son quienes pueden participar del medidor mientras esperan.
+  /// son quienes pueden participar del medidor o del duelo mientras esperan.
   List<JugadorPartida> get _jugadoresEnEspera {
     final turnoId = jugadorEnTurno?.id;
     return jugadores.where((j) => j.id != turnoId && !j.esBot).toList()..sort((a, b) => a.ordenTurno.compareTo(b.ordenTurno));
   }
+
+  List<JugadorPartida> get _duelistas {
+    final espera = _jugadoresEnEspera;
+    return espera.length >= 2 ? espera.sublist(0, 2) : const [];
+  }
+
+  String get _claveParDuelo {
+    final d = _duelistas;
+    return d.length < 2 ? '' : '${d[0].id}_${d[1].id}';
+  }
+
+  bool get dueloVisible => _duelistas.length == 2;
+  JugadorPartida? get dueloJugadorX => _duelistas.isNotEmpty ? _duelistas[0] : null;
+  JugadorPartida? get dueloJugadorO => _duelistas.length > 1 ? _duelistas[1] : null;
+  bool get soyDueloX => dueloJugadorX?.id == myPlayerId;
+  bool get soyDueloO => dueloJugadorO?.id == myPlayerId;
+  bool get dueloEsMiTurno => dueloGanador == null && ((dueloTurnoX && soyDueloX) || (!dueloTurnoX && soyDueloO));
 
   JugadorPartida? get medidorJugadorActual {
     final espera = _jugadoresEnEspera;
@@ -329,8 +361,24 @@ class SalaGameController extends ChangeNotifier {
   Future<void> _refreshJugadores() async {
     final rows = await SupabaseService.from('jugadores_partida').select().eq('partida_id', partida!.id).order('orden_turno');
     jugadores = (rows as List).map((r) => JugadorPartida.fromJson(r as Map<String, dynamic>)).toList();
+    _sincronizarParDuelo();
     notifyListeners();
     onPosiblePropioTurnoSaltado();
+  }
+
+  /// Si cambió la pareja que le toca duelo (porque alguien terminó de
+  /// esperar, se sumó un jugador nuevo, etc.), arranca un tablero limpio
+  /// para la pareja nueva — cada cliente lo calcula igual de forma
+  /// determinística a partir de [_jugadoresEnEspera], sin necesidad de
+  /// coordinarse.
+  void _sincronizarParDuelo() {
+    final clave = _claveParDuelo;
+    if (clave == _dueloParActual) return;
+    _dueloParActual = clave;
+    dueloCeldas = List.filled(9, null);
+    dueloTurnoX = true;
+    dueloGanador = null;
+    dueloLineaGanadora = null;
   }
 
   Future<void> _refreshPartida() async {
@@ -350,6 +398,7 @@ class SalaGameController extends ChangeNotifier {
   void _aplicarPartidaActualizada(Partida nueva) {
     final estadoAnterior = partida?.estado;
     partida = nueva;
+    _sincronizarParDuelo();
     if (estadoAnterior != 'finalizada' && nueva.estado == 'finalizada') {
       _mostrarFinDePartida();
     }
@@ -380,6 +429,7 @@ class SalaGameController extends ChangeNotifier {
       );
     _channel!.subscribe();
     _iniciarMedidorChannel();
+    _iniciarDueloChannel();
   }
 
   // ---------------------------------------------------------------------
@@ -465,14 +515,105 @@ class SalaGameController extends ChangeNotifier {
 
     if (gano) {
       _mostrarMedidorMensaje('🏆 ¡$nombre completó el medidor y ganó $_monedasPremioMedidor monedas!');
-      final nuevoTotal = await EconomyService.agregarMonedas(usuario.id, _monedasPremioMedidor);
-      if (nuevoTotal != null) {
-        usuario = usuario.copyWith(monedas: nuevoTotal);
-        notifyListeners();
+      try {
+        final nuevoTotal = await EconomyService.agregarMonedas(usuario.id, _monedasPremioMedidor);
+        if (nuevoTotal != null) {
+          usuario = usuario.copyWith(monedas: nuevoTotal);
+          notifyListeners();
+        }
+      } catch (_) {
+        // Si falla la recompensa (red, etc.) el medidor ya se jugó igual; no vale la pena romper la UI por esto.
       }
     } else {
       _mostrarMedidorMensaje(acierto ? '✅ $nombre sumó un punto' : '❌ $nombre erró, resta un punto');
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // Duelo 1 contra 1 (Ta-Te-Ti) — otro canal de broadcast efímero,
+  // separado del medidor para que sus mensajes no se mezclen.
+  // ---------------------------------------------------------------------
+  void _iniciarDueloChannel() {
+    _dueloChannel = SupabaseService.client.channel('duelo-${partida!.id}')
+      ..onBroadcast(event: 'estado', callback: _onDueloBroadcast)
+      ..subscribe();
+  }
+
+  void _onDueloBroadcast(Map<String, dynamic> payload) {
+    // Un mensaje de una pareja vieja (p. ej. llegó tarde, de antes de que
+    // cambiara quién espera) se ignora en vez de pisar el tablero actual.
+    if (payload['par'] != _dueloParActual) return;
+    dueloCeldas = (payload['celdas'] as List).map((v) => v as String?).toList();
+    dueloTurnoX = payload['turnoX'] as bool? ?? true;
+    dueloGanador = payload['ganador'] as String?;
+    dueloLineaGanadora = (payload['lineaGanadora'] as List?)?.map((v) => v as int).toList();
+    notifyListeners();
+  }
+
+  /// Juega una celda del duelo — solo hace algo si de verdad es mi turno
+  /// del duelo (y esa pareja sigue siendo la vigente).
+  void tocarDuelo(int i) {
+    if (!dueloEsMiTurno || dueloCeldas[i] != null) return;
+    dueloCeldas[i] = dueloTurnoX ? 'X' : 'O';
+    _resolverDuelo();
+    if (dueloGanador == null) dueloTurnoX = !dueloTurnoX;
+    notifyListeners();
+
+    unawaited(_dueloChannel?.sendBroadcastMessage(event: 'estado', payload: {
+      'par': _dueloParActual,
+      'celdas': dueloCeldas,
+      'turnoX': dueloTurnoX,
+      'ganador': dueloGanador,
+      'lineaGanadora': dueloLineaGanadora,
+    }));
+
+    if (dueloGanador != null && dueloGanador != 'empate') _premiarDuelo();
+  }
+
+  void _resolverDuelo() {
+    for (final linea in lineasGanadorasTateti) {
+      final a = dueloCeldas[linea[0]], b = dueloCeldas[linea[1]], c = dueloCeldas[linea[2]];
+      if (a != null && a == b && b == c) {
+        dueloGanador = a;
+        dueloLineaGanadora = linea;
+        return;
+      }
+    }
+    if (dueloCeldas.every((c) => c != null)) dueloGanador = 'empate';
+  }
+
+  /// Cada cliente se acredita las monedas a sí mismo solo si es el que
+  /// ganó (nadie llama a la RPC en nombre de otro jugador).
+  Future<void> _premiarDuelo() async {
+    final ganadorEsX = dueloGanador == 'X';
+    final jugadorGanador = ganadorEsX ? dueloJugadorX : dueloJugadorO;
+    if (jugadorGanador?.id != myPlayerId) return;
+    try {
+      final nuevoTotal = await EconomyService.agregarMonedas(usuario.id, _monedasPremioDuelo);
+      if (nuevoTotal != null) {
+        usuario = usuario.copyWith(monedas: nuevoTotal);
+        notifyListeners();
+      }
+    } catch (_) {
+      // Si falla la recompensa (red, etc.) el duelo ya se jugó igual; no vale la pena romper la UI por esto.
+    }
+  }
+
+  /// Revancha para la misma pareja, sin esperar a que cambie quién espera.
+  void reiniciarDuelo() {
+    if (!soyDueloX && !soyDueloO) return;
+    dueloCeldas = List.filled(9, null);
+    dueloTurnoX = true;
+    dueloGanador = null;
+    dueloLineaGanadora = null;
+    notifyListeners();
+    unawaited(_dueloChannel?.sendBroadcastMessage(event: 'estado', payload: {
+      'par': _dueloParActual,
+      'celdas': dueloCeldas,
+      'turnoX': true,
+      'ganador': null,
+      'lineaGanadora': null,
+    }));
   }
 
   void _startPolling() {
@@ -1229,6 +1370,9 @@ class SalaGameController extends ChangeNotifier {
     if (_medidorChannel != null) {
       await SupabaseService.client.removeChannel(_medidorChannel!);
     }
+    if (_dueloChannel != null) {
+      await SupabaseService.client.removeChannel(_dueloChannel!);
+    }
     if (partida != null) await SessionService.borrar(partida!.id);
   }
 
@@ -1243,6 +1387,9 @@ class SalaGameController extends ChangeNotifier {
     }
     if (_medidorChannel != null) {
       SupabaseService.client.removeChannel(_medidorChannel!);
+    }
+    if (_dueloChannel != null) {
+      SupabaseService.client.removeChannel(_dueloChannel!);
     }
     super.dispose();
   }

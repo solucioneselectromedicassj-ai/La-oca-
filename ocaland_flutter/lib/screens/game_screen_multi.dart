@@ -10,6 +10,7 @@ import 'widgets/boton_salir_juego.dart';
 import 'widgets/boton_silenciar.dart';
 import 'widgets/desempate_panel.dart';
 import 'widgets/dice_widget.dart';
+import 'widgets/duelo_tateti_widget.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/fin_partida_panel.dart';
@@ -118,7 +119,7 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
                             ),
                           JugadoresStatusRow(jugadores: c.jugadores),
                           const SizedBox(height: 8),
-                          MedidorCompartidoWidget(controller: c),
+                          if (c.dueloVisible) DueloTatetiWidget(controller: c) else MedidorCompartidoWidget(controller: c),
                           BoardWidget(
                             layoutCasillas: c.partida!.layoutCasillas,
                             jugadores: c.jugadores,

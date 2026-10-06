@@ -4,15 +4,10 @@ import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
 import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/tateti_lineas.dart';
 import 'widgets/estadisticas_juego.dart';
 
 const _claveEstado = 'tateti';
-
-const _lineasGanadoras = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8],
-  [0, 3, 6], [1, 4, 7], [2, 5, 8],
-  [0, 4, 8], [2, 4, 6],
-];
 
 /// Ta-Te-Ti para los más chicos (queda solo para la franja "menor" de la
 /// Zona de juegos, a partir de adolescentes se juega al Solitario) — con
@@ -155,7 +150,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
   }
 
   int? _buscarJugadaGanadora(String simbolo) {
-    for (final linea in _lineasGanadoras) {
+    for (final linea in lineasGanadorasTateti) {
       final valores = linea.map((i) => _celdas[i]).toList();
       if (valores.where((v) => v == simbolo).length == 2 && valores.contains(null)) {
         return linea[valores.indexOf(null)];
@@ -165,7 +160,7 @@ class _TatetiScreenState extends State<TatetiScreen> {
   }
 
   void _resolverFin() {
-    for (final linea in _lineasGanadoras) {
+    for (final linea in lineasGanadorasTateti) {
       final a = _celdas[linea[0]], b = _celdas[linea[1]], c = _celdas[linea[2]];
       if (a != null && a == b && b == c) {
         setState(() {
