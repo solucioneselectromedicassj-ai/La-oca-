@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocaland_flutter/models/jugador.dart';
 import 'package:ocaland_flutter/models/partida.dart';
+import 'package:ocaland_flutter/models/trivia_bank.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/audio_service.dart';
 import 'package:ocaland_flutter/services/sala_game_controller.dart';
@@ -105,7 +106,7 @@ void main() {
       c.jugadores = [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)];
       c.partida = _partida(estado: 'en_curso', turnoActual: 0);
 
-      for (final ov in [MpOverlay.trivia, MpOverlay.minijuego, MpOverlay.sorteo, MpOverlay.transicionMinijuego, MpOverlay.transicionRuleta]) {
+      for (final ov in [MpOverlay.trivia, MpOverlay.minijuego, MpOverlay.sorteo, MpOverlay.transicionMinijuego, MpOverlay.transicionRuleta, MpOverlay.chequeoTurno]) {
         c.overlay = ov;
         expect(c.diceHabilitado, isFalse, reason: 'overlay=$ov');
       }
@@ -338,6 +339,56 @@ void main() {
       expect(cJugador.dueloCeldas.every((v) => v == null), isTrue);
       expect(cJugador.dueloGanador, isNull);
       expect(cJugador.dueloTurnoX, isTrue);
+    });
+  });
+
+  group('SalaGameController — chequeo de turno obligatorio', () {
+    test('responderChequeoTurno con acierto suma al medidor, cierra la pregunta y destraba el overlay', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'yo',
+      );
+      final pregunta = (TriviaBank.bancoBonus('adultos')..shuffle()).first;
+      c.chequeoPregunta = pregunta;
+      c.overlay = MpOverlay.chequeoTurno;
+
+      await c.responderChequeoTurno(pregunta.correct);
+
+      expect(c.chequeoPregunta, isNull);
+      expect(c.overlay, MpOverlay.none, reason: 'al responder (bien o mal) se destraba el dado');
+      expect(c.medidorValor, 1);
+    });
+
+    test('responderChequeoTurno con error también destraba el overlay (solo participar alcanza)', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'yo',
+      );
+      final pregunta = (TriviaBank.bancoBonus('adultos')..shuffle()).first;
+      final incorrecta = (pregunta.correct + 1) % pregunta.options.length;
+      c.chequeoPregunta = pregunta;
+      c.overlay = MpOverlay.chequeoTurno;
+
+      await c.responderChequeoTurno(incorrecta);
+
+      expect(c.chequeoPregunta, isNull);
+      expect(c.overlay, MpOverlay.none);
+      expect(c.medidorValor, 0, reason: 'no baja de 0');
+    });
+
+    test('responderChequeoTurno no hace nada si no hay una pregunta pendiente', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'yo',
+      );
+      await c.responderChequeoTurno(0);
+      expect(c.medidorValor, 0);
     });
   });
 }

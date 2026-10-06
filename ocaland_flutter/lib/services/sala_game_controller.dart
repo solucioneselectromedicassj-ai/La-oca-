@@ -22,7 +22,7 @@ import 'sellos_service.dart';
 import 'session_service.dart';
 import 'supabase_service.dart';
 
-enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta, eleccionVideoMonedas, anuncioSimulado }
+enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta, eleccionVideoMonedas, anuncioSimulado, chequeoTurno }
 
 const _horasPlazoTurno = 6;
 const _tiempoLimiteTriviaTanda = 15; // segundos, fijo (sin escalado de dificultad, a diferencia de la campaña)
@@ -33,6 +33,13 @@ const medidorMeta = 10;
 const _tiempoLimiteMedidor = 6; // segundos — pregunta rápida, pensada para el hueco de espera entre turnos
 const _monedasPremioMedidor = 10;
 const _monedasPremioDuelo = 15;
+
+/// Pedido explícito: para que haya dinámica mientras se espera, responder
+/// el medidor pasa a ser obligatorio para destrabar el propio turno de la
+/// Oca — con un tiempo bastante más generoso que el del medidor libre
+/// (ese es de 6s; acá 18s, para que perder el turno sea por no haber
+/// estado ahí, no por lo justo del cronómetro).
+const _tiempoLimiteChequeoTurno = 18;
 
 /// Motor de la sala normal multijugador ("tanda"): crear/unirse por código,
 /// sala de espera, sorteo de turno, tirar el dado por turnos con plazo de
@@ -118,6 +125,15 @@ class SalaGameController extends ChangeNotifier {
   RealtimeChannel? _medidorChannel;
   String? medidorUltimoMensaje;
   Timer? _medidorMensajeTimer;
+
+  // ---- Chequeo de turno: justo cuando arranca mi turno de la Oca (después
+  // de haber estado esperando), tengo que responder una pregunta rápida
+  // para destrabar el dado — si no respondo a tiempo, pierdo el turno. Usa
+  // el mismo puntaje/premio del medidor (es la misma actividad, solo que
+  // acá es obligatoria en vez de libre).
+  TriviaQuestion? chequeoPregunta;
+  int chequeoSegundosRestantes = 0;
+  Timer? _chequeoTimer;
 
   // ---- Duelo 1 contra 1 (Ta-Te-Ti) entre los que esperan — pedido
   // explícito: "cuando a uno le toca esperar, salte un juego uno contra
@@ -397,8 +413,10 @@ class SalaGameController extends ChangeNotifier {
 
   void _aplicarPartidaActualizada(Partida nueva) {
     final estadoAnterior = partida?.estado;
+    final jugadorAnteriorId = jugadorEnTurno?.id;
     partida = nueva;
     _sincronizarParDuelo();
+    _chequearSiArrancaMiTurno(estadoAnterior, jugadorAnteriorId);
     if (estadoAnterior != 'finalizada' && nueva.estado == 'finalizada') {
       _mostrarFinDePartida();
     }
@@ -497,7 +515,13 @@ class SalaGameController extends ChangeNotifier {
     final acierto = idx != null && idx == pregunta.correct;
     acierto ? AudioService.correct() : AudioService.wrong();
     medidorPregunta = null;
+    await _registrarRespuestaMedidor(acierto);
+  }
 
+  /// Puntaje/premio del medidor, compartido entre la respuesta libre
+  /// ([responderMedidor]) y el chequeo obligatorio de turno — es la misma
+  /// actividad, solo cambia desde dónde se dispara.
+  Future<void> _registrarRespuestaMedidor(bool acierto) async {
     final nombre = yo?.nombre ?? myNombre;
     final nuevoValor = (medidorValor + (acierto ? 1 : -1)).clamp(0, medidorMeta);
     final gano = acierto && nuevoValor >= medidorMeta;
@@ -527,6 +551,58 @@ class SalaGameController extends ChangeNotifier {
     } else {
       _mostrarMedidorMensaje(acierto ? '✅ $nombre sumó un punto' : '❌ $nombre erró, resta un punto');
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // Chequeo de turno — pedido explícito: responder el medidor pasa a ser
+  // obligatorio para destrabar el propio turno de la Oca. Se dispara solo
+  // cuando el turno pasa a ser mío viniendo de haber estado esperando (no
+  // en el primer turno de la partida, ni en una tirada extra de oca).
+  // ---------------------------------------------------------------------
+  void _chequearSiArrancaMiTurno(String? estadoAnterior, String? jugadorAnteriorId) {
+    if (partida?.estado != 'en_curso' || estadoAnterior != 'en_curso') return;
+    final j = jugadorEnTurno;
+    if (j == null || j.id != myPlayerId) return;
+    if (jugadorAnteriorId == myPlayerId) return; // tirada extra de oca: no se vuelve a gatear
+    if (j.saltaTurno) return; // va a saltar por cárcel de todos modos
+    if (overlay != MpOverlay.none) return;
+    _abrirChequeoDeTurno();
+  }
+
+  void _abrirChequeoDeTurno() {
+    chequeoPregunta = (TriviaBank.bancoBonus(myEdadBracket)..shuffle()).first;
+    chequeoSegundosRestantes = _tiempoLimiteChequeoTurno;
+    overlay = MpOverlay.chequeoTurno;
+    notifyListeners();
+    _chequeoTimer?.cancel();
+    _chequeoTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      chequeoSegundosRestantes--;
+      notifyListeners();
+      if (chequeoSegundosRestantes <= 0) {
+        t.cancel();
+        _resolverChequeoPorTimeout();
+      }
+    });
+  }
+
+  Future<void> _resolverChequeoPorTimeout() async {
+    chequeoPregunta = null;
+    overlay = MpOverlay.none;
+    notifyListeners();
+    _msg('⏰ No respondiste a tiempo el chequeo de turno — perdés este turno.');
+    await _terminarTurno(false);
+  }
+
+  Future<void> responderChequeoTurno(int idx) async {
+    _chequeoTimer?.cancel();
+    final pregunta = chequeoPregunta;
+    if (pregunta == null) return;
+    final acierto = idx == pregunta.correct;
+    acierto ? AudioService.correct() : AudioService.wrong();
+    chequeoPregunta = null;
+    overlay = MpOverlay.none;
+    notifyListeners();
+    await _registrarRespuestaMedidor(acierto);
   }
 
   // ---------------------------------------------------------------------
@@ -1364,6 +1440,7 @@ class SalaGameController extends ChangeNotifier {
     _pollTimer?.cancel();
     _medidorTimer?.cancel();
     _medidorMensajeTimer?.cancel();
+    _chequeoTimer?.cancel();
     if (_channel != null) {
       await SupabaseService.client.removeChannel(_channel!);
     }
@@ -1382,6 +1459,7 @@ class SalaGameController extends ChangeNotifier {
     _pollTimer?.cancel();
     _medidorTimer?.cancel();
     _medidorMensajeTimer?.cancel();
+    _chequeoTimer?.cancel();
     if (_channel != null) {
       SupabaseService.client.removeChannel(_channel!);
     }

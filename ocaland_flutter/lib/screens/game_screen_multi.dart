@@ -196,6 +196,14 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
         );
       case MpOverlay.anuncioSimulado:
         return AnuncioSimuladoOverlay(onContinuar: c.continuarDesdeAnuncio);
+      case MpOverlay.chequeoTurno:
+        return TriviaOverlay(
+          titulo: '🪢 ¡Te toca!',
+          subtitulo: 'Respondé para destrabar tu turno de la Oca — si no llegás a tiempo, lo perdés.',
+          pregunta: c.chequeoPregunta!,
+          segundos: c.chequeoSegundosRestantes,
+          onResponder: c.responderChequeoTurno,
+        );
       case MpOverlay.none:
         return const SizedBox.shrink();
     }
