@@ -14,6 +14,7 @@ import 'widgets/duelo_tateti_widget.dart';
 import 'widgets/eleccion_video_monedas_overlay.dart';
 import 'widgets/etapa_banner.dart';
 import 'widgets/fin_partida_panel.dart';
+import 'widgets/flecha_desafio_widget.dart';
 import 'widgets/jugadores_status_row.dart';
 import 'widgets/medidor_compartido_widget.dart';
 import 'widgets/minijuego_overlay.dart';
@@ -197,12 +198,18 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
       case MpOverlay.anuncioSimulado:
         return AnuncioSimuladoOverlay(onContinuar: c.continuarDesdeAnuncio);
       case MpOverlay.chequeoTurno:
-        return TriviaOverlay(
-          titulo: '🪢 ¡Te toca!',
-          subtitulo: 'Respondé para destrabar tu turno de la Oca — si no llegás a tiempo, lo perdés.',
-          pregunta: c.chequeoPregunta!,
-          segundos: c.chequeoSegundosRestantes,
-          onResponder: c.responderChequeoTurno,
+        return ModalCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🪢 ¡Te toca!', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
+              const Padding(
+                padding: EdgeInsets.only(top: 4, bottom: 6),
+                child: Text('Tocá la flecha para destrabar tu turno de la Oca — si no llegás a tiempo, lo perdés.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
+              ),
+              FlechaDesafioWidget(desafio: c.chequeoDesafio!, segundos: c.chequeoSegundosRestantes, onResponder: c.responderChequeoTurno),
+            ],
+          ),
         );
       case MpOverlay.none:
         return const SizedBox.shrink();

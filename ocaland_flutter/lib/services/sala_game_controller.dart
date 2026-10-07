@@ -5,6 +5,7 @@ import 'package:realtime_client/realtime_client.dart';
 
 import '../models/board_layout.dart';
 import '../models/campana.dart';
+import '../models/flecha_desafio.dart';
 import '../models/jugador.dart';
 import '../models/pacing.dart';
 import '../models/partida.dart';
@@ -115,11 +116,13 @@ class SalaGameController extends ChangeNotifier {
   // ---- Medidor compartido: actividad para los que esperan su turno —
   // pedido explícito del usuario ("que no dependa de cuántos jueguen...
   // mientras uno hace, otro deshace, hasta que alguien termina ganando").
-  // Estado efímero sincronizado por broadcast (no se persiste en
-  // Supabase: sin tabla nueva, nada que tocar del esquema).
+  // El desafío es "sacar la flecha" (no Cuestionados ni reflejos/memoria
+  // — pedido explícito de variar, que no sea siempre lo mismo). Estado
+  // efímero sincronizado por broadcast (no se persiste en Supabase: sin
+  // tabla nueva, nada que tocar del esquema).
   int medidorValor = 0;
   int _medidorIdx = 0;
-  TriviaQuestion? medidorPregunta;
+  FlechaDesafio? medidorDesafio;
   int medidorSegundosRestantes = 0;
   Timer? _medidorTimer;
   RealtimeChannel? _medidorChannel;
@@ -127,14 +130,14 @@ class SalaGameController extends ChangeNotifier {
   Timer? _medidorMensajeTimer;
 
   // ---- Chequeo de turno: justo cuando arranca mi turno de la Oca (después
-  // de haber estado esperando), tengo que responder una pregunta rápida
-  // para destrabar el dado — si no respondo a tiempo, pierdo el turno. Usa
-  // el mismo puntaje/premio del medidor (es la misma actividad, solo que
-  // acá es obligatoria en vez de libre). Si ya respondí el medidor libre
-  // en algún momento de esta espera, el chequeo se saltea directamente
-  // ("tiene que HABER jugado" — no hace falta pedir una pregunta más
-  // justo al toque de tirar, si ya participó mientras esperaba).
-  TriviaQuestion? chequeoPregunta;
+  // de haber estado esperando), tengo que responder el mismo desafío
+  // rápido para destrabar el dado — si no respondo a tiempo, pierdo el
+  // turno. Usa el mismo puntaje/premio del medidor (es la misma actividad,
+  // solo que acá es obligatoria en vez de libre). Si ya respondí el
+  // medidor libre en algún momento de esta espera, el chequeo se saltea
+  // directamente ("tiene que HABER jugado" — no hace falta pedir una
+  // posta más justo al toque de tirar, si ya participó mientras esperaba).
+  FlechaDesafio? chequeoDesafio;
   int chequeoSegundosRestantes = 0;
   Timer? _chequeoTimer;
   bool _participeEnEspera = false;
@@ -191,7 +194,7 @@ class SalaGameController extends ChangeNotifier {
   }
 
   bool get medidorVisible => partida?.estado == 'en_curso' && _jugadoresEnEspera.isNotEmpty;
-  bool get medidorEsMiTurno => medidorPregunta == null && medidorJugadorActual?.id == myPlayerId;
+  bool get medidorEsMiTurno => medidorDesafio == null && medidorJugadorActual?.id == myPlayerId;
 
   bool get soyHost {
     if (jugadores.isEmpty) return false;
@@ -491,11 +494,11 @@ class SalaGameController extends ChangeNotifier {
     });
   }
 
-  /// Abre la pregunta rápida para quien tiene el turno del medidor — solo
-  /// hace algo si realmente es su turno (no el del tablero).
+  /// Abre el desafío de flechas para quien tiene el turno del medidor —
+  /// solo hace algo si realmente es su turno (no el del tablero).
   void abrirPreguntaMedidor() {
     if (!medidorEsMiTurno) return;
-    medidorPregunta = (TriviaBank.bancoBonus(myEdadBracket)..shuffle()).first;
+    medidorDesafio = FlechaDesafio.aleatoria();
     medidorSegundosRestantes = _tiempoLimiteMedidor;
     notifyListeners();
     _medidorTimer?.cancel();
@@ -509,16 +512,16 @@ class SalaGameController extends ChangeNotifier {
     });
   }
 
-  /// Resuelve la pregunta del medidor: acierto suma un punto, error resta
+  /// Resuelve el desafío del medidor: acierto suma un punto, error resta
   /// uno (sin bajar de 0). Si se llega a [medidorMeta], quien respondió se
   /// lleva unas monedas y el medidor vuelve a 0 para la próxima ronda.
-  Future<void> responderMedidor(int? idx) async {
+  Future<void> responderMedidor(Direccion? direccion) async {
     _medidorTimer?.cancel();
-    final pregunta = medidorPregunta;
-    if (pregunta == null) return;
-    final acierto = idx != null && idx == pregunta.correct;
+    final desafio = medidorDesafio;
+    if (desafio == null) return;
+    final acierto = direccion == desafio.direccion;
     acierto ? AudioService.correct() : AudioService.wrong();
-    medidorPregunta = null;
+    medidorDesafio = null;
     _participeEnEspera = true;
     await _registrarRespuestaMedidor(acierto);
   }
@@ -591,7 +594,7 @@ class SalaGameController extends ChangeNotifier {
   }
 
   void _abrirChequeoDeTurno() {
-    chequeoPregunta = (TriviaBank.bancoBonus(myEdadBracket)..shuffle()).first;
+    chequeoDesafio = FlechaDesafio.aleatoria();
     chequeoSegundosRestantes = _tiempoLimiteChequeoTurno;
     overlay = MpOverlay.chequeoTurno;
     notifyListeners();
@@ -607,20 +610,20 @@ class SalaGameController extends ChangeNotifier {
   }
 
   Future<void> _resolverChequeoPorTimeout() async {
-    chequeoPregunta = null;
+    chequeoDesafio = null;
     overlay = MpOverlay.none;
     notifyListeners();
     _msg('⏰ No respondiste a tiempo el chequeo de turno — perdés este turno.');
     await _terminarTurno(false);
   }
 
-  Future<void> responderChequeoTurno(int idx) async {
+  Future<void> responderChequeoTurno(Direccion direccion) async {
     _chequeoTimer?.cancel();
-    final pregunta = chequeoPregunta;
-    if (pregunta == null) return;
-    final acierto = idx == pregunta.correct;
+    final desafio = chequeoDesafio;
+    if (desafio == null) return;
+    final acierto = direccion == desafio.direccion;
     acierto ? AudioService.correct() : AudioService.wrong();
-    chequeoPregunta = null;
+    chequeoDesafio = null;
     overlay = MpOverlay.none;
     notifyListeners();
     await _registrarRespuestaMedidor(acierto);

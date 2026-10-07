@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../services/sala_game_controller.dart';
 import '../../theme/app_colors.dart';
+import 'flecha_desafio_widget.dart';
 
 /// Actividad para los jugadores que están esperando su turno en una tanda
 /// multijugador — pedido explícito del usuario: "cuando a uno le toca
 /// esperar, salte un juego uno contra uno... no dependa de cuántos
 /// jueguen" y "mientras uno hace, otro deshace, hasta que alguien
 /// termina ganando". Un medidor compartido (0 a [medidorMeta]) donde
-/// cualquiera de los que no tiene el turno del tablero puede responder
-/// una pregunta rápida: acertar suma un punto, fallar resta uno. Quien
-/// lo completa se lleva unas monedas extra.
+/// cualquiera de los que no tiene el turno del tablero puede resolver un
+/// desafío rápido de flechas: acertar suma un punto, fallar resta uno.
+/// Quien lo completa se lleva unas monedas extra.
 class MedidorCompartidoWidget extends StatelessWidget {
   final SalaGameController controller;
   const MedidorCompartidoWidget({super.key, required this.controller});
@@ -46,8 +47,8 @@ class MedidorCompartidoWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          if (c.medidorPregunta != null && c.medidorEsMiTurno)
-            _preguntaMedidor(c)
+          if (c.medidorDesafio != null && c.medidorEsMiTurno)
+            FlechaDesafioWidget(desafio: c.medidorDesafio!, segundos: c.medidorSegundosRestantes, onResponder: c.responderMedidor, compacto: true)
           else if (c.medidorUltimoMensaje != null)
             Text(c.medidorUltimoMensaje!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))
           else if (c.medidorEsMiTurno)
@@ -66,34 +67,6 @@ class MedidorCompartidoWidget extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _preguntaMedidor(SalaGameController c) {
-    final pregunta = c.medidorPregunta!;
-    return Column(
-      children: [
-        Text('⏱️ ${c.medidorSegundosRestantes}s', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(pregunta.q, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (var i = 0; i < pregunta.options.length; i++)
-              SizedBox(
-                height: 30,
-                child: ElevatedButton(
-                  onPressed: () => c.responderMedidor(i),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.violet, padding: const EdgeInsets.symmetric(horizontal: 10)),
-                  child: Text(pregunta.options[i], style: const TextStyle(fontSize: 11.5)),
-                ),
-              ),
-          ],
-        ),
-      ],
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ocaland_flutter/models/flecha_desafio.dart';
 import 'package:ocaland_flutter/models/jugador.dart';
 import 'package:ocaland_flutter/models/partida.dart';
-import 'package:ocaland_flutter/models/trivia_bank.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/audio_service.dart';
 import 'package:ocaland_flutter/services/sala_game_controller.dart';
@@ -162,8 +162,8 @@ void main() {
       );
       expect(c.medidorEsMiTurno, isTrue);
       c.abrirPreguntaMedidor();
-      expect(c.medidorPregunta, isNotNull);
-      expect(c.medidorEsMiTurno, isFalse, reason: 'mientras hay una pregunta abierta no se puede volver a abrir otra');
+      expect(c.medidorDesafio, isNotNull);
+      expect(c.medidorEsMiTurno, isFalse, reason: 'mientras hay un desafío abierto no se puede volver a abrir otro');
     });
 
     test('abrirPreguntaMedidor no hace nada si no es mi turno de medidor', () {
@@ -175,7 +175,7 @@ void main() {
       );
       expect(c.medidorEsMiTurno, isFalse);
       c.abrirPreguntaMedidor();
-      expect(c.medidorPregunta, isNull);
+      expect(c.medidorDesafio, isNull);
     });
 
     test('responderMedidor: acertar suma un punto y pasa el turno al siguiente que espera', () async {
@@ -187,12 +187,12 @@ void main() {
       );
       expect(c.medidorJugadorActual?.id, 'rival');
       c.abrirPreguntaMedidor();
-      final correcta = c.medidorPregunta!.correct;
+      final correcta = c.medidorDesafio!.direccion;
 
       await c.responderMedidor(correcta);
 
       expect(c.medidorValor, 1);
-      expect(c.medidorPregunta, isNull);
+      expect(c.medidorDesafio, isNull);
       expect(c.medidorJugadorActual?.id, 'otro', reason: 'el turno del medidor rota al siguiente jugador en espera');
     });
 
@@ -204,7 +204,8 @@ void main() {
         myPlayerId: 'rival',
       );
       c.abrirPreguntaMedidor();
-      final incorrecta = (c.medidorPregunta!.correct + 1) % c.medidorPregunta!.options.length;
+      final correcta = c.medidorDesafio!.direccion;
+      final incorrecta = Direccion.values.firstWhere((d) => d != correcta);
 
       await c.responderMedidor(incorrecta);
 
@@ -343,20 +344,20 @@ void main() {
   });
 
   group('SalaGameController — chequeo de turno obligatorio', () {
-    test('responderChequeoTurno con acierto suma al medidor, cierra la pregunta y destraba el overlay', () async {
+    test('responderChequeoTurno con acierto suma al medidor, cierra el desafío y destraba el overlay', () async {
       final c = _controller(
         jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
         estado: 'en_curso',
         turnoActual: 0,
         myPlayerId: 'yo',
       );
-      final pregunta = (TriviaBank.bancoBonus('adultos')..shuffle()).first;
-      c.chequeoPregunta = pregunta;
+      final desafio = FlechaDesafio.aleatoria();
+      c.chequeoDesafio = desafio;
       c.overlay = MpOverlay.chequeoTurno;
 
-      await c.responderChequeoTurno(pregunta.correct);
+      await c.responderChequeoTurno(desafio.direccion);
 
-      expect(c.chequeoPregunta, isNull);
+      expect(c.chequeoDesafio, isNull);
       expect(c.overlay, MpOverlay.none, reason: 'al responder (bien o mal) se destraba el dado');
       expect(c.medidorValor, 1);
     });
@@ -368,26 +369,26 @@ void main() {
         turnoActual: 0,
         myPlayerId: 'yo',
       );
-      final pregunta = (TriviaBank.bancoBonus('adultos')..shuffle()).first;
-      final incorrecta = (pregunta.correct + 1) % pregunta.options.length;
-      c.chequeoPregunta = pregunta;
+      final desafio = FlechaDesafio.aleatoria();
+      final incorrecta = Direccion.values.firstWhere((d) => d != desafio.direccion);
+      c.chequeoDesafio = desafio;
       c.overlay = MpOverlay.chequeoTurno;
 
       await c.responderChequeoTurno(incorrecta);
 
-      expect(c.chequeoPregunta, isNull);
+      expect(c.chequeoDesafio, isNull);
       expect(c.overlay, MpOverlay.none);
       expect(c.medidorValor, 0, reason: 'no baja de 0');
     });
 
-    test('responderChequeoTurno no hace nada si no hay una pregunta pendiente', () async {
+    test('responderChequeoTurno no hace nada si no hay un desafío pendiente', () async {
       final c = _controller(
         jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
         estado: 'en_curso',
         turnoActual: 0,
         myPlayerId: 'yo',
       );
-      await c.responderChequeoTurno(0);
+      await c.responderChequeoTurno(Direccion.arriba);
       expect(c.medidorValor, 0);
     });
   });
