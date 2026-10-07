@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import '../services/mascota_service.dart';
 import '../services/preferencias_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/palabras_cortas.dart';
 
-/// Palabras cortas (para menores/adolescentes) y más largas (para
-/// adultos), varias con temática del propio juego para que se sienta
-/// parte de Ocaland y no un agregado genérico.
-const _palabrasCortas = ['OCA', 'DADO', 'JUEGO', 'AMIGO', 'CASA', 'SOL', 'GATO', 'PATO', 'LUNA', 'PAN'];
+/// Palabras largas (para adultos), con temática del propio juego para
+/// que se sienta parte de Ocaland y no un agregado genérico. Las cortas
+/// (para menores/adolescentes) están en utils/palabras_cortas.dart,
+/// compartidas con el mini-desafío de los juegos de espera.
 const _palabrasLargas = ['CAZADOR', 'TABLERO', 'CUESTIONADO', 'CAMPANA', 'MASCOTA', 'RULETA', 'DESAFIO', 'AVENTURA', 'SORPRESA', 'MONEDAS'];
 
 const _maxFallos = 6;
@@ -66,7 +67,7 @@ class _AhorcadoScreenState extends State<AhorcadoScreen> {
 
   void _elegirPalabra() {
     if (_cola.isEmpty) {
-      final banco = widget.nivel == 'adulto' ? _palabrasLargas : _palabrasCortas;
+      final banco = widget.nivel == 'adulto' ? _palabrasLargas : palabrasCortas;
       _cola.addAll(List<String>.from(banco)..shuffle());
     }
     _palabra = _cola.removeAt(0);

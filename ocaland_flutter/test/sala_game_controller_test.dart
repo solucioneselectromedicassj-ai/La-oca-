@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ocaland_flutter/models/ahorcado_eleccion_desafio.dart';
 import 'package:ocaland_flutter/models/flecha_desafio.dart';
 import 'package:ocaland_flutter/models/jugador.dart';
 import 'package:ocaland_flutter/models/partida.dart';
+import 'package:ocaland_flutter/models/tetris_eleccion_desafio.dart';
 import 'package:ocaland_flutter/models/usuario.dart';
 import 'package:ocaland_flutter/services/audio_service.dart';
 import 'package:ocaland_flutter/services/sala_game_controller.dart';
@@ -161,7 +163,7 @@ void main() {
         myPlayerId: 'rival',
       );
       expect(c.medidorEsMiTurno, isTrue);
-      c.abrirPreguntaMedidor();
+      c.abrirPreguntaMedidor(TipoDesafioEspera.flechas);
       expect(c.medidorDesafio, isNotNull);
       expect(c.medidorEsMiTurno, isFalse, reason: 'mientras hay un desafío abierto no se puede volver a abrir otro');
     });
@@ -174,8 +176,24 @@ void main() {
         myPlayerId: 'yo', // "yo" tiene el turno del tablero, no del medidor
       );
       expect(c.medidorEsMiTurno, isFalse);
-      c.abrirPreguntaMedidor();
+      c.abrirPreguntaMedidor(TipoDesafioEspera.flechas);
       expect(c.medidorDesafio, isNull);
+      expect(c.medidorTipo, isNull);
+    });
+
+    test('abrirPreguntaMedidor arma el desafío del tipo pedido y deja los otros dos en null', () {
+      final c = controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'rival', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'rival',
+      );
+
+      c.abrirPreguntaMedidor(TipoDesafioEspera.ahorcado);
+      expect(c.medidorTipo, TipoDesafioEspera.ahorcado);
+      expect(c.medidorAhorcado, isNotNull);
+      expect(c.medidorDesafio, isNull);
+      expect(c.medidorTetris, isNull);
     });
 
     test('responderMedidor: acertar suma un punto y pasa el turno al siguiente que espera', () async {
@@ -186,13 +204,14 @@ void main() {
         myPlayerId: 'rival',
       );
       expect(c.medidorJugadorActual?.id, 'rival');
-      c.abrirPreguntaMedidor();
+      c.abrirPreguntaMedidor(TipoDesafioEspera.flechas);
       final correcta = c.medidorDesafio!.direccion;
 
       await c.responderMedidor(correcta);
 
       expect(c.medidorValor, 1);
       expect(c.medidorDesafio, isNull);
+      expect(c.medidorTipo, isNull);
       expect(c.medidorJugadorActual?.id, 'otro', reason: 'el turno del medidor rota al siguiente jugador en espera');
     });
 
@@ -203,11 +222,61 @@ void main() {
         turnoActual: 0,
         myPlayerId: 'rival',
       );
-      c.abrirPreguntaMedidor();
+      c.abrirPreguntaMedidor(TipoDesafioEspera.flechas);
       final correcta = c.medidorDesafio!.direccion;
       final incorrecta = Direccion.values.firstWhere((d) => d != correcta);
 
       await c.responderMedidor(incorrecta);
+
+      expect(c.medidorValor, 0);
+    });
+
+    test('responderMedidorAhorcado: acertar la letra suma un punto y cierra el desafío', () async {
+      final c = controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'rival', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'rival',
+      );
+      c.abrirPreguntaMedidor(TipoDesafioEspera.ahorcado);
+      final correcta = c.medidorAhorcado!.letraCorrecta;
+
+      await c.responderMedidorAhorcado(correcta);
+
+      expect(c.medidorValor, 1);
+      expect(c.medidorAhorcado, isNull);
+      expect(c.medidorTipo, isNull);
+    });
+
+    test('responderMedidorTetris: acertar la columna suma un punto y cierra el desafío', () async {
+      final c = controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'rival', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'rival',
+      );
+      c.abrirPreguntaMedidor(TipoDesafioEspera.tetris);
+      final correcta = c.medidorTetris!.columnaHueco;
+
+      await c.responderMedidorTetris(correcta);
+
+      expect(c.medidorValor, 1);
+      expect(c.medidorTetris, isNull);
+      expect(c.medidorTipo, isNull);
+    });
+
+    test('responderMedidorTetris: fallar la columna resta un punto sin bajar de 0', () async {
+      final c = controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'rival', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'rival',
+      );
+      c.abrirPreguntaMedidor(TipoDesafioEspera.tetris);
+      final correcta = c.medidorTetris!.columnaHueco;
+      final incorrecta = (correcta + 1) % TetrisEleccionDesafio.ancho;
+
+      await c.responderMedidorTetris(incorrecta);
 
       expect(c.medidorValor, 0);
     });
@@ -390,6 +459,42 @@ void main() {
       );
       await c.responderChequeoTurno(Direccion.arriba);
       expect(c.medidorValor, 0);
+    });
+
+    test('responderChequeoTurnoAhorcado con acierto suma al medidor, cierra el desafío y destraba el overlay', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'yo',
+      );
+      final desafio = AhorcadoEleccionDesafio.aleatoria();
+      c.chequeoAhorcado = desafio;
+      c.overlay = MpOverlay.chequeoTurno;
+
+      await c.responderChequeoTurnoAhorcado(desafio.letraCorrecta);
+
+      expect(c.chequeoAhorcado, isNull);
+      expect(c.overlay, MpOverlay.none);
+      expect(c.medidorValor, 1);
+    });
+
+    test('responderChequeoTurnoTetris con acierto suma al medidor, cierra el desafío y destraba el overlay', () async {
+      final c = _controller(
+        jugadores: [_jugador(id: 'yo', ordenTurno: 0), _jugador(id: 'otro', ordenTurno: 1)],
+        estado: 'en_curso',
+        turnoActual: 0,
+        myPlayerId: 'yo',
+      );
+      final desafio = TetrisEleccionDesafio.aleatoria();
+      c.chequeoTetris = desafio;
+      c.overlay = MpOverlay.chequeoTurno;
+
+      await c.responderChequeoTurnoTetris(desafio.columnaHueco);
+
+      expect(c.chequeoTetris, isNull);
+      expect(c.overlay, MpOverlay.none);
+      expect(c.medidorValor, 1);
     });
   });
 }

@@ -4,6 +4,7 @@ import '../services/audio_service.dart';
 import '../services/sala_game_controller.dart';
 import '../theme/app_colors.dart';
 import 'lobby_screen.dart';
+import 'widgets/ahorcado_eleccion_widget.dart';
 import 'widgets/anuncio_simulado_overlay.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/boton_salir_juego.dart';
@@ -20,6 +21,7 @@ import 'widgets/medidor_compartido_widget.dart';
 import 'widgets/minijuego_overlay.dart';
 import 'widgets/ruleta_overlay.dart';
 import 'widgets/sorteo_overlay.dart';
+import 'widgets/tetris_eleccion_widget.dart';
 import 'widgets/trivia_overlay.dart';
 
 class GameScreenMulti extends StatefulWidget {
@@ -205,9 +207,14 @@ class _GameScreenMultiState extends State<GameScreenMulti> {
               const Text('🪢 ¡Te toca!', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.violetDark)),
               const Padding(
                 padding: EdgeInsets.only(top: 4, bottom: 6),
-                child: Text('Tocá la flecha para destrabar tu turno de la Oca — si no llegás a tiempo, lo perdés.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
+                child: Text('Resolvé el desafío para destrabar tu turno de la Oca — si no llegás a tiempo, lo perdés.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xFF7A6A99))),
               ),
-              FlechaDesafioWidget(desafio: c.chequeoDesafio!, segundos: c.chequeoSegundosRestantes, onResponder: c.responderChequeoTurno),
+              if (c.chequeoDesafio != null)
+                FlechaDesafioWidget(desafio: c.chequeoDesafio!, segundos: c.chequeoSegundosRestantes, onResponder: c.responderChequeoTurno)
+              else if (c.chequeoAhorcado != null)
+                AhorcadoEleccionWidget(desafio: c.chequeoAhorcado!, segundos: c.chequeoSegundosRestantes, onResponder: c.responderChequeoTurnoAhorcado)
+              else if (c.chequeoTetris != null)
+                TetrisEleccionWidget(desafio: c.chequeoTetris!, segundos: c.chequeoSegundosRestantes, onResponder: c.responderChequeoTurnoTetris),
             ],
           ),
         );

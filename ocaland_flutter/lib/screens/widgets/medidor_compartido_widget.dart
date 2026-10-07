@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/sala_game_controller.dart';
 import '../../theme/app_colors.dart';
+import 'ahorcado_eleccion_widget.dart';
 import 'flecha_desafio_widget.dart';
+import 'tetris_eleccion_widget.dart';
 
 /// Actividad para los jugadores que están esperando su turno en una tanda
 /// multijugador — pedido explícito del usuario: "cuando a uno le toca
@@ -47,8 +49,15 @@ class MedidorCompartidoWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          if (c.medidorDesafio != null && c.medidorEsMiTurno)
+          // El desafío abierto (de cualquiera de los 3 tipos) es siempre
+          // local a este cliente — solo se setea cuando YO lo abro con mi
+          // propio botón — así que si no es null, es mío sin falta.
+          if (c.medidorDesafio != null)
             FlechaDesafioWidget(desafio: c.medidorDesafio!, segundos: c.medidorSegundosRestantes, onResponder: c.responderMedidor, compacto: true)
+          else if (c.medidorAhorcado != null)
+            AhorcadoEleccionWidget(desafio: c.medidorAhorcado!, segundos: c.medidorSegundosRestantes, onResponder: c.responderMedidorAhorcado, compacto: true)
+          else if (c.medidorTetris != null)
+            TetrisEleccionWidget(desafio: c.medidorTetris!, segundos: c.medidorSegundosRestantes, onResponder: c.responderMedidorTetris, compacto: true)
           else if (c.medidorUltimoMensaje != null)
             Text(c.medidorUltimoMensaje!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))
           else if (c.medidorEsMiTurno)

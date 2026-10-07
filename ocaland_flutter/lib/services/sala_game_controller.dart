@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:realtime_client/realtime_client.dart';
 
+import '../models/ahorcado_eleccion_desafio.dart';
 import '../models/board_layout.dart';
 import '../models/campana.dart';
 import '../models/flecha_desafio.dart';
@@ -10,6 +11,7 @@ import '../models/jugador.dart';
 import '../models/pacing.dart';
 import '../models/partida.dart';
 import '../models/sesion_activa.dart';
+import '../models/tetris_eleccion_desafio.dart';
 import '../models/trivia_bank.dart';
 import '../models/usuario.dart';
 import '../models/wheel_prizes.dart';
@@ -24,6 +26,12 @@ import 'session_service.dart';
 import 'supabase_service.dart';
 
 enum MpOverlay { none, sorteo, trivia, minijuego, transicionMinijuego, transicionRuleta, eleccionVideoMonedas, anuncioSimulado, chequeoTurno }
+
+/// Tipo de mini-desafío que le toca a cada uno en el medidor/chequeo de
+/// turno — rota al azar entre estos tres para no repetir siempre lo mismo
+/// (pedido explícito del usuario). Los tres son versiones de un solo toque
+/// pensadas para el tiempo corto de espera (6-18s), no los juegos completos.
+enum TipoDesafioEspera { flechas, ahorcado, tetris }
 
 const _horasPlazoTurno = 6;
 const _tiempoLimiteTriviaTanda = 15; // segundos, fijo (sin escalado de dificultad, a diferencia de la campaña)
@@ -122,7 +130,10 @@ class SalaGameController extends ChangeNotifier {
   // tabla nueva, nada que tocar del esquema).
   int medidorValor = 0;
   int _medidorIdx = 0;
+  TipoDesafioEspera? medidorTipo;
   FlechaDesafio? medidorDesafio;
+  AhorcadoEleccionDesafio? medidorAhorcado;
+  TetrisEleccionDesafio? medidorTetris;
   int medidorSegundosRestantes = 0;
   Timer? _medidorTimer;
   RealtimeChannel? _medidorChannel;
@@ -137,7 +148,10 @@ class SalaGameController extends ChangeNotifier {
   // medidor libre en algún momento de esta espera, el chequeo se saltea
   // directamente ("tiene que HABER jugado" — no hace falta pedir una
   // posta más justo al toque de tirar, si ya participó mientras esperaba).
+  TipoDesafioEspera? chequeoTipo;
   FlechaDesafio? chequeoDesafio;
+  AhorcadoEleccionDesafio? chequeoAhorcado;
+  TetrisEleccionDesafio? chequeoTetris;
   int chequeoSegundosRestantes = 0;
   Timer? _chequeoTimer;
   bool _participeEnEspera = false;
@@ -194,7 +208,7 @@ class SalaGameController extends ChangeNotifier {
   }
 
   bool get medidorVisible => partida?.estado == 'en_curso' && _jugadoresEnEspera.isNotEmpty;
-  bool get medidorEsMiTurno => medidorDesafio == null && medidorJugadorActual?.id == myPlayerId;
+  bool get medidorEsMiTurno => medidorTipo == null && medidorJugadorActual?.id == myPlayerId;
 
   bool get soyHost {
     if (jugadores.isEmpty) return false;
@@ -494,11 +508,16 @@ class SalaGameController extends ChangeNotifier {
     });
   }
 
-  /// Abre el desafío de flechas para quien tiene el turno del medidor —
-  /// solo hace algo si realmente es su turno (no el del tablero).
-  void abrirPreguntaMedidor() {
+  /// Abre un mini-desafío al azar (flechas / ahorcado / tetris) para quien
+  /// tiene el turno del medidor — solo hace algo si realmente es su turno
+  /// (no el del tablero). [tipo] se puede forzar (usado en tests); en el
+  /// juego real siempre se sortea.
+  void abrirPreguntaMedidor([TipoDesafioEspera? tipo]) {
     if (!medidorEsMiTurno) return;
-    medidorDesafio = FlechaDesafio.aleatoria();
+    medidorTipo = tipo ?? TipoDesafioEspera.values[Random().nextInt(TipoDesafioEspera.values.length)];
+    medidorDesafio = medidorTipo == TipoDesafioEspera.flechas ? FlechaDesafio.aleatoria() : null;
+    medidorAhorcado = medidorTipo == TipoDesafioEspera.ahorcado ? AhorcadoEleccionDesafio.aleatoria() : null;
+    medidorTetris = medidorTipo == TipoDesafioEspera.tetris ? TetrisEleccionDesafio.aleatoria() : null;
     medidorSegundosRestantes = _tiempoLimiteMedidor;
     notifyListeners();
     _medidorTimer?.cancel();
@@ -507,21 +526,42 @@ class SalaGameController extends ChangeNotifier {
       notifyListeners();
       if (medidorSegundosRestantes <= 0) {
         t.cancel();
-        responderMedidor(null);
+        _cerrarMedidor(false);
       }
     });
   }
 
-  /// Resuelve el desafío del medidor: acierto suma un punto, error resta
-  /// uno (sin bajar de 0). Si se llega a [medidorMeta], quien respondió se
-  /// lleva unas monedas y el medidor vuelve a 0 para la próxima ronda.
-  Future<void> responderMedidor(Direccion? direccion) async {
+  Future<void> responderMedidor(Direccion direccion) async {
     _medidorTimer?.cancel();
     final desafio = medidorDesafio;
     if (desafio == null) return;
-    final acierto = direccion == desafio.direccion;
+    await _cerrarMedidor(direccion == desafio.direccion);
+  }
+
+  Future<void> responderMedidorAhorcado(String letra) async {
+    _medidorTimer?.cancel();
+    final desafio = medidorAhorcado;
+    if (desafio == null) return;
+    await _cerrarMedidor(letra == desafio.letraCorrecta);
+  }
+
+  Future<void> responderMedidorTetris(int columna) async {
+    _medidorTimer?.cancel();
+    final desafio = medidorTetris;
+    if (desafio == null) return;
+    await _cerrarMedidor(columna == desafio.columnaHueco);
+  }
+
+  /// Resuelve el desafío del medidor (de cualquiera de los 3 tipos):
+  /// acierto suma un punto, error resta uno (sin bajar de 0). Si se llega
+  /// a [medidorMeta], quien respondió se lleva unas monedas y el medidor
+  /// vuelve a 0 para la próxima ronda.
+  Future<void> _cerrarMedidor(bool acierto) async {
     acierto ? AudioService.correct() : AudioService.wrong();
+    medidorTipo = null;
     medidorDesafio = null;
+    medidorAhorcado = null;
+    medidorTetris = null;
     _participeEnEspera = true;
     await _registrarRespuestaMedidor(acierto);
   }
@@ -594,7 +634,10 @@ class SalaGameController extends ChangeNotifier {
   }
 
   void _abrirChequeoDeTurno() {
-    chequeoDesafio = FlechaDesafio.aleatoria();
+    chequeoTipo = TipoDesafioEspera.values[Random().nextInt(TipoDesafioEspera.values.length)];
+    chequeoDesafio = chequeoTipo == TipoDesafioEspera.flechas ? FlechaDesafio.aleatoria() : null;
+    chequeoAhorcado = chequeoTipo == TipoDesafioEspera.ahorcado ? AhorcadoEleccionDesafio.aleatoria() : null;
+    chequeoTetris = chequeoTipo == TipoDesafioEspera.tetris ? TetrisEleccionDesafio.aleatoria() : null;
     chequeoSegundosRestantes = _tiempoLimiteChequeoTurno;
     overlay = MpOverlay.chequeoTurno;
     notifyListeners();
@@ -610,8 +653,7 @@ class SalaGameController extends ChangeNotifier {
   }
 
   Future<void> _resolverChequeoPorTimeout() async {
-    chequeoDesafio = null;
-    overlay = MpOverlay.none;
+    _cerrarChequeo();
     notifyListeners();
     _msg('⏰ No respondiste a tiempo el chequeo de turno — perdés este turno.');
     await _terminarTurno(false);
@@ -621,12 +663,36 @@ class SalaGameController extends ChangeNotifier {
     _chequeoTimer?.cancel();
     final desafio = chequeoDesafio;
     if (desafio == null) return;
-    final acierto = direccion == desafio.direccion;
+    await _resolverChequeo(direccion == desafio.direccion);
+  }
+
+  Future<void> responderChequeoTurnoAhorcado(String letra) async {
+    _chequeoTimer?.cancel();
+    final desafio = chequeoAhorcado;
+    if (desafio == null) return;
+    await _resolverChequeo(letra == desafio.letraCorrecta);
+  }
+
+  Future<void> responderChequeoTurnoTetris(int columna) async {
+    _chequeoTimer?.cancel();
+    final desafio = chequeoTetris;
+    if (desafio == null) return;
+    await _resolverChequeo(columna == desafio.columnaHueco);
+  }
+
+  Future<void> _resolverChequeo(bool acierto) async {
     acierto ? AudioService.correct() : AudioService.wrong();
-    chequeoDesafio = null;
-    overlay = MpOverlay.none;
+    _cerrarChequeo();
     notifyListeners();
     await _registrarRespuestaMedidor(acierto);
+  }
+
+  void _cerrarChequeo() {
+    chequeoTipo = null;
+    chequeoDesafio = null;
+    chequeoAhorcado = null;
+    chequeoTetris = null;
+    overlay = MpOverlay.none;
   }
 
   // ---------------------------------------------------------------------
