@@ -619,6 +619,15 @@ class SalaGameController extends ChangeNotifier {
       return;
     }
 
+    // Arranca mi turno de la Oca. Si me quedó un desafío del medidor
+    // abierto sin responder (lo estaba jugando cuando me tocó), se corta
+    // sin ninguna penalidad — pedido explícito del usuario: "si no
+    // terminás el juego no pasa nada, se corta cuando te toca tu turno y
+    // el juego de espera pasa al otro jugador". El cupo pasa solo: en
+    // cuanto dejo de estar en _jugadoresEnEspera, medidorJugadorActual
+    // recalcula entre los que quedan esperando.
+    _cortarMedidorSiEstabaAbierto();
+
     if (jugadorAnteriorId == myPlayerId) return; // tirada extra de oca: no se vuelve a gatear
     if (j.saltaTurno) return; // va a saltar por cárcel de todos modos
 
@@ -631,6 +640,15 @@ class SalaGameController extends ChangeNotifier {
 
     if (overlay != MpOverlay.none) return;
     _abrirChequeoDeTurno();
+  }
+
+  void _cortarMedidorSiEstabaAbierto() {
+    if (medidorTipo == null) return;
+    _medidorTimer?.cancel();
+    medidorTipo = null;
+    medidorDesafio = null;
+    medidorAhorcado = null;
+    medidorTetris = null;
   }
 
   void _abrirChequeoDeTurno() {
