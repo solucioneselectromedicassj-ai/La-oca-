@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-/// Secuencia cortita (4 cuadros dibujados) de la Oca comiendo, como premio
+/// Secuencia cortita (5 cuadros dibujados) de la Oca comiendo, como premio
 /// al darle de comer — reemplaza la animación en video anterior: mismo
 /// efecto, mucho más liviana y funciona igual en web.
 class OcaComiendoSprite extends StatefulWidget {
@@ -14,7 +14,7 @@ class OcaComiendoSprite extends StatefulWidget {
 }
 
 class _OcaComiendoSpriteState extends State<OcaComiendoSprite> {
-  static const _cuadros = ['oca_hambre', 'oca_comiendo_1', 'oca_comiendo_2', 'oca_feliz_boca_abierta'];
+  static const _cuadros = ['oca_hambre', 'oca_comiendo_1', 'oca_comiendo_2', 'oca_comiendo_3', 'oca_feliz_boca_abierta'];
   int _i = 0;
   Timer? _timer;
 

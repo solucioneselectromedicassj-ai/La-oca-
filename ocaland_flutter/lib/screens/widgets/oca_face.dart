@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/audio_service.dart';
 import '../../services/mascota_service.dart';
 
-/// Cara de la Oca según su estado de ánimo actual, con un ciclo de 2
+/// Cara de la Oca según su estado de ánimo actual, con un ciclo de 2 o 3
 /// cuadros (parpadeo/bostezo) para que se sienta viva incluso quieta.
 /// Prioridad de humor: dormida > hambre > aburrida > sueño > feliz.
 class OcaFace extends StatefulWidget {
@@ -23,11 +23,11 @@ class _OcaFaceState extends State<OcaFace> {
 
   List<String> get _cuadros {
     final e = widget.estado;
-    if (e.durmiendo) return const ['oca_durmiendo_1', 'oca_durmiendo_2'];
+    if (e.durmiendo) return const ['oca_durmiendo_1', 'oca_durmiendo_2', 'oca_durmiendo_3'];
     if (e.hambre < _umbralBajo) return const ['oca_hambre'];
     if (e.diversion < _umbralBajo) return const ['oca_aburrida'];
     if (e.sueno < _umbralBajo) return const ['oca_sueno_1', 'oca_sueno_2'];
-    return const ['oca_feliz', 'oca_feliz_boca_abierta'];
+    return const ['oca_feliz', 'oca_feliz_boca_abierta', 'oca_feliz_especial'];
   }
 
   @override
