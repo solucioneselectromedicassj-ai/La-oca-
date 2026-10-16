@@ -2,6 +2,12 @@ name: Build Android APK
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - claude/game-prototype-flutter-6rnujp
+    paths:
+      - ".github/workflows/build-apk.yml"
+      - "ocaland_flutter/**"
 
 jobs:
   build:
