@@ -39,12 +39,26 @@ class _OcaComiendoSpriteState extends State<OcaComiendoSprite> {
 
   @override
   Widget build(BuildContext context) {
+    final nombre = _cuadros[_i];
     return GestureDetector(
       onTap: () {
         _timer?.cancel();
         widget.onTerminado();
       },
-      child: Image.asset('assets/mascota/${_cuadros[_i]}.png', width: widget.size, height: widget.size),
+      // Cross-fade entre cuadros en vez de corte seco (mismo tratamiento
+      // que OcaFace) — con el cuadro nuevo de "tragando" el salto duro se
+      // notaba más que antes.
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: Image.asset(
+          'assets/mascota/$nombre.png',
+          key: ValueKey(nombre),
+          width: widget.size,
+          height: widget.size,
+        ),
+      ),
     );
   }
 }
