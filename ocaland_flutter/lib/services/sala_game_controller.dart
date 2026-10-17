@@ -91,6 +91,24 @@ class SalaGameController extends ChangeNotifier {
   TriviaQuestion? triviaActual;
   String? triviaTipo;
   int triviaSegundosRestantes = 0;
+
+  /// Cuestionados ya mostradas en esta partida (tablero + difícil +
+  /// desempate) — pedido explícito: que no se repita la misma pregunta en
+  /// el mismo juego es prioridad. Vive mientras dure el controlador (toda
+  /// la tanda), así tampoco se repite entre rondas de un mejor-de-3.
+  final Set<String> _preguntasUsadas = {};
+
+  TriviaQuestion _elegirTrivia(List<TriviaQuestion> banco) {
+    final rnd = Random();
+    var intentos = 0;
+    TriviaQuestion pregunta;
+    do {
+      pregunta = banco[rnd.nextInt(banco.length)];
+      intentos++;
+    } while (_preguntasUsadas.contains(pregunta.q) && intentos < 20);
+    _preguntasUsadas.add(pregunta.q);
+    return pregunta;
+  }
   Timer? _triviaTimer;
   int _triviaCallbackPos = 0;
   String _triviaCallbackJugador = '';
@@ -1015,9 +1033,7 @@ class SalaGameController extends ChangeNotifier {
   Future<void> _mostrarTriviaCasilla(String tipo, int posActual, String jugadorId) async {
     await _updatePartida({'estado_turno': 'resolviendo_trivia'});
     final usaDificil = tipo == 'calavera' || (esCampanaGrupal && etapaConfig != null && etapaConfig!.ocaCarcelUsanBancoDificil);
-    final pregunta = usaDificil
-        ? (TriviaBank.bancoDificil(myEdadBracket)..shuffle()).first
-        : (TriviaBank.bancoPorPais(myPais, myEdadBracket)..shuffle()).first;
+    final pregunta = usaDificil ? _elegirTrivia(TriviaBank.bancoDificil(myEdadBracket)) : _elegirTrivia(TriviaBank.bancoPorPais(myPais, myEdadBracket));
 
     triviaActual = pregunta;
     triviaTipo = tipo;
@@ -1432,8 +1448,7 @@ class SalaGameController extends ChangeNotifier {
   }
 
   void _mostrarTriviaDesempate(String jugadorId, List<String> pendientes) {
-    final bank = TriviaBank.bancoDificil(myEdadBracket);
-    triviaActual = (bank..shuffle()).first;
+    triviaActual = _elegirTrivia(TriviaBank.bancoDificil(myEdadBracket));
     triviaTipo = null;
     _esDesempateTrivia = true;
     _triviaCallbackJugador = jugadorId;

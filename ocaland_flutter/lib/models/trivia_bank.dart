@@ -123,6 +123,13 @@ class TriviaBank {
         TriviaQuestion('¿De qué color es el sol?', ['Verde', 'Azul', 'Amarillo', 'Negro'], 2),
         TriviaQuestion('¿Cuántas patas tiene una vaca?', ['2', '4', '6', '8'], 1),
         TriviaQuestion('¿Cuál es la capital de la región de Valparaíso?', ['Santiago', 'Valparaíso', 'Viña del Mar', 'Quillota'], 1),
+        // Latinoamérica en general — no nos quedamos encerrados en Chile.
+        TriviaQuestion('¿Cuál es la capital de Perú?', ['Lima', 'Quito', 'Bogotá', 'La Paz'], 0),
+        TriviaQuestion('¿Cuál es la capital de México?', ['Guadalajara', 'Ciudad de México', 'Cancún', 'Monterrey'], 1),
+        TriviaQuestion('¿Cuál es la capital de Colombia?', ['Medellín', 'Cali', 'Bogotá', 'Cartagena'], 2),
+        TriviaQuestion('¿Qué cordillera recorre gran parte de Sudamérica de norte a sur?', ['Los Alpes', 'Los Andes', 'El Himalaya', 'Las Rocosas'], 1),
+        TriviaQuestion('¿Qué idioma hablan la mayoría de los países de Latinoamérica?', ['Portugués', 'Español', 'Inglés', 'Francés'], 1),
+        TriviaQuestion('¿En qué país de Sudamérica se habla portugués?', ['Argentina', 'Chile', 'Brasil', 'Perú'], 2),
       ],
       'adolescentes': [
         TriviaQuestion('¿Quién es considerado el padre de la patria en Chile?', ["Bernardo O'Higgins", 'San Martín', 'Manuel Rodríguez', 'Diego Portales'], 0),
@@ -139,6 +146,13 @@ class TriviaBank {
         TriviaQuestion('¿En qué año fue el gran terremoto de Chile de magnitud 8.8?', ['2005', '2010', '2015', '2020'], 1),
         TriviaQuestion('¿Cuál es el lago más grande de Chile?', ['Llanquihue', 'General Carrera', 'Villarrica', 'Ranco'], 1),
         TriviaQuestion('¿Cuánto es 9 al cuadrado?', ['72', '81', '90', '99'], 1),
+        // Latinoamérica en general — no nos quedamos encerrados en Chile.
+        TriviaQuestion('¿Cuál es el lago navegable más alto del mundo, compartido por Perú y Bolivia?', ['Lago Titicaca', 'Lago Nahuel Huapi', 'Lago General Carrera', 'Lago Maracaibo'], 0),
+        TriviaQuestion('¿Qué civilización precolombina construyó Machu Picchu, en Perú?', ['Maya', 'Azteca', 'Inca', 'Mapuche'], 2),
+        TriviaQuestion('¿Cuál es la moneda oficial de México?', ['Peso mexicano', 'Dólar', 'Real', 'Sol'], 0),
+        TriviaQuestion('¿Qué país centroamericano conecta el océano Atlántico con el Pacífico a través de un canal?', ['Costa Rica', 'Panamá', 'Nicaragua', 'Honduras'], 1),
+        TriviaQuestion('¿Cuál es el volcán más alto del mundo, ubicado entre Argentina y Chile?', ['Aconcagua', 'Ojos del Salado', 'Chimborazo', 'Cotopaxi'], 1),
+        TriviaQuestion('¿Qué país sudamericano no tiene salida al mar?', ['Paraguay', 'Uruguay', 'Ecuador', 'Venezuela'], 0),
       ],
       'adultos': [
         TriviaQuestion('¿Quién fue Premio Nobel de Literatura chileno en 1971?', ['Gabriela Mistral', 'Pablo Neruda', 'Isabel Allende', 'Nicanor Parra'], 1),
@@ -155,6 +169,12 @@ class TriviaBank {
         TriviaQuestion('¿Cuál es el punto más alto de Chile?', ['Ojos del Salado', 'Aconcagua', 'Tupungato', 'Llullaillaco'], 0),
         TriviaQuestion('¿Qué elemento químico, muy exportado por Chile, tiene el símbolo "Cu"?', ['Carbono', 'Cobre', 'Cinc', 'Cromo'], 1),
         TriviaQuestion('¿Cuál es la región más al norte de Chile?', ['Antofagasta', 'Tarapacá', 'Arica y Parinacota', 'Atacama'], 2),
+        // Latinoamérica en general — no nos quedamos encerrados en Chile.
+        TriviaQuestion('¿Qué imperio precolombino dominó gran parte de los Andes antes de la conquista española?', ['Imperio Azteca', 'Imperio Inca', 'Imperio Maya', 'Imperio Tolteca'], 1),
+        TriviaQuestion('¿Cuál es el país más poblado de Sudamérica?', ['Argentina', 'Colombia', 'Brasil', 'Perú'], 2),
+        TriviaQuestion('¿Qué escritor colombiano ganó el Premio Nobel de Literatura en 1982?', ['Mario Vargas Llosa', 'Gabriel García Márquez', 'Pablo Neruda', 'Octavio Paz'], 1),
+        TriviaQuestion('¿Qué país latinoamericano tiene la mayor selva tropical del mundo en su territorio?', ['Perú', 'Colombia', 'Brasil', 'Ecuador'], 2),
+        TriviaQuestion('¿Cómo se llama el pasaje que separa Sudamérica de la Antártida?', ['Estrecho de Magallanes', 'Pasaje de Drake', 'Canal de Beagle', 'Estrecho de Gibraltar'], 1),
       ],
       'mayores': [
         TriviaQuestion('¿En qué año fue el terremoto de Valdivia, el más fuerte registrado?', ['1939', '1960', '1985', '2010'], 1),
@@ -171,6 +191,12 @@ class TriviaBank {
         TriviaQuestion('¿Cómo se llama el estrecho que separa el continente de Tierra del Fuego?', ['Estrecho de Magallanes', 'Canal Beagle', 'Golfo de Penas', 'Paso Drake'], 0),
         TriviaQuestion('¿Quién escribió la letra del himno nacional de Chile?', ['Eusebio Lillo', 'Ramón Carnicer', "Bernardo O'Higgins", 'Andrés Bello'], 0),
         TriviaQuestion('¿En qué año Chile abolió la esclavitud?', ['1811', '1823', '1840', '1850'], 1),
+        // Latinoamérica en general — no nos quedamos encerrados en Chile.
+        TriviaQuestion('¿Qué libertador luchó por la independencia de Venezuela, Colombia, Ecuador, Perú y Bolivia?', ['José de San Martín', 'Simón Bolívar', "Bernardo O'Higgins", 'Antonio José de Sucre'], 1),
+        TriviaQuestion('¿Qué antigua civilización mesoamericana es famosa por su calendario y sus pirámides en México?', ['Inca', 'Maya', 'Mapuche', 'Guaraní'], 1),
+        TriviaQuestion('¿Cuál es el canal artificial que une el Atlántico y el Pacífico en Centroamérica?', ['Canal de Suez', 'Canal de Panamá', 'Canal de Corinto', 'Canal de la Mancha'], 1),
+        TriviaQuestion('¿Qué cultura precolombina habitó el sur de Chile y Argentina y resistió por siglos a la conquista?', ['Inca', 'Mapuche', 'Azteca', 'Maya'], 1),
+        TriviaQuestion('¿Cuál es el lago más grande de Sudamérica por superficie?', ['Titicaca', 'Maracaibo', 'Nahuel Huapi', 'General Carrera'], 1),
       ],
     },
     'otros': {
@@ -290,6 +316,94 @@ class TriviaBank {
     ],
   };
 
+  /// Banco "universal": física, matemática, geografía e historia general,
+  /// sin anclar a ningún país — preguntas simples y de poca lógica (la
+  /// idea es la fluidez, no trabarse pensando). Se combina automáticamente
+  /// con el banco regional de cada país en [bancoPorPais], así no hace
+  /// falta escribir el mismo contenido genérico tres veces (una por país).
+  static const Map<String, List<TriviaQuestion>> universal = {
+    'ninos': [
+      TriviaQuestion('¿Qué forma tiene la Tierra?', ['Cuadrada', 'Redonda', 'Triangular', 'Plana'], 1),
+      TriviaQuestion('¿Cuál es el planeta más grande del sistema solar?', ['Marte', 'Júpiter', 'Venus', 'Mercurio'], 1),
+      TriviaQuestion('¿Cuántos colores tiene el arcoíris?', ['5', '6', '7', '8'], 2),
+      TriviaQuestion('¿Qué astro es el centro de nuestro sistema solar?', ['La Luna', 'El Sol', 'Una estrella lejana', 'Un cometa'], 1),
+      TriviaQuestion('¿Cuánto es 4 + 4?', ['6', '7', '8', '9'], 2),
+      TriviaQuestion('¿Cuánto es 6 - 2?', ['2', '3', '4', '5'], 2),
+      TriviaQuestion('¿Cuánto es 3 x 3?', ['6', '9', '12', '3'], 1),
+      TriviaQuestion('¿Cuántos lados tiene un cuadrado?', ['3', '4', '5', '6'], 1),
+      TriviaQuestion('¿Qué forma tiene una pelota de fútbol?', ['Cuadrada', 'Esférica (redonda)', 'Triangular', 'Plana'], 1),
+      TriviaQuestion('¿Qué usamos para ver las estrellas de cerca?', ['Microscopio', 'Telescopio', 'Binoculares de agua', 'Una lupa gigante'], 1),
+      TriviaQuestion('¿Qué parte del cuerpo usamos para escuchar?', ['Los ojos', 'Los oídos', 'La nariz', 'La boca'], 1),
+      TriviaQuestion('¿Qué instrumento sirve para dibujar un círculo perfecto?', ['Regla', 'Compás', 'Escuadra', 'Transportador'], 1),
+      TriviaQuestion('¿Cuántas patas tiene una gallina?', ['2', '4', '6', '8'], 0),
+      TriviaQuestion('¿Qué usamos para medir cuánto pesa algo?', ['Termómetro', 'Balanza', 'Reloj', 'Regla'], 1),
+      TriviaQuestion('¿Cuál es el órgano que bombea la sangre?', ['El cerebro', 'El corazón', 'El estómago', 'El pulmón'], 1),
+      TriviaQuestion('¿Qué estación del año es la más fría?', ['Verano', 'Otoño', 'Invierno', 'Primavera'], 2),
+      TriviaQuestion('¿Qué animal pone huevos y tiene plumas?', ['El perro', 'El gato', 'La gallina', 'El caballo'], 2),
+      TriviaQuestion('¿Cuánto es 10 dividido 2?', ['3', '4', '5', '6'], 2),
+    ],
+    'adolescentes': [
+      TriviaQuestion('¿Cuál es la fórmula química del agua?', ['CO2', 'H2O', 'O2', 'NaCl'], 1),
+      TriviaQuestion('¿Cuál es la unidad básica de la vida?', ['El átomo', 'La célula', 'La molécula', 'El tejido'], 1),
+      TriviaQuestion('¿Qué parte de la célula contiene la información genética?', ['La membrana', 'El núcleo', 'El citoplasma', 'La mitocondria'], 1),
+      TriviaQuestion('¿Cuánto es 15 x 4?', ['45', '50', '60', '65'], 2),
+      TriviaQuestion('¿Cuál es la capital de Francia?', ['Madrid', 'Roma', 'París', 'Berlín'], 2),
+      TriviaQuestion('¿Qué planeta es conocido como "el planeta rojo"?', ['Venus', 'Marte', 'Júpiter', 'Saturno'], 1),
+      TriviaQuestion('¿Cuántos grados tiene un ángulo recto?', ['45', '90', '180', '360'], 1),
+      TriviaQuestion('¿Cuál es el río más largo de Sudamérica?', ['Paraná', 'Amazonas', 'Orinoco', 'Magdalena'], 1),
+      TriviaQuestion('¿Qué científico propuso la teoría de la evolución?', ['Einstein', 'Darwin', 'Newton', 'Mendel'], 1),
+      TriviaQuestion('¿Cuánto es la raíz cuadrada de 81?', ['7', '8', '9', '10'], 2),
+      TriviaQuestion('¿En qué estado de la materia el agua se llama "vapor"?', ['Sólido', 'Líquido', 'Gaseoso', 'Plasma'], 2),
+      TriviaQuestion('¿Cuál es el continente más poblado del mundo?', ['África', 'Asia', 'Europa', 'América'], 1),
+      TriviaQuestion('¿Qué invento de Gutenberg cambió la historia de la lectura?', ['El telescopio', 'La imprenta', 'La brújula', 'El papel'], 1),
+      TriviaQuestion('¿Cuántos planetas tiene el sistema solar?', ['7', '8', '9', '10'], 1),
+      TriviaQuestion('¿Cuál es la capital de Japón?', ['Pekín', 'Seúl', 'Tokio', 'Bangkok'], 2),
+      TriviaQuestion('¿Qué unidad se usa para medir la temperatura en la mayoría de los países?', ['Fahrenheit', 'Celsius', 'Kelvin', 'Rankine'], 1),
+      TriviaQuestion('¿Cuánto es 7 x 8?', ['54', '56', '58', '64'], 1),
+      TriviaQuestion('¿Qué imperio construyó el Coliseo?', ['Griego', 'Romano', 'Egipcio', 'Persa'], 1),
+    ],
+    'adultos': [
+      TriviaQuestion('¿Quién formuló las leyes clásicas del movimiento y la gravedad?', ['Einstein', 'Newton', 'Galileo', 'Kepler'], 1),
+      TriviaQuestion('¿Cuántos elementos tiene la tabla periódica, aproximadamente?', ['92', '118', '150', '200'], 1),
+      TriviaQuestion('¿Cuál es el desierto cálido más grande del mundo?', ['Atacama', 'Sahara', 'Gobi', 'Kalahari'], 1),
+      TriviaQuestion('¿Qué tratado puso fin a la Primera Guerra Mundial?', ['Tratado de Versalles', 'Tratado de Tordesillas', 'Tratado de Utrecht', 'Tratado de Westfalia'], 0),
+      TriviaQuestion('¿Qué filósofo griego fue maestro de Alejandro Magno?', ['Sócrates', 'Platón', 'Aristóteles', 'Pitágoras'], 2),
+      TriviaQuestion('¿Qué civilización construyó Machu Picchu?', ['Maya', 'Azteca', 'Inca', 'Olmeca'], 2),
+      TriviaQuestion('¿Cuánto es el 30% de 90?', ['24', '27', '30', '33'], 1),
+      TriviaQuestion('¿Qué elemento químico tiene el símbolo "Fe"?', ['Flúor', 'Hierro', 'Fósforo', 'Francio'], 1),
+      TriviaQuestion('¿En qué siglo cayó el Imperio Romano de Occidente?', ['Siglo III', 'Siglo V', 'Siglo VII', 'Siglo X'], 1),
+      TriviaQuestion('¿Qué científica descubrió la radiactividad junto a su esposo?', ['Rosalind Franklin', 'Marie Curie', 'Ada Lovelace', 'Lise Meitner'], 1),
+      TriviaQuestion('¿Cuál es la capital de Sudáfrica (sede del gobierno)?', ['Johannesburgo', 'Ciudad del Cabo', 'Pretoria', 'Durban'], 2),
+      TriviaQuestion('¿Qué proceso convierte el agua líquida en vapor?', ['Condensación', 'Evaporación', 'Solidificación', 'Sublimación'], 1),
+      TriviaQuestion('¿Cuál es la moneda oficial de la Unión Europea?', ['Franco', 'Euro', 'Libra', 'Marco'], 1),
+      TriviaQuestion('¿Quién esculpió el "David"?', ['Da Vinci', 'Miguel Ángel', 'Donatello', 'Rafael'], 1),
+      TriviaQuestion('¿Cuánto es 144 dividido 12?', ['11', '12', '13', '14'], 1),
+      TriviaQuestion('¿Qué país tiene forma de bota en el mapa?', ['España', 'Italia', 'Grecia', 'Portugal'], 1),
+      TriviaQuestion('¿Cuál es el gas noble más liviano?', ['Neón', 'Helio', 'Argón', 'Xenón'], 1),
+      TriviaQuestion('¿Qué dinastía gobernó China por más tiempo en la historia?', ['Ming', 'Qing', 'Zhou', 'Han'], 2),
+    ],
+    'mayores': [
+      TriviaQuestion('¿En qué país se originó la Revolución Industrial?', ['Francia', 'Alemania', 'Inglaterra', 'Estados Unidos'], 2),
+      TriviaQuestion('¿Qué antiguo pueblo construyó las pirámides de Guiza?', ['Mayas', 'Egipcios', 'Aztecas', 'Fenicios'], 1),
+      TriviaQuestion('¿Qué antigua civilización fue de las primeras en usar la rueda?', ['Egipcia', 'Mesopotámica', 'China', 'Romana'], 1),
+      TriviaQuestion('¿Qué nombre recibía el imperio gobernado por los incas?', ['Tahuantinsuyo', 'Anáhuac', 'Tenochtitlán', 'Yucatán'], 0),
+      TriviaQuestion('¿Cuál es el océano que separa América de Europa y África?', ['Pacífico', 'Atlántico', 'Índico', 'Ártico'], 1),
+      TriviaQuestion('¿Qué expedición es reconocida por completar la primera vuelta al mundo?', ['Cristóbal Colón', 'Vasco da Gama', 'Magallanes-Elcano', 'Marco Polo'], 2),
+      TriviaQuestion('¿Cuánto es la mitad de 100?', ['40', '45', '50', '55'], 2),
+      TriviaQuestion('¿Qué instrumento musical tiene cuerdas y se toca con arco?', ['Guitarra', 'Violín', 'Piano', 'Flauta'], 1),
+      TriviaQuestion('¿Qué guerra de la antigua Grecia enfrentó a Esparta y Atenas?', ['Guerra Médica', 'Guerra del Peloponeso', 'Guerra Púnica', 'Guerra de Troya'], 1),
+      TriviaQuestion('¿Cuál es la capital de Portugal?', ['Oporto', 'Lisboa', 'Faro', 'Coimbra'], 1),
+      TriviaQuestion('¿Cuánto es 9 x 9?', ['72', '81', '90', '99'], 1),
+      TriviaQuestion('¿Qué famoso barco se hundió en 1912?', ['Lusitania', 'Titanic', 'Britannic', 'Queen Mary'], 1),
+      TriviaQuestion('¿Cuál es la capital de Austria?', ['Berna', 'Viena', 'Praga', 'Budapest'], 1),
+      TriviaQuestion('¿Qué antiguo pueblo usaba jeroglíficos como escritura?', ['Griegos', 'Romanos', 'Egipcios', 'Persas'], 2),
+      TriviaQuestion('¿Cuántas cuerdas tiene una guitarra clásica estándar?', ['4', '5', '6', '7'], 2),
+      TriviaQuestion('¿Cuál es la capital de Irlanda?', ['Belfast', 'Dublín', 'Cork', 'Galway'], 1),
+      TriviaQuestion('¿Qué astro causa las mareas junto con el Sol?', ['Marte', 'La Luna', 'Venus', 'Una estrella lejana'], 1),
+      TriviaQuestion('¿Cuál es el idioma oficial de Egipto?', ['Árabe', 'Francés', 'Inglés', 'Hebreo'], 0),
+    ],
+  };
+
   /// Banco exclusivo de la "tanda de cuestionados" de Bonus: preguntas
   /// nuevas que no aparecen en el resto del juego, para que esa actividad
   /// no se sienta repetida con lo que ya se jugó en el tablero. No está
@@ -358,10 +472,16 @@ class TriviaBank {
   // que llaman a estos métodos le hacen .shuffle() al resultado, y una
   // lista const es inmutable — sin la copia, .shuffle() tira una excepción
   // (silenciosa en release) y la Cuestionados nunca llega a mostrarse.
+  /// Combina el banco "universal" (física/matemática/historia general, el
+  /// mismo para todos) con el regional del país — así el universal se
+  /// escribe una sola vez y se aprovecha en los tres países, y el pool
+  /// real de cada partida es más grande (menos chance de repetir).
   static List<TriviaQuestion> bancoPorPais(String pais, String bracket) {
     final set = porPais[pais] ?? porPais['otros']!;
     final b = _resolverBracket(bracket);
-    return List.of(set[b] ?? set['adultos']!);
+    final regional = set[b] ?? set['adultos']!;
+    final general = universal[b] ?? universal['adultos']!;
+    return [...general, ...regional];
   }
 
   static List<TriviaQuestion> bancoDificil(String bracket) {

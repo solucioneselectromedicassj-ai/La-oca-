@@ -105,6 +105,23 @@ class SoloGameController extends ChangeNotifier {
   TriviaQuestion? triviaActual;
   String? triviaTipo;
   int triviaSegundosRestantes = 0;
+
+  /// Cuestionados ya mostradas en esta partida (tablero, espectador del
+  /// bot y difícil) — pedido explícito: que no se repita la misma
+  /// pregunta en el mismo juego es prioridad.
+  final Set<String> _preguntasUsadas = {};
+
+  TriviaQuestion _elegirTrivia(List<TriviaQuestion> banco) {
+    final rnd = Random();
+    var intentos = 0;
+    TriviaQuestion pregunta;
+    do {
+      pregunta = banco[rnd.nextInt(banco.length)];
+      intentos++;
+    } while (_preguntasUsadas.contains(pregunta.q) && intentos < 20);
+    _preguntasUsadas.add(pregunta.q);
+    return pregunta;
+  }
   Timer? _triviaTimer;
 
   /// Para GameOverlay.triviaEspectador: qué pregunta le "tocó" al bot y si
@@ -575,9 +592,7 @@ class SoloGameController extends ChangeNotifier {
   Future<void> _mostrarTriviaCasilla(String tipo, int posActual, String jugadorId, String edadBracket, String pais) async {
     await _updatePartida({'estado_turno': 'resolviendo_trivia'});
     final usaDificil = tipo == 'calavera' || etapaConfig!.ocaCarcelUsanBancoDificil;
-    final pregunta = usaDificil
-        ? (TriviaBank.bancoDificil(edadBracket)..shuffle()).first
-        : (TriviaBank.bancoPorPais(pais, edadBracket)..shuffle()).first;
+    final pregunta = usaDificil ? _elegirTrivia(TriviaBank.bancoDificil(edadBracket)) : _elegirTrivia(TriviaBank.bancoPorPais(pais, edadBracket));
 
     triviaActual = pregunta;
     triviaTipo = tipo;
@@ -602,9 +617,7 @@ class SoloGameController extends ChangeNotifier {
   /// sea una caja negra — y después revela si la supo o no.
   Future<void> _mostrarTriviaEspectador(String tipo, int posActual, String jugadorId, String edadBracket, String pais, bool acierto) async {
     final usaDificil = tipo == 'calavera' || etapaConfig!.ocaCarcelUsanBancoDificil;
-    final pregunta = usaDificil
-        ? (TriviaBank.bancoDificil(edadBracket)..shuffle()).first
-        : (TriviaBank.bancoPorPais(pais, edadBracket)..shuffle()).first;
+    final pregunta = usaDificil ? _elegirTrivia(TriviaBank.bancoDificil(edadBracket)) : _elegirTrivia(TriviaBank.bancoPorPais(pais, edadBracket));
 
     triviaActual = pregunta;
     triviaTipo = tipo;
